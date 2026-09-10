@@ -23,8 +23,6 @@ public interface TeamRepository extends JpaRepository<TeamEntity, UUID>, JpaSpec
 
   Optional<TeamEntity> findByKeyAndDeletedAtIsNull(String teamKey);
 
-  Optional<TeamEntity> findByIdAndDeletedAtIsNull(UUID teamId);
-
   @Modifying
   @Query("""
       UPDATE TeamEntity t

@@ -25,7 +25,8 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.common.TeamKeyGenerator;
+import com.example.task_manager.common.KeyGenerator;
+import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ForbiddenException;
@@ -55,7 +56,6 @@ import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.UserSpecification;
 import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
 
 import lombok.RequiredArgsConstructor;
 
@@ -65,9 +65,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class TeamService {
-
-  private static final Set<TeamRole> TEAM_MANAGEMENT_ROLES = Set.of(TeamRole.OWNER, TeamRole.ADMIN);
-  private static final Set<UserRole> GLOBAL_ADMIN_ROLES = Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN);
 
   private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
       "name",
@@ -88,7 +85,8 @@ public class TeamService {
   private final TaskRepository taskRepository;
   private final ActivityEventRepository activityEventRepository;
   private final ActivityEventService activityEventService;
-  private final TeamKeyGenerator teamKeyGenerator;
+  private final TeamAuthorizationService teamAuthorizationService;
+  private final KeyGenerator keyGenerator;
 
   /**
    * Creates a new team for the authenticated user.
@@ -165,7 +163,7 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     validateOwnerMembership(team.getId(), requester.getId());
 
@@ -227,7 +225,7 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     validateOwnerMembership(team.getId(), requester.getId());
 
@@ -283,7 +281,7 @@ public class TeamService {
       Authentication authentication) {
 
     UserEntity requester = getUserByEmail(authentication.getName());
-    boolean isGlobalAdmin = isGlobalAdmin(requester);
+    boolean isGlobalAdmin = teamAuthorizationService.isGlobalAdmin(requester);
 
     Specification<TeamEntity> spec = TeamSpecification.build(
         requester.getId(),
@@ -355,9 +353,9 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(authentication.getName());
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    if (!isGlobalAdmin(requester)) {
+    if (!teamAuthorizationService.isGlobalAdmin(requester)) {
       requireManagerMembership(team.getId(), requester.getId());
     }
 
@@ -387,7 +385,7 @@ public class TeamService {
           return new TeamMeResponse(member.getUser().getId(), member.getRole());
         })
         .orElseGet(() -> {
-          if (isGlobalAdmin(requester)) {
+          if (teamAuthorizationService.isGlobalAdmin(requester)) {
             return new TeamMeResponse(requester.getId(), null);
           }
 
@@ -425,9 +423,9 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    validateManagerMembership(team.getId(), requester.getId());
+    teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
     List<TeamMemberResponse> success = new ArrayList<>();
     List<FailedMember> failed = new ArrayList<>();
@@ -477,7 +475,7 @@ public class TeamService {
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     TeamMemberEntity requesterMembership = requireManagerMembership(team.getId(), requester.getId());
 
@@ -541,9 +539,9 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    validateManagerMembership(team.getId(), requester.getId());
+    teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
     TeamMemberEntity targetMember = requireActiveMembership(team.getId(), targetUserId);
 
@@ -596,7 +594,7 @@ public class TeamService {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
     TeamMemberEntity owner = requireOwnerMembership(team.getId(), requester.getId());
 
     if (requester.getId().equals(newOwnerUserId)) {
@@ -605,7 +603,7 @@ public class TeamService {
 
     TeamMemberEntity newOwner = requireActiveMembership(team.getId(), newOwnerUserId);
 
-    validateGlobalAdmin(newOwner.getUser().getRole());
+    teamAuthorizationService.validateGlobalAdmin(newOwner.getUser().getRole());
 
     owner.setRole(TeamRole.ADMIN);
     newOwner.setRole(TeamRole.OWNER);
@@ -726,15 +724,6 @@ public class TeamService {
 
   /**
    * Ensure team exists
-   * Returns active team
-   */
-  private TeamEntity requireActiveTeam(String teamKey) {
-    return teamRepository.findByKeyAndDeletedAtIsNull(teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-  }
-
-  /**
-   * Ensure team exists
    * Returns team
    */
   private TeamEntity requireTeam(String teamKey) {
@@ -781,7 +770,7 @@ public class TeamService {
    */
   private TeamMemberEntity requireManagerMembership(UUID teamId, UUID userId) {
     TeamMemberEntity membership = requireActiveMembership(teamId, userId);
-    if (!canManageTeam(membership)) {
+    if (!teamAuthorizationService.canManageTeam(membership)) {
       throw new ForbiddenException("Insufficient permissions");
     }
 
@@ -803,7 +792,7 @@ public class TeamService {
 
     UserEntity user = getUserById(request.userId());
 
-    if (hasActiveMembership(team.getId(), request.userId())) {
+    if (teamAuthorizationService.hasActiveMembership(team.getId(), request.userId())) {
       throw new ConflictException("User is already a member of the team");
     }
 
@@ -859,65 +848,21 @@ public class TeamService {
   }
 
   /**
-   * Ensures user is Global Admin or Super Admin
-   */
-  private void validateGlobalAdmin(UserRole role) {
-    if (!GLOBAL_ADMIN_ROLES.contains(role)) {
-      throw new ForbiddenException("You are not allowed to perform this action");
-    }
-  }
-
-  /**
-   * Ensures:
-   * - User is Team member
-   * - Role is Team OWNER or ADMIN
-   */
-  private void validateManagerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity member = requireActiveMembership(teamId, userId);
-
-    if (!canManageTeam(member)) {
-      throw new ForbiddenException("Insufficient permissions");
-    }
-
-  }
-
-  /**
    * Ensures:
    * - User is able to read team
    * - User is Global admin or team member
    */
   private void validateCanReadTeam(TeamEntity team, UserEntity requester) {
-    if (isGlobalAdmin(requester)) {
+    if (teamAuthorizationService.isGlobalAdmin(requester)) {
       return;
     }
 
     TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(team.getId(), requester.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
 
-    if (team.getDeletedAt() != null && !canManageTeam(membership)) {
+    if (team.getDeletedAt() != null && !teamAuthorizationService.canManageTeam(membership)) {
       throw new ResourceNotFoundException("Team not found");
     }
-  }
-
-  /**
-   * Ensures is Global Admin or Super Admin
-   */
-  private boolean isGlobalAdmin(UserEntity user) {
-    return GLOBAL_ADMIN_ROLES.contains(user.getRole());
-  }
-
-  /**
-   * Ensures user is an active member
-   */
-  private boolean hasActiveMembership(UUID teamId, UUID userId) {
-    return teamMemberRepository.existsByTeamIdAndUserIdAndTeamDeletedAtIsNull(teamId, userId);
-  }
-
-  /**
-   * Ensures is Team Owner or Admin
-   */
-  private boolean canManageTeam(TeamMemberEntity membership) {
-    return TEAM_MANAGEMENT_ROLES.contains(membership.getRole());
   }
 
   private String normalizeTeamName(String name) {
@@ -987,7 +932,7 @@ public class TeamService {
     String key;
 
     do {
-      key = teamKeyGenerator.generate();
+      key = keyGenerator.generate();
     } while (teamRepository.existsByKey(key));
 
     return key;

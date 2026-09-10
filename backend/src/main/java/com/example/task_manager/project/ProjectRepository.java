@@ -18,9 +18,15 @@ import com.example.task_manager.project.entity.ProjectStatus;
  */
 public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID>, JpaSpecificationExecutor<ProjectEntity> {
 
+  Optional<ProjectEntity> findByKeyAndTeamKey(String projectKey, String teamKey);
+
   Optional<ProjectEntity> findByIdAndTeamId(UUID projectId, UUID teamId);
 
+  Optional<ProjectEntity> findByKeyAndTeamIdAndDeletedAtIsNull(String projectKey, UUID teamId);
+
   Optional<ProjectEntity> findByIdAndTeamIdAndDeletedAtIsNull(UUID projectId, UUID teamId);
+
+  boolean existsByKey(String projectKey);
 
   boolean existsByIdAndTeamIdAndDeletedAtIsNull(UUID projectId, UUID teamId);
 
