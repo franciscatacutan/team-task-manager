@@ -106,14 +106,12 @@ public class TaskService {
       validateAssignment(teamId, request.assigneeId(), request.supportId());
     }
 
-    String trimmedName = normalizeTaskName(request.name());
-
     Long taskNumber = project.getNextTaskNumber();
 
     TaskEntity task = new TaskEntity();
     task.setProject(project);
     task.setTaskNumber(taskNumber);
-    task.setName(trimmedName);
+    task.setName(request.name().trim());
     task.setDescription(request.description());
     task.setStatus(TaskStatus.TODO);
     task.setPriority(request.priority());
@@ -883,10 +881,6 @@ public class TaskService {
     }
 
     return canManageTeam;
-  }
-
-  private String normalizeTaskName(String name) {
-    return name.trim().toLowerCase(Locale.ROOT);
   }
 
   private TaskDetailsUpdateMessage buildTaskDetailsUpdateMessage(

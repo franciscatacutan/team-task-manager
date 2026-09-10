@@ -30,6 +30,7 @@ public class UserSeederService {
           email,
           "Demo" + number,
           "User" + number,
+          "Admin123@",
           "Admin123@"), null, null);
 
       UserEntity user = userRepository.findByEmail(email)

@@ -17,6 +17,7 @@ import com.example.task_manager.auth.dto.AuthResponse.User;
 import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.config.security.CustomUserPrincipal;
 import com.example.task_manager.exception.api.AuthException;
+import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.EmailAlreadyInUseException;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
@@ -41,13 +42,17 @@ public class AuthService {
   public AuthSession register(RegisterRequest request, String ipAddress, String userAgent) {
     String normalizedEmail = normalizeEmail(request.email());
 
+    if (!request.password().equals(request.confirmPassword())) {
+      throw new BadRequestInputException("Passwords do not match");
+    }
+
     if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
       throw new EmailAlreadyInUseException();
     }
 
     UserEntity user = new UserEntity();
-    user.setFirstName(request.firstName());
-    user.setLastName(request.lastName());
+    user.setFirstName(request.firstName().trim());
+    user.setLastName(request.lastName().trim());
     user.setEmail(normalizedEmail);
     user.setRole(UserRole.USER);
     user.setPassword(passwordEncoder.encode(request.password()));

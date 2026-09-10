@@ -35,7 +35,7 @@ public class AuthController {
     AuthService.AuthSession session = authService.register(request, extractClientIp(httpRequest),
         httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
-    return ResponseEntity.ok(session.response());
+    return ResponseEntity.status(HttpStatus.CREATED).body(session.response());
   }
 
   /**

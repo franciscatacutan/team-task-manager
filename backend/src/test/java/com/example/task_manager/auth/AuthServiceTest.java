@@ -68,6 +68,7 @@ class AuthServiceTest {
         email,
         "Test",
         "Name",
+        password,
         password);
 
     when(userRepository.existsByEmailIgnoreCase(email))
@@ -116,6 +117,7 @@ class AuthServiceTest {
         email,
         "John",
         "Doe",
+        "password123",
         "password123");
 
     when(userRepository.existsByEmailIgnoreCase(email))
