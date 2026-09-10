@@ -25,6 +25,7 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.common.TeamKeyGenerator;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ForbiddenException;
@@ -87,6 +88,7 @@ public class TeamService {
   private final TaskRepository taskRepository;
   private final ActivityEventRepository activityEventRepository;
   private final ActivityEventService activityEventService;
+  private final TeamKeyGenerator teamKeyGenerator;
 
   /**
    * Creates a new team for the authenticated user.
@@ -109,6 +111,7 @@ public class TeamService {
     TeamEntity team = new TeamEntity();
     team.setName(request.name().trim());
     team.setDescription(request.description());
+    team.setKey(generateUniqueKey());
     team.setOwner(owner);
     team.setCreatedBy(owner);
     team.setOwnerChangedAt(Instant.now());
@@ -156,14 +159,15 @@ public class TeamService {
   @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
   public TeamResponse updateTeam(
-      UUID teamId,
+      String teamKey,
       UpdateTeamRequest request,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    validateOwnerMembership(teamId, requester.getId());
 
-    TeamEntity team = requireActiveTeam(teamId);
+    TeamEntity team = requireActiveTeam(teamKey);
+
+    validateOwnerMembership(team.getId(), requester.getId());
 
     String previousName = team.getName();
     String previousDescription = team.getDescription();
@@ -218,20 +222,20 @@ public class TeamService {
   @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
   public void deleteTeam(
-      UUID teamId,
+      String teamKey,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    validateOwnerMembership(teamId, requester.getId());
+    TeamEntity team = requireActiveTeam(teamKey);
 
-    TeamEntity team = requireActiveTeam(teamId);
+    validateOwnerMembership(team.getId(), requester.getId());
 
     Instant now = Instant.now();
     List<TaskEntity> activeTasks = taskRepository
-        .findAllByProjectTeamIdAndDeletedAtIsNull(teamId);
+        .findAllByProjectTeamIdAndDeletedAtIsNull(team.getId());
     List<ProjectEntity> activeProjects = projectRepository
-        .findAllByTeamIdAndDeletedAtIsNull(teamId);
+        .findAllByTeamIdAndDeletedAtIsNull(team.getId());
 
     team.setDeletedAt(now);
     team.setDeletedBy(requester);
@@ -301,12 +305,12 @@ public class TeamService {
    * Only Global Admin, Owner and Team Admin can view deleted team
    */
   @Transactional(readOnly = true)
-  public TeamResponse getTeamById(
-      UUID teamId,
+  public TeamResponse getTeamByKey(
+      String teamKey,
       Authentication authentication) {
 
     UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
+    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
 
     validateCanReadTeam(team, requester);
 
@@ -319,16 +323,16 @@ public class TeamService {
   @Transactional(readOnly = true)
   public PageResponse<TeamMemberResponse> getTeamMembers(
       TeamMemberSearchRequest request,
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
     UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
+    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
     validateCanReadTeam(team, requester);
 
     Specification<TeamMemberEntity> spec = TeamMemberSpecification.build(
-        teamId,
+        team.getId(),
         request.search(),
         request.roles());
 
@@ -345,21 +349,19 @@ public class TeamService {
   @Transactional(readOnly = true)
   public PageResponse<UserResponse> getAvailableUsers(
       String search,
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
     UserEntity requester = getUserByEmail(authentication.getName());
 
-    boolean isGlobalAdmin = isGlobalAdmin(requester);
+    TeamEntity team = requireActiveTeam(teamKey);
 
-    if (isGlobalAdmin) {
-      requireActiveTeam(teamId);
-    } else {
-      requireManagerMembership(teamId, requester.getId());
+    if (!isGlobalAdmin(requester)) {
+      requireManagerMembership(team.getId(), requester.getId());
     }
 
-    Specification<UserEntity> spec = UserSpecification.availableUsers(teamId, search);
+    Specification<UserEntity> spec = UserSpecification.availableUsers(teamKey, search);
 
     pageable = requireSortable(pageable);
 
@@ -372,12 +374,14 @@ public class TeamService {
    * Returns user's team role.
    */
   @Transactional(readOnly = true)
-  public TeamMeResponse getMyTeamRole(UUID teamId, String requesterEmail) {
+  public TeamMeResponse getMyTeamRole(
+      String teamKey,
+      String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    TeamEntity team = requireTeam(teamId);
+    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
 
-    return teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
+    return teamMemberRepository.findByTeamIdAndUserId(team.getId(), requester.getId())
         .map(member -> {
           validateCanReadTeam(team, requester);
           return new TeamMeResponse(member.getUser().getId(), member.getRole());
@@ -396,15 +400,15 @@ public class TeamService {
    */
   @Transactional(readOnly = true)
   public PageResponse<TeamActivityResponse> getTeamActivities(
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
     UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
+    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
     validateCanReadTeam(team, requester);
 
-    Page<ActivityEventEntity> page = activityEventRepository.findTeamActivity(teamId, pageable);
+    Page<ActivityEventEntity> page = activityEventRepository.findTeamActivity(team.getId(), pageable);
 
     return toPageResponse(page, activityEventService::toTeamActivitiesResponse);
   }
@@ -415,15 +419,15 @@ public class TeamService {
    */
   @Transactional
   public AddTeamMembersResponse addMembers(
-      UUID teamId,
+      String teamKey,
       AddTeamMembersRequest request,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    validateManagerMembership(teamId, requester.getId());
+    TeamEntity team = requireActiveTeam(teamKey);
 
-    TeamEntity team = requireActiveTeam(teamId);
+    validateManagerMembership(team.getId(), requester.getId());
 
     List<TeamMemberResponse> success = new ArrayList<>();
     List<FailedMember> failed = new ArrayList<>();
@@ -468,12 +472,14 @@ public class TeamService {
    */
   @Transactional
   public RemoveTeamMembersResponse removeMembers(
-      UUID teamId,
+      String teamKey,
       RemoveTeamMembersRequest request,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    TeamMemberEntity requesterMembership = requireManagerMembership(teamId, requester.getId());
+    TeamEntity team = requireActiveTeam(teamKey);
+
+    TeamMemberEntity requesterMembership = requireManagerMembership(team.getId(), requester.getId());
 
     List<UUID> success = new ArrayList<>();
     List<FailedMember> failed = new ArrayList<>();
@@ -481,8 +487,7 @@ public class TeamService {
     for (UUID userId : request.userIds()) {
 
       try {
-        TeamMemberEntity memberToRemove = requireActiveMembership(teamId, userId);
-        TeamEntity team = memberToRemove.getTeam();
+        TeamMemberEntity memberToRemove = requireActiveMembership(team.getId(), userId);
 
         if (memberToRemove.getRole() == TeamRole.OWNER) {
           throw new IllegalStateException("Transfer ownership before removing OWNER");
@@ -529,16 +534,18 @@ public class TeamService {
    */
   @Transactional
   public TeamMemberResponse changeTeamRole(
-      UUID teamId,
+      String teamKey,
       UUID targetUserId,
       TeamRole newRole,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    validateManagerMembership(teamId, requester.getId());
+    TeamEntity team = requireActiveTeam(teamKey);
 
-    TeamMemberEntity targetMember = requireActiveMembership(teamId, targetUserId);
+    validateManagerMembership(team.getId(), requester.getId());
+
+    TeamMemberEntity targetMember = requireActiveMembership(team.getId(), targetUserId);
 
     if (targetMember.getRole() == TeamRole.OWNER) {
       throw new ConflictException("Owner role cannot be modified.");
@@ -583,19 +590,20 @@ public class TeamService {
   @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
   @Transactional
   public TeamMemberResponse transferOwnership(
-      UUID teamId,
+      String teamKey,
       UUID newOwnerUserId,
       String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
 
-    TeamMemberEntity owner = requireOwnerMembership(teamId, requester.getId());
+    TeamEntity team = requireActiveTeam(teamKey);
+    TeamMemberEntity owner = requireOwnerMembership(team.getId(), requester.getId());
 
     if (requester.getId().equals(newOwnerUserId)) {
       throw new ConflictException("You are already the OWNER");
     }
 
-    TeamMemberEntity newOwner = requireActiveMembership(teamId, newOwnerUserId);
+    TeamMemberEntity newOwner = requireActiveMembership(team.getId(), newOwnerUserId);
 
     validateGlobalAdmin(newOwner.getUser().getRole());
 
@@ -663,7 +671,7 @@ public class TeamService {
     boolean isDeleted = team.getDeletedAt() != null;
 
     return new TeamResponse(
-        team.getId(),
+        team.getKey(),
         team.getName(),
         team.getDescription(),
         user,
@@ -720,8 +728,8 @@ public class TeamService {
    * Ensure team exists
    * Returns active team
    */
-  private TeamEntity requireActiveTeam(UUID teamId) {
-    return teamRepository.findByIdAndDeletedAtIsNull(teamId)
+  private TeamEntity requireActiveTeam(String teamKey) {
+    return teamRepository.findByKeyAndDeletedAtIsNull(teamKey)
         .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
   }
 
@@ -729,8 +737,8 @@ public class TeamService {
    * Ensure team exists
    * Returns team
    */
-  private TeamEntity requireTeam(UUID teamId) {
-    return teamRepository.findById(teamId)
+  private TeamEntity requireTeam(String teamKey) {
+    return teamRepository.findByKey(teamKey)
         .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
   }
 
@@ -916,6 +924,10 @@ public class TeamService {
     return name.trim().toLowerCase(Locale.ROOT);
   }
 
+  private String normalizeTeamKey(String key) {
+    return key.trim().toUpperCase(Locale.ROOT);
+  }
+
   private TeamDetailsUpdateMessage buildTeamUpdateMessage(
       String previousName,
       String previousDescription,
@@ -970,4 +982,14 @@ public class TeamService {
         subjectUser == null ? null : activityEventService.reference(subjectUser));
   }
 
+  private String generateUniqueKey() {
+
+    String key;
+
+    do {
+      key = teamKeyGenerator.generate();
+    } while (teamRepository.existsByKey(key));
+
+    return key;
+  }
 }

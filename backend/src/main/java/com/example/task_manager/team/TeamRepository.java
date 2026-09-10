@@ -17,7 +17,13 @@ import com.example.task_manager.team.entity.TeamEntity;
 public interface TeamRepository extends JpaRepository<TeamEntity, UUID>, JpaSpecificationExecutor<TeamEntity> {
   boolean existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(UUID teamId, String name);
 
-  Optional<TeamEntity> findByIdAndDeletedAtIsNull(UUID id);
+  Optional<TeamEntity> findByKey(String teamKey);
+
+  boolean existsByKey(String teamKey);
+
+  Optional<TeamEntity> findByKeyAndDeletedAtIsNull(String teamKey);
+
+  Optional<TeamEntity> findByIdAndDeletedAtIsNull(UUID teamId);
 
   @Modifying
   @Query("""

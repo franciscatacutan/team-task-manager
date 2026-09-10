@@ -7,7 +7,7 @@ import java.util.UUID;
  * DTO for returning team and owner information.
  */
 public record TeamResponse(
-    UUID id,
+    String key,
     String name,
     String description,
     User owner,

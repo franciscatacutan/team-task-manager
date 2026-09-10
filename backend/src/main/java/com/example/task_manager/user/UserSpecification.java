@@ -51,7 +51,7 @@ public class UserSpecification {
   }
 
   public static Specification<UserEntity> availableUsers(
-      UUID teamId,
+      String teamKey,
       String search) {
     return (root, query, cb) -> {
 
@@ -61,7 +61,7 @@ public class UserSpecification {
       var subRoot = subquery.from(TeamMemberEntity.class);
 
       subquery.select(subRoot.get("user").get("id"))
-          .where(cb.equal(subRoot.get("team").get("id"), teamId));
+          .where(cb.equal(subRoot.get("team").get("key"), teamKey));
 
       predicates = cb.and(predicates,
           cb.not(root.get("id").in(subquery)));

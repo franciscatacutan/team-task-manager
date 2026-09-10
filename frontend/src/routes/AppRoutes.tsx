@@ -56,7 +56,7 @@ export default function AppRoutes() {
           <Route path="/users/:userId" element={<ProfilePage />} />
 
           <Route
-            path="/teams/:teamId"
+            path="/teams/:teamKey"
             element={
               <ProtectedRoute>
                 <WorkspaceLayout />
