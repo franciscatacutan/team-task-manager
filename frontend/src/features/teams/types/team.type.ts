@@ -51,7 +51,7 @@ type User = {
 };
 
 type Project = {
-  id: string;
+  key: string;
   title: string;
 };
 

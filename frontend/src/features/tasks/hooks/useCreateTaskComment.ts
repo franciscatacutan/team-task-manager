@@ -4,7 +4,7 @@ import { createTaskComment } from "../api/taskApi";
 export const useCreateTaskComment = (
   teamKey: string,
   projectKey: string,
-  taskNumber: string,
+  taskNumber: number,
 ) => {
   const queryClient = useQueryClient();
 

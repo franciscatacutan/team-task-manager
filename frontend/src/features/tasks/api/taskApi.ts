@@ -102,6 +102,7 @@ export const updateTaskStatus = async (
   taskNumber: number,
   status: string,
 ) => {
+            console.log("TEST3")
   const response = await apiClient.patch(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/status`,
     { status },

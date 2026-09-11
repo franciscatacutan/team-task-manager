@@ -286,13 +286,13 @@ export default function TeamOverview() {
                   key={activity.id}
                   item={activity}
                   interactive={Boolean(
-                    activity.project?.id && activity.task?.taskNumber,
+                    activity.project?.key && activity.task?.taskNumber,
                   )}
                   onOpenTask={
-                    activity.project?.id && activity.task?.taskNumber
+                    activity.project?.key && activity.task?.taskNumber
                       ? () =>
                           navigate(
-                            `/teams/${team.key}/projects/${activity.project?.id}/tasks/${activity.task?.taskNumber}`,
+                            `/teams/${team.key}/projects/${activity.project?.key}/tasks/${activity.task?.taskNumber}`,
                           )
                       : undefined
                   }

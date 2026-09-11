@@ -112,7 +112,8 @@ export default function TaskMetadata({
 
   const updateStatus = useUpdateTaskStatus(teamKey, projectKey);
 
-  function handleStatusChange(taskNumber: string, status: TaskStatus) {
+  function handleStatusChange(taskNumber: number, status: TaskStatus) {
+    console.log("TEST1")
     updateStatus.mutate({
       taskNumber,
       status,

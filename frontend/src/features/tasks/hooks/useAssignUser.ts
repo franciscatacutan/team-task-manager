@@ -4,7 +4,7 @@ import { assignUser } from "../api/taskApi";
 export const useAssignUser = (
   teamKey: string,
   projectKey: string,
-  taskNumber: string,
+  taskNumber: number,
 ) => {
   const queryClient = useQueryClient();
 

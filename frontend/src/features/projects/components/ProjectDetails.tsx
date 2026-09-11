@@ -187,7 +187,7 @@ export default function ProjectDetails() {
     setPage(0);
   };
 
-  function handleStatusChange(taskNumber: string, status: TaskStatus) {
+  function handleStatusChange(taskNumber: number, status: TaskStatus) {
     updateStatus.mutate({
       taskNumber,
       status,

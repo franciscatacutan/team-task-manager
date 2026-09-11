@@ -45,7 +45,7 @@ interface Props {
   teamKey: string;
   projectKey: string;
   params: Params;
-  onStatusChange: (taskNumber: string, status: TaskStatus) => void;
+  onStatusChange: (taskNumber: number, status: TaskStatus) => void;
   onOpenTask: (task: Task) => void;
 }
 
@@ -93,7 +93,7 @@ export default function TaskBoard({
 
     if (!over) return;
 
-    const activeId = active.id as string;
+    const activeId = active.id as number;
     const overId = over.id as string;
 
     const activeTask = active.data.current?.task as Task | undefined;

@@ -63,7 +63,7 @@ export default function TaskList({
 }: Props) {
   const navigate = useNavigate();
 
-  function openTask(taskNumber: string) {
+  function openTask(taskNumber: number) {
     navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
   }
 

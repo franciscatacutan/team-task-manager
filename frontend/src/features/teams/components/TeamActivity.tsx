@@ -24,7 +24,7 @@ export default function TeamActivity() {
     sort,
   });
 
-  function openTask(projectKey: string, taskNumber: string) {
+  function openTask(projectKey: string, taskNumber: number) {
     navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
   }
 
@@ -66,7 +66,7 @@ export default function TeamActivity() {
       }}
       behavior={{
         onOpenTask: (item) => {
-          if ("project" in item && item.project?.id && item.task?.id) {
+          if ("project" in item && item.project?.key && item.task?.taskNumber) {
             openTask(item.project.key, item.task.taskNumber);
           }
         },

@@ -9,7 +9,7 @@ import AutoResizeTextarea from "../../../common/components/AutoResizeTextareaFor
 interface Props {
   teamKey: string;
   projectKey: string;
-  taskNumber: string;
+  taskNumber: number;
 }
 
 export default function TaskUCommentForm({ teamKey, projectKey, taskNumber }: Props) {
