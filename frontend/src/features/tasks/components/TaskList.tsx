@@ -63,8 +63,8 @@ export default function TaskList({
 }: Props) {
   const navigate = useNavigate();
 
-  function openTask(taskId: string) {
-    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`);
+  function openTask(taskNumber: string) {
+    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
   }
 
   return (
@@ -124,8 +124,8 @@ export default function TaskList({
               <TableBody>
                 {tasks.map((task) => (
                   <TableRow
-                    key={task.id}
-                    onClick={() => openTask(task.id)}
+                    key={task.taskNumber}
+                    onClick={() => openTask(task.taskNumber)}
                     className="group cursor-pointer transition-colors hover:bg-muted/40"
                   >
                     <TableCell className="px-4 py-3">

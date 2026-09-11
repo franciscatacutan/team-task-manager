@@ -36,10 +36,10 @@ export const getTasks = async (
 export const getTask = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
 ) => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
   );
 
   return response.data;
@@ -61,11 +61,11 @@ export const createTask = async (
 export const updateTask = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   data: UpdateTaskInput,
 ): Promise<Task> => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
     data,
   );
 
@@ -75,21 +75,21 @@ export const updateTask = async (
 export const deleteTask = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
 ) => {
   await apiClient.delete(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
   );
 };
 
 export const getTaskActivities = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   params: { page: number; size: number; sort?: string },
 ): Promise<PageResponse<TaskActivity>> => {
   const res = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/activities`,
     { params },
   );
 
@@ -99,11 +99,11 @@ export const getTaskActivities = async (
 export const updateTaskStatus = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   status: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/status`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/status`,
     { status },
   );
 
@@ -113,11 +113,11 @@ export const updateTaskStatus = async (
 export const assignUser = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/assignee/${userId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/assignee/${userId}`,
   );
 
   return response.data;
@@ -126,11 +126,11 @@ export const assignUser = async (
 export const assignSupportUser = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/support/${userId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/support/${userId}`,
   );
 
   return response.data;
@@ -139,11 +139,11 @@ export const assignSupportUser = async (
 export const createTaskComment = async (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   message: string,
 ) => {
   const response = await apiClient.post(
-    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/activities`,
     { message },
   );
 

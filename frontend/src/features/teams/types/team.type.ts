@@ -5,7 +5,7 @@ import type {
 } from "../../../common/types/activity.types";
 
 export interface Team {
-  id: string;
+  key: string;
   name: string;
   description?: string;
   owner?: User;
@@ -56,7 +56,7 @@ type Project = {
 };
 
 type Task = {
-  id: string;
+  taskNumber: number;
   title: string;
 };
 

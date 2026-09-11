@@ -16,7 +16,7 @@ export default function TaskDescription({
   task,
   permissions,
 }: Props) {
-  const updateTask = useUpdateTask(teamKey, projectKey, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <section className="space-y-2 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">

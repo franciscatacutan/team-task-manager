@@ -53,15 +53,15 @@ export default function TaskMetadata({
   const currentAssigneeId = task.assignedUser?.id;
   const currentSupportId = task.supportUser?.id;
 
-  const assignUserMutation = useAssignUser(teamKey, projectKey, task.id);
+  const assignUserMutation = useAssignUser(teamKey, projectKey, task.taskNumber);
 
   const assignSupportUserMutation = useAssignSupportUser(
     teamKey,
     projectKey,
-    task.id,
+    task.taskNumber,
   );
 
-  const updateTaskMutation = useUpdateTask(teamKey, projectKey, task.id);
+  const updateTaskMutation = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   function handleAssignUser(userId: string | null) {
     if (!userId || userId === currentAssigneeId) return;
@@ -112,9 +112,9 @@ export default function TaskMetadata({
 
   const updateStatus = useUpdateTaskStatus(teamKey, projectKey);
 
-  function handleStatusChange(taskId: string, status: TaskStatus) {
+  function handleStatusChange(taskNumber: string, status: TaskStatus) {
     updateStatus.mutate({
-      taskId,
+      taskNumber,
       status,
     });
   }
@@ -132,7 +132,7 @@ export default function TaskMetadata({
             permissions.canChangeStatus ? (
               <StatusSelect
                 value={task.status}
-                onChange={(status) => handleStatusChange(task.id, status)}
+                onChange={(status) => handleStatusChange(task.taskNumber, status)}
               />
             ) : (
               <span

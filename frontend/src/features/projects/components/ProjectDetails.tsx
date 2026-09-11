@@ -187,9 +187,9 @@ export default function ProjectDetails() {
     setPage(0);
   };
 
-  function handleStatusChange(taskId: string, status: TaskStatus) {
+  function handleStatusChange(taskNumber: string, status: TaskStatus) {
     updateStatus.mutate({
-      taskId,
+      taskNumber,
       status,
     });
   }
@@ -356,7 +356,9 @@ export default function ProjectDetails() {
             <ProjectActivity
               teamKey={teamKey}
               projectKey={projectKey}
-              onOpenTask={(taskId) => setSelectedTask({ id: taskId } as Task)}
+              onOpenTask={(taskNumber) =>
+                setSelectedTask({ taskNumber: taskNumber } as Task)
+              }
             />
           </TabsContent>
           <TabsContent value="insights" className="flex flex-col min-h-0 gap-4">
@@ -366,7 +368,10 @@ export default function ProjectDetails() {
               isError={isProjectInsightsError}
             />
             <div className="pb-4">
-              <ProjectObservabilityLogs teamKey={teamKey} projectKey={projectKey} />
+              <ProjectObservabilityLogs
+                teamKey={teamKey}
+                projectKey={projectKey}
+              />
             </div>
           </TabsContent>
         </div>
@@ -390,7 +395,7 @@ export default function ProjectDetails() {
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onTaskDeleted={() => setSelectedTask(null)}
-          taskId={selectedTask.id}
+          taskNumber={selectedTask.taskNumber}
           teamKey={teamKey}
           projectKey={projectKey}
         />

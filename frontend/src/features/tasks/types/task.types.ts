@@ -2,7 +2,6 @@ import type { TaskPriority } from "../utils/taskPriority";
 import type { TaskStatus } from "../utils/task.constants";
 
 export type Task = {
-  id: string;
   taskNumber: number;
   title: string;
   description?: string;

@@ -1,10 +1,4 @@
-import {
-  Clock3,
-  //  ShieldCheck,
-  Trash2,
-  //  UserPlus,
-  Users,
-} from "lucide-react";
+import { Clock3, Trash2, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDate } from "@/common/utils/dateFormatter";

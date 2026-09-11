@@ -9,7 +9,7 @@ import {
 interface Props {
   teamKey: string;
   projectKey: string;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (taskNumber: number) => void;
 }
 
 export default function ProjectActivity({
@@ -66,8 +66,8 @@ export default function ProjectActivity({
       }}
       behavior={{
         onOpenTask: (item) => {
-          if (item.task?.id) {
-            onOpenTask(item.task.id);
+          if (item.task?.taskNumber) {
+            onOpenTask(item.task.taskNumber);
           }
         },
       }}

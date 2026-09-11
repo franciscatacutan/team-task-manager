@@ -18,7 +18,7 @@ import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout"
 interface Props {
   open: boolean;
   onClose: () => void;
-  taskId: string;
+  taskNumber: number;
   teamKey: string;
   projectKey: string;
   onTaskDeleted: () => void;
@@ -27,12 +27,12 @@ interface Props {
 export default function TaskModal({
   open,
   onClose,
-  taskId,
+  taskNumber,
   teamKey,
   projectKey,
   onTaskDeleted,
 }: Props) {
-  const { data: task, isLoading } = useTask(teamKey, projectKey, taskId);
+  const { data: task, isLoading } = useTask(teamKey, projectKey, taskNumber);
   const user = getUserFromToken();
   const { data: teamMe } = useTeamMe(teamKey);
   const { team } = useOutletContext<WorkspaceOutletContext>();
@@ -81,14 +81,14 @@ export default function TaskModal({
                 <TaskCommentForm
                   teamKey={teamKey}
                   projectKey={projectKey}
-                  taskId={task.id}
+                  taskNumber={task.taskNumber}
                 />
               )}
 
               <TaskActivity
                 teamKey={teamKey}
                 projectKey={projectKey}
-                taskId={task.id}
+                taskNumber={task.taskNumber}
                 className="min-h-[22rem] xl:min-h-0 xl:flex-1"
               />
             </div>

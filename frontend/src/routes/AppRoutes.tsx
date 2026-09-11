@@ -71,7 +71,7 @@ export default function AppRoutes() {
             <Route path="projects/:projectKey" element={<ProjectDetails />} />
 
             <Route
-              path="projects/:projectKey/tasks/:taskId"
+              path="projects/:projectKey/tasks/:taskNumber"
               element={<TaskDetails />}
             />
           </Route>

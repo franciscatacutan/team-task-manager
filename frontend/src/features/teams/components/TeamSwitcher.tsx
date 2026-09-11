@@ -36,7 +36,7 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const currentTeam = teams.find((t) => t.id === teamKey);
+  const currentTeam = teams.find((t) => t.key === teamKey);
 
   function switchTeam(id: string) {
     if (id === teamKey) return;

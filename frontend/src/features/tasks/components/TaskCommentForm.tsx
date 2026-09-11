@@ -9,13 +9,13 @@ import AutoResizeTextarea from "../../../common/components/AutoResizeTextareaFor
 interface Props {
   teamKey: string;
   projectKey: string;
-  taskId: string;
+  taskNumber: string;
 }
 
-export default function TaskUCommentForm({ teamKey, projectKey, taskId }: Props) {
+export default function TaskUCommentForm({ teamKey, projectKey, taskNumber }: Props) {
   const [message, setMessage] = useState("");
 
-  const createUpdate = useCreateTaskComment(teamKey, projectKey, taskId);
+  const createUpdate = useCreateTaskComment(teamKey, projectKey, taskNumber);
 
   const handleSubmit = () => {
     if (!message.trim()) return;

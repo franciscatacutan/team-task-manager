@@ -45,7 +45,7 @@ interface Props {
   teamKey: string;
   projectKey: string;
   params: Params;
-  onStatusChange: (taskId: string, status: TaskStatus) => void;
+  onStatusChange: (taskNumber: string, status: TaskStatus) => void;
   onOpenTask: (task: Task) => void;
 }
 
@@ -210,11 +210,11 @@ function BoardColumn({
           </div>
         ) : (
           <SortableContext
-            items={tasks.map((t) => t.id)}
+            items={tasks.map((t) => t.taskNumber)}
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <SortableTask key={task.id} task={task} onOpenTask={onOpenTask} />
+              <SortableTask key={task.taskNumber} task={task} onOpenTask={onOpenTask} />
             ))}
           </SortableContext>
         )}
@@ -250,7 +250,7 @@ function SortableTask({
     transition,
     isDragging,
   } = useSortable({
-    id: task.id,
+    id: task.taskNumber,
     data: { task },
   });
 

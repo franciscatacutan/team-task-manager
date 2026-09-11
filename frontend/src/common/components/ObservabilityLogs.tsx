@@ -190,7 +190,7 @@ function AuditLogList({
                     message: log.summary,
                   }),
                   log.projectKey ? `Project ${shortId(log.projectKey)}` : null,
-                  log.taskId ? `Task ${shortId(log.taskId)}` : null,
+                  log.taskNumber ? `Task ${shortId(log.taskNumber)}` : null,
                 ]}
               />
             ))}
@@ -266,7 +266,7 @@ function SystemEventList({
                   event.projectKey
                     ? `Project ${shortId(event.projectKey)}`
                     : null,
-                  event.taskId ? `Task ${shortId(event.taskId)}` : null,
+                  event.taskNumber ? `Task ${shortId(event.taskNumber)}` : null,
                 ]}
               />
             ))}

@@ -25,7 +25,7 @@ export function ActivityItem({
   interactive = true,
 }: {
   item: ActivityRecord;
-  onOpenTask?: (taskId: string) => void;
+  onOpenTask?: (taskNumber: number) => void;
   interactive?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -46,26 +46,27 @@ export function ActivityItem({
     ("project" in item ? item.project?.title : null) ??
     ("details" in item ? item.details?.team?.label : null) ??
     "activity";
-  const taskId = item.task?.id;
+  const taskNumber = item.task?.taskNumber;
   const projectTitle = hasProject ? (item.project?.title ?? null) : null;
-  const isInteractive = interactive && Boolean(onOpenTask) && Boolean(taskId);
+  const isInteractive =
+    interactive && Boolean(onOpenTask) && Boolean(taskNumber);
 
   return (
     <article
       onClick={() => {
-        if (isInteractive && onOpenTask && taskId) {
-          onOpenTask(taskId);
+        if (isInteractive && onOpenTask && taskNumber) {
+          onOpenTask(taskNumber);
         }
       }}
       onKeyDown={(e) => {
         if (
           (e.key === "Enter" || e.key === " ") &&
-            isInteractive &&
-            onOpenTask &&
-            taskId
+          isInteractive &&
+          onOpenTask &&
+          taskNumber
         ) {
           e.preventDefault();
-          onOpenTask(taskId);
+          onOpenTask(taskNumber);
         }
       }}
       role={isInteractive ? "button" : undefined}
@@ -149,7 +150,7 @@ export function ActivityItem({
             )}
           </div>
 
-          {isInteractive && taskId && (
+          {isInteractive && taskNumber && (
             <div className="hidden shrink-0 items-center md:flex">
               <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
                 Open

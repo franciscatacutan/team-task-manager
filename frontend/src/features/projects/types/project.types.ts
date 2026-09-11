@@ -1,7 +1,7 @@
 export type ProjectStatus = "ACTIVE" | "ON_HOLD" | "COMPLETED" | "DELETED";
 
 export type Project = {
-  id: string;
+  key: string;
   name: string;
   description?: string;
   status: ProjectStatus;
@@ -31,7 +31,7 @@ type User = {
 };
 
 type Task = {
-  id: string;
+  taskNumber: number;
   title: string;
 };
 

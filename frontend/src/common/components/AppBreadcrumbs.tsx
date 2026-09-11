@@ -23,10 +23,10 @@ const workspaceSectionLabels: Record<string, string> = {
 
 export default function AppBreadcrumbs() {
   const { pathname } = useLocation();
-  const { teamKey, projectKey, taskId, userId } = useParams<{
+  const { teamKey, projectKey, taskNumber, userId } = useParams<{
     teamKey?: string;
     projectKey?: string;
-    taskId?: string;
+    taskNumber?: string;
     userId?: string;
   }>();
 
@@ -47,9 +47,9 @@ export default function AppBreadcrumbs() {
   });
 
   const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ["task", teamKey, projectKey, taskId],
-    queryFn: () => getTask(teamKey!, projectKey!, taskId!),
-    enabled: !!teamKey && !!projectKey && !!taskId,
+    queryKey: ["task", teamKey, projectKey, taskNumber],
+    queryFn: () => getTask(teamKey!, projectKey!, Number(taskNumber)),
+    enabled: !!teamKey && !!projectKey && !!taskNumber,
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
@@ -63,14 +63,14 @@ export default function AppBreadcrumbs() {
     segments,
     teamKey,
     projectKey,
-    taskId,
+    taskNumber,
     userId,
     teamName: team?.name,
     projectName: project?.name,
     taskLabel: task
       ? `#${task.taskNumber} ${task.title}`
-      : taskId
-        ? `Task ${shortId(taskId)}`
+      : taskNumber
+        ? `Task ${taskNumber}`
         : undefined,
     userName: user ? `${user.firstName} ${user.lastName}` : undefined,
     loading: {
@@ -163,7 +163,7 @@ function buildBreadcrumbItems({
   segments,
   teamKey,
   projectKey,
-  taskId,
+  taskNumber,
   userId,
   teamName,
   projectName,
@@ -176,7 +176,7 @@ function buildBreadcrumbItems({
   segments: string[];
   teamKey?: string;
   projectKey?: string;
-  taskId?: string;
+  taskNumber?: string;
   userId?: string;
   teamName?: string;
   projectName?: string;
@@ -241,14 +241,14 @@ function buildBreadcrumbItems({
   if (projectKey) {
     items.push({
       label: projectName ?? `Project ${shortId(projectKey)}`,
-      to: taskId ? `/teams/${teamKey}/projects/${projectKey}` : undefined,
+      to: taskNumber ? `/teams/${teamKey}/projects/${projectKey}` : undefined,
       loading: loading.project,
     });
   }
 
-  if (taskId) {
+  if (taskNumber) {
     items.push({
-      label: taskLabel ?? `Task ${shortId(taskId)}`,
+      label: taskLabel ?? `Task ${taskNumber}`,
       loading: loading.task,
     });
   }

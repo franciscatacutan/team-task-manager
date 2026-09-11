@@ -6,7 +6,7 @@ import type { Task } from "../types/task.types";
 import type { TaskStatus } from "../utils/task.constants";
 
 interface Params {
-  taskId: string;
+  taskNumber: number;
   status: TaskStatus;
 }
 
@@ -20,10 +20,10 @@ export const useUpdateTaskStatus = (teamKey: string, projectKey: string) => {
   const tasksQueryKey = ["tasks", teamKey, projectKey];
 
   return useMutation({
-    mutationFn: ({ taskId, status }: Params) =>
-      updateTaskStatus(teamKey, projectKey, taskId, status),
+    mutationFn: ({ taskNumber, status }: Params) =>
+      updateTaskStatus(teamKey, projectKey, taskNumber, status),
 
-    onMutate: async ({ taskId, status }): Promise<MutationContext> => {
+    onMutate: async ({ taskNumber, status }): Promise<MutationContext> => {
       await queryClient.cancelQueries({
         queryKey: tasksQueryKey,
       });
@@ -37,7 +37,7 @@ export const useUpdateTaskStatus = (teamKey: string, projectKey: string) => {
         return {
           ...old,
           content: old.content.map((task) =>
-            task.id === taskId ? { ...task, status } : task,
+            task.taskNumber === taskNumber ? { ...task, status } : task,
           ),
         };
       });
@@ -52,14 +52,14 @@ export const useUpdateTaskStatus = (teamKey: string, projectKey: string) => {
     },
 
     onSettled: (_, __, variables) => {
-      const { taskId } = variables;
+      const { taskNumber } = variables;
 
       queryClient.invalidateQueries({
         queryKey: tasksQueryKey,
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["task", teamKey, projectKey, taskId],
+        queryKey: ["task", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({
@@ -71,7 +71,7 @@ export const useUpdateTaskStatus = (teamKey: string, projectKey: string) => {
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamKey, projectKey, taskId],
+        queryKey: ["taskActivities", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({

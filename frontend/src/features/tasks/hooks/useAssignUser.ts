@@ -4,17 +4,17 @@ import { assignUser } from "../api/taskApi";
 export const useAssignUser = (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: string,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (userId: string) =>
-      assignUser(teamKey, projectKey, taskId, userId),
+      assignUser(teamKey, projectKey, taskNumber, userId),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["task", teamKey, projectKey, taskId],
+        queryKey: ["task", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({
@@ -26,7 +26,7 @@ export const useAssignUser = (
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamKey, projectKey, taskId],
+        queryKey: ["taskActivities", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({

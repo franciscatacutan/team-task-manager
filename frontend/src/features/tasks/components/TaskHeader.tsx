@@ -21,7 +21,7 @@ export default function TaskHeader({
   permissions,
   onTaskDeleted,
 }: Props) {
-  const updateTask = useUpdateTask(teamKey, projectKey, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <div className="border-b border-border/60 bg-background/96 px-6 py-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-7">
@@ -47,7 +47,7 @@ export default function TaskHeader({
             <DeleteTaskButton
               teamKey={teamKey}
               projectKey={projectKey}
-              taskId={task.id}
+              taskNumber={task.taskNumber}
               taskTitle={task.title}
               onTaskDeleted={onTaskDeleted}
             />

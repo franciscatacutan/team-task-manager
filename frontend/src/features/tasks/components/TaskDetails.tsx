@@ -11,16 +11,18 @@ import { getUserFromToken } from "../../users/api/userApi";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function TaskDetailsPage() {
-  const { teamKey, projectKey, taskId } = useParams<{
+  const { teamKey, projectKey, taskNumber } = useParams<{
     teamKey: string;
     projectKey: string;
-    taskId: string;
+    taskNumber: string;
   }>();
+
+  const parsedTaskNumber = Number(taskNumber);
 
   const { data: task, isLoading } = useTask(
     teamKey || "",
     projectKey || "",
-    taskId || "",
+    parsedTaskNumber,
   );
 
   const user = getUserFromToken();
@@ -28,7 +30,13 @@ export default function TaskDetailsPage() {
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
 
-  if (!teamKey || !projectKey || !taskId) {
+  if (
+    !teamKey ||
+    !projectKey ||
+    !taskNumber ||
+    !Number.isSafeInteger(parsedTaskNumber) ||
+    parsedTaskNumber < 1
+  ) {
     return <div className="p-6">Invalid task</div>;
   }
 
@@ -67,14 +75,14 @@ export default function TaskDetailsPage() {
               <TaskCommentForm
                 teamKey={teamKey}
                 projectKey={projectKey}
-                taskId={task.id}
+                taskNumber={task.taskNumber}
               />
             )}
 
             <TaskActivity
               teamKey={teamKey}
               projectKey={projectKey}
-              taskId={task.id}
+              taskNumber={task.taskNumber}
               className="min-h-[22rem] xl:min-h-0 xl:flex-1"
             />
           </div>

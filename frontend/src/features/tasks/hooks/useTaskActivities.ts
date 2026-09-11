@@ -13,16 +13,24 @@ interface Params {
 export const useTaskActivities = (
   teamKey: string,
   projectKey: string,
-  taskId: string,
+  taskNumber: number,
   params: Params = {},
 ) => {
   const { page = 0, size = 10, sort } = params;
 
   return useQuery<PageResponse<TaskActivity>>({
-    queryKey: ["taskActivities", teamKey, projectKey, taskId, page, size, sort],
+    queryKey: [
+      "taskActivities",
+      teamKey,
+      projectKey,
+      taskNumber,
+      page,
+      size,
+      sort,
+    ],
 
     queryFn: () =>
-      getTaskActivities(teamKey, projectKey, taskId, {
+      getTaskActivities(teamKey, projectKey, taskNumber, {
         page,
         size,
         sort,
