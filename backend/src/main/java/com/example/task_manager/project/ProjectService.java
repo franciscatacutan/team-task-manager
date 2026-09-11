@@ -25,6 +25,8 @@ import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.common.KeyGenerator;
+import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
+import com.example.task_manager.config.security.Authorization.ProjectAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
@@ -40,10 +42,8 @@ import com.example.task_manager.project.entity.ProjectStatus;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
-import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
-import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 
 import lombok.RequiredArgsConstructor;
@@ -69,13 +69,13 @@ public class ProjectService {
       "updatedAt");
 
   private final ProjectRepository projectRepository;
-  private final TeamRepository teamRepository;
   private final TeamMemberRepository teamMemberRepository;
   private final TaskRepository taskRepository;
-  private final UserRepository userRepository;
   private final ActivityEventRepository activityEventRepository;
   private final ActivityEventService activityEventService;
+  private final GlobalAuthorizationService globalAuthorizationService;
   private final TeamAuthorizationService teamAuthorizationService;
+  private final ProjectAuthorizationService projectAuthorizationService;
   private final KeyGenerator keyGenerator;
 
   /**
@@ -89,9 +89,9 @@ public class ProjectService {
       CreateProjectRequest request,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
@@ -153,13 +153,13 @@ public class ProjectService {
       UpdateProjectDetailsRequest request,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = requireActiveProject(projectKey, team.getId());
+    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     String previousName = project.getName();
     String previousDescription = project.getDescription();
@@ -235,13 +235,13 @@ public class ProjectService {
       String projectKey,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = requireActiveProject(projectKey, team.getId());
+    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     Instant now = Instant.now();
     List<TaskEntity> activeTasks = taskRepository
@@ -286,13 +286,13 @@ public class ProjectService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
 
     TeamEntity team = teamAuthorizationService.requireTeam(teamKey);
 
-    boolean isGlobalAdmin = teamAuthorizationService.isGlobalAdmin(requester);
+    boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    boolean canViewDeleted = canViewDeletedProjects(team, requester.getId(), isGlobalAdmin);
+    boolean canViewDeleted = globalAuthorizationService.canViewDeleted(team, requester.getId(), isGlobalAdmin);
 
     pageable = request.all()
         ? Pageable.unpaged()
@@ -321,11 +321,11 @@ public class ProjectService {
       String projectKey,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
 
-    boolean isGlobalAdmin = teamAuthorizationService.isGlobalAdmin(requester);
+    boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    ProjectEntity project = requireProject(projectKey, teamKey);
+    ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
 
     validateCanReadProject(project, requester.getId(), isGlobalAdmin);
 
@@ -342,9 +342,9 @@ public class ProjectService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    boolean isGlobalAdmin = teamAuthorizationService.isGlobalAdmin(requester);
-    ProjectEntity project = requireProject(projectKey, teamKey);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
+    ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
     validateCanReadProject(project, requester.getId(), isGlobalAdmin);
 
     Page<ActivityEventEntity> page = activityEventRepository.findByProjectId(project.getId(), pageable);
@@ -363,13 +363,13 @@ public class ProjectService {
       ChangeProjectStatusRequest newStatus,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = requireActiveProject(projectKey, team.getId());
+    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     validateStatusChange(project, newStatus.status());
 
@@ -475,39 +475,6 @@ public class ProjectService {
         isDeleted);
   }
 
-  private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-  }
-
-  /**
-   * Ensure team exists
-   * Returns active team
-   */
-  private TeamEntity requireActiveTeam(String teamKey) {
-    return teamRepository.findByKeyAndDeletedAtIsNull(teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-  }
-
-  /**
-   * Ensure project exist
-   * Return an active project
-   */
-  private ProjectEntity requireActiveProject(String projectKey, UUID teamId) {
-    return projectRepository
-        .findByKeyAndTeamIdAndDeletedAtIsNull(projectKey, teamId)
-        .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-  }
-
-  /**
-   * Ensure project exist
-   * Return an existing project
-   */
-  private ProjectEntity requireProject(String projectKey, String teamKey) {
-    return projectRepository.findByKeyAndTeamKey(projectKey, teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-  }
-
   /*
    * Check sort request
    */
@@ -588,27 +555,6 @@ public class ProjectService {
     if (deleted && !teamAuthorizationService.canManageTeam(membership)) {
       throw new ResourceNotFoundException("Project not found");
     }
-  }
-
-  /**
-   * Ensures:
-   * - User is able to read deleted project
-   * - User is Global admin or team owner or admin
-   */
-  private boolean canViewDeletedProjects(TeamEntity team, UUID requesterId, boolean isGlobalAdmin) {
-    if (isGlobalAdmin) {
-      return true;
-    }
-
-    TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(team.getId(), requesterId)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-
-    boolean canManageTeam = teamAuthorizationService.canManageTeam(membership);
-    if (team.getDeletedAt() != null && !canManageTeam) {
-      throw new ResourceNotFoundException("Team not found");
-    }
-
-    return canManageTeam;
   }
 
   /**

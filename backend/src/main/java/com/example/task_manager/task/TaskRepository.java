@@ -22,9 +22,10 @@ import com.example.task_manager.task.entity.TaskStatus;
 public interface TaskRepository extends JpaRepository<TaskEntity, UUID>, JpaSpecificationExecutor<TaskEntity> {
   Page<TaskEntity> findByProjectId(UUID projectId, Pageable pageable);
 
-  Optional<TaskEntity> findByIdAndProjectIdAndProjectTeamIdAndDeletedAtIsNull(UUID taskId, UUID projectID, UUID teamID);
+  Optional<TaskEntity> findByTaskNumberAndProjectIdAndProjectTeamIdAndDeletedAtIsNull(Long taskNumber, UUID projectID,
+      UUID teamID);
 
-  Optional<TaskEntity> findByIdAndProjectIdAndProjectTeamId(UUID taskId, UUID projectID, UUID teamID);
+  Optional<TaskEntity> findByTaskNumberAndProjectIdAndProjectTeamId(Long taskNumber, UUID projectID, UUID teamID);
 
   Optional<TaskEntity> findByIdAndProjectTeamId(UUID taskId, UUID teamId);
 
@@ -63,14 +64,14 @@ public interface TaskRepository extends JpaRepository<TaskEntity, UUID>, JpaSpec
   @Query("""
           SELECT t FROM TaskEntity t
           WHERE t.deletedAt IS NULL
-          AND t.project.id = :projectId
+          AND t.project.key = :projectKey
           AND (
               t.assignee.id = :userId
               OR t.support.id = :userId
           )
       """)
   Page<TaskEntity> findMyTasksByProject(
-      UUID projectId,
+      String projectKey,
       UUID userId,
       Pageable pageable);
 
@@ -100,15 +101,13 @@ public interface TaskRepository extends JpaRepository<TaskEntity, UUID>, JpaSpec
       TaskStatus status,
       Instant actualCompletionDate);
 
-  List<TaskEntity>
-      findTop500ByProjectTeamIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
-          UUID teamId,
-          TaskStatus status);
+  List<TaskEntity> findTop500ByProjectTeamIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
+      UUID teamId,
+      TaskStatus status);
 
-  List<TaskEntity>
-      findTop500ByProjectIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
-          UUID projectId,
-          TaskStatus status);
+  List<TaskEntity> findTop500ByProjectIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
+      UUID projectId,
+      TaskStatus status);
 
   @Query("""
       SELECT COUNT(t)

@@ -21,7 +21,7 @@ import jakarta.persistence.criteria.JoinType;
 public class TaskSpecification {
 
   public static Specification<TaskEntity> build(
-      UUID projectId,
+      String projectKey,
       String search,
       List<TaskStatus> statuses,
       List<TaskPriority> priorities,
@@ -32,7 +32,7 @@ public class TaskSpecification {
       boolean canViewDeleted) {
 
     return Specification
-        .where(belongsToProject(projectId))
+        .where(belongsToProject(projectKey))
         .and(search(search))
         .and(hasStatuses(statuses))
         .and(hasPriorities(priorities))
@@ -42,8 +42,8 @@ public class TaskSpecification {
         .and(deletedFilter(deletedFilter, canViewDeleted));
   }
 
-  private static Specification<TaskEntity> belongsToProject(UUID projectId) {
-    return (root, query, cb) -> cb.equal(root.get("project").get("id"), projectId);
+  private static Specification<TaskEntity> belongsToProject(String projectKey) {
+    return (root, query, cb) -> cb.equal(root.get("project").get("key"), projectKey);
   }
 
   private static Specification<TaskEntity> search(String keyword) {

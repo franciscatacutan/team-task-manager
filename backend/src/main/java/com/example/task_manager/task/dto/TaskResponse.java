@@ -10,7 +10,6 @@ import com.example.task_manager.task.entity.TaskStatus;
  * DTO for task response.
  */
 public record TaskResponse(
-    UUID id,
     String title,
     String description,
     TaskStatus status,

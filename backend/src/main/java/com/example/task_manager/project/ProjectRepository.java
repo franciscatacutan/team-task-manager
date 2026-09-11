@@ -24,7 +24,6 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID>, J
 
   Optional<ProjectEntity> findByKeyAndTeamIdAndDeletedAtIsNull(String projectKey, UUID teamId);
 
-  Optional<ProjectEntity> findByIdAndTeamIdAndDeletedAtIsNull(UUID projectId, UUID teamId);
 
   boolean existsByKey(String projectKey);
 

@@ -26,6 +26,7 @@ import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.common.KeyGenerator;
+import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
@@ -85,6 +86,7 @@ public class TeamService {
   private final TaskRepository taskRepository;
   private final ActivityEventRepository activityEventRepository;
   private final ActivityEventService activityEventService;
+  private final GlobalAuthorizationService globalAuthorizationService;
   private final TeamAuthorizationService teamAuthorizationService;
   private final KeyGenerator keyGenerator;
 
@@ -100,7 +102,7 @@ public class TeamService {
       CreateTeamRequest request,
       String userEmail) {
 
-    UserEntity owner = getUserByEmail(userEmail);
+    UserEntity owner = globalAuthorizationService.getUserByEmail(userEmail);
 
     String trimmedName = normalizeTeamName(request.name());
 
@@ -161,7 +163,7 @@ public class TeamService {
       UpdateTeamRequest request,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
@@ -223,7 +225,7 @@ public class TeamService {
       String teamKey,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
@@ -280,8 +282,8 @@ public class TeamService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    boolean isGlobalAdmin = teamAuthorizationService.isGlobalAdmin(requester);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
     Specification<TeamEntity> spec = TeamSpecification.build(
         requester.getId(),
@@ -307,8 +309,8 @@ public class TeamService {
       String teamKey,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
 
     validateCanReadTeam(team, requester);
 
@@ -325,8 +327,8 @@ public class TeamService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
     validateCanReadTeam(team, requester);
 
     Specification<TeamMemberEntity> spec = TeamMemberSpecification.build(
@@ -351,11 +353,11 @@ public class TeamService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    if (!teamAuthorizationService.isGlobalAdmin(requester)) {
+    if (!globalAuthorizationService.isGlobalAdmin(requester)) {
       requireManagerMembership(team.getId(), requester.getId());
     }
 
@@ -376,8 +378,8 @@ public class TeamService {
       String teamKey,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
-    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
 
     return teamMemberRepository.findByTeamIdAndUserId(team.getId(), requester.getId())
         .map(member -> {
@@ -385,7 +387,7 @@ public class TeamService {
           return new TeamMeResponse(member.getUser().getId(), member.getRole());
         })
         .orElseGet(() -> {
-          if (teamAuthorizationService.isGlobalAdmin(requester)) {
+          if (globalAuthorizationService.isGlobalAdmin(requester)) {
             return new TeamMeResponse(requester.getId(), null);
           }
 
@@ -402,8 +404,8 @@ public class TeamService {
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(normalizeTeamKey(teamKey));
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
     validateCanReadTeam(team, requester);
 
     Page<ActivityEventEntity> page = activityEventRepository.findTeamActivity(team.getId(), pageable);
@@ -421,7 +423,7 @@ public class TeamService {
       AddTeamMembersRequest request,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
@@ -474,7 +476,7 @@ public class TeamService {
       RemoveTeamMembersRequest request,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     TeamMemberEntity requesterMembership = requireManagerMembership(team.getId(), requester.getId());
@@ -485,7 +487,7 @@ public class TeamService {
     for (UUID userId : request.userIds()) {
 
       try {
-        TeamMemberEntity memberToRemove = requireActiveMembership(team.getId(), userId);
+        TeamMemberEntity memberToRemove = teamAuthorizationService.requireActiveMembership(team.getId(), userId);
 
         if (memberToRemove.getRole() == TeamRole.OWNER) {
           throw new IllegalStateException("Transfer ownership before removing OWNER");
@@ -537,13 +539,13 @@ public class TeamService {
       TeamRole newRole,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    TeamMemberEntity targetMember = requireActiveMembership(team.getId(), targetUserId);
+    TeamMemberEntity targetMember = teamAuthorizationService.requireActiveMembership(team.getId(), targetUserId);
 
     if (targetMember.getRole() == TeamRole.OWNER) {
       throw new ConflictException("Owner role cannot be modified.");
@@ -592,7 +594,7 @@ public class TeamService {
       UUID newOwnerUserId,
       String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
     TeamMemberEntity owner = requireOwnerMembership(team.getId(), requester.getId());
@@ -601,9 +603,9 @@ public class TeamService {
       throw new ConflictException("You are already the OWNER");
     }
 
-    TeamMemberEntity newOwner = requireActiveMembership(team.getId(), newOwnerUserId);
+    TeamMemberEntity newOwner = teamAuthorizationService.requireActiveMembership(team.getId(), newOwnerUserId);
 
-    teamAuthorizationService.validateGlobalAdmin(newOwner.getUser().getRole());
+    globalAuthorizationService.validateGlobalAdmin(newOwner.getUser().getRole());
 
     owner.setRole(TeamRole.ADMIN);
     newOwner.setRole(TeamRole.OWNER);
@@ -712,36 +714,9 @@ public class TeamService {
         user.getRole());
   }
 
-  private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-  }
-
   private UserEntity getUserById(UUID id) {
     return userRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-  }
-
-  /**
-   * Ensure team exists
-   * Returns team
-   */
-  private TeamEntity requireTeam(String teamKey) {
-    return teamRepository.findByKey(teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-  }
-
-  /**
-   * Ensures:
-   * - Team exists and active
-   * - Membership exists
-   *
-   * Returns membership entity.
-   */
-  private TeamMemberEntity requireActiveMembership(UUID teamId, UUID userId) {
-    return teamMemberRepository
-        .findByTeamIdAndUserIdAndTeamDeletedAtIsNull(teamId, userId)
-        .orElseThrow(() -> new ForbiddenException("User is not a member"));
   }
 
   /**
@@ -753,7 +728,7 @@ public class TeamService {
    * Returns membership entity.
    */
   private TeamMemberEntity requireOwnerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
     if (membership.getRole() != TeamRole.OWNER) {
       throw new ForbiddenException("User is not the owner of this team");
     }
@@ -769,7 +744,7 @@ public class TeamService {
    * Returns membership entity
    */
   private TeamMemberEntity requireManagerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
     if (!teamAuthorizationService.canManageTeam(membership)) {
       throw new ForbiddenException("Insufficient permissions");
     }
@@ -841,7 +816,7 @@ public class TeamService {
    * Ensures user is the Owner of the team
    */
   private void validateOwnerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
     if (membership.getRole() != TeamRole.OWNER) {
       throw new ForbiddenException("User is not the owner of this team");
     }
@@ -853,7 +828,7 @@ public class TeamService {
    * - User is Global admin or team member
    */
   private void validateCanReadTeam(TeamEntity team, UserEntity requester) {
-    if (teamAuthorizationService.isGlobalAdmin(requester)) {
+    if (globalAuthorizationService.isGlobalAdmin(requester)) {
       return;
     }
 
