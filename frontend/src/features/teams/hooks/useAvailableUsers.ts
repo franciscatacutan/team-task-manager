@@ -7,11 +7,11 @@ interface Params {
   search?: string;
 }
 
-export const useAvailableUsers = (teamId: string, params: Params) => {
+export const useAvailableUsers = (teamKey: string, params: Params) => {
   return useQuery<PageResponse<User>>({
-    queryKey: ["availableUsers", teamId, params?.search],
+    queryKey: ["availableUsers", teamKey, params?.search],
     queryFn: async () =>
-      getAvailableUsers(teamId, {
+      getAvailableUsers(teamKey, {
         search: params?.search,
         size: 1000,
       }),

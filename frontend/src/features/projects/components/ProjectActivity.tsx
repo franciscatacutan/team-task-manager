@@ -7,13 +7,13 @@ import {
 } from "../../../common/components/activity/ActivityFeed";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   projectId: string;
   onOpenTask: (taskId: string) => void;
 }
 
 export default function ProjectActivity({
-  teamId,
+  teamKey,
   projectId,
   onOpenTask,
 }: Props) {
@@ -22,7 +22,7 @@ export default function ProjectActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useProjectActivity(teamId, projectId, {
+  const { data, isLoading } = useProjectActivity(teamKey, projectId, {
     page: page,
     size: 1000,
     search,

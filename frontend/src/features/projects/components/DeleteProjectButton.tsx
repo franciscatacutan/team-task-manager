@@ -15,20 +15,20 @@ import { Button } from "../../../components/ui/button";
 import { useDeleteProject } from "../hooks/useDeleteProject";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   projectId: string;
   projectName: string;
   onProjectDeleted?: () => void;
 }
 
 export function DeleteProjectButton({
-  teamId,
+  teamKey,
   projectId,
   projectName,
   onProjectDeleted,
 }: Props) {
   const navigate = useNavigate();
-  const deleteProjectMutation = useDeleteProject(teamId);
+  const deleteProjectMutation = useDeleteProject(teamKey);
 
   const handleDelete = () => {
     deleteProjectMutation.mutate(projectId, {
@@ -36,7 +36,7 @@ export function DeleteProjectButton({
         if (onProjectDeleted) {
           onProjectDeleted();
         }
-        navigate(`/teams/${teamId}/projects`);
+        navigate(`/teams/${teamKey}/projects`);
       },
     });
   };

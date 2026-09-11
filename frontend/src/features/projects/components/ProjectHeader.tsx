@@ -17,21 +17,21 @@ import ProjectStatusSelector from "./ProjectStatusSelector";
 
 interface Props {
   permissions: ProjectPermissions;
-  teamId: string;
+  teamKey: string;
   project: Project;
   onCreateTask: () => void;
   onProjectDeleted?: () => void;
 }
 
 export default function ProjectHeader({
-  teamId,
+  teamKey,
   project,
   permissions,
   onCreateTask,
   onProjectDeleted,
 }: Props) {
-  const updateProject = useUpdateProject(teamId, project.id);
-  const updateProjectStatus = useUpdateProjectStatus(teamId);
+  const updateProject = useUpdateProject(teamKey, project.id);
+  const updateProjectStatus = useUpdateProjectStatus(teamKey);
 
   const owner = project.owner ?? project.createdBy;
   const ownerName = formatUserName(owner);
@@ -114,7 +114,7 @@ export default function ProjectHeader({
 
             {permissions.canDeleteProject && (
               <DeleteProjectButton
-                teamId={teamId}
+                teamKey={teamKey}
                 projectId={project.id}
                 projectName={project.name}
                 onProjectDeleted={onProjectDeleted}

@@ -6,7 +6,7 @@ import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
 import type { TaskStatus } from "../utils/task.constants";
 
 export const getTasks = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   params: {
     page?: number;
@@ -18,7 +18,7 @@ export const getTasks = async (
   },
 ) => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/tasks`,
+    `/teams/${teamKey}/projects/${projectId}/tasks`,
     {
       params: {
         ...params,
@@ -34,24 +34,24 @@ export const getTasks = async (
 };
 
 export const getTask = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
 ) => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
   );
 
   return response.data;
 };
 
 export const createTask = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   data: CreateTaskInput,
 ) => {
   const response = await apiClient.post(
-    `/teams/${teamId}/projects/${projectId}/tasks`,
+    `/teams/${teamKey}/projects/${projectId}/tasks`,
     data,
   );
 
@@ -59,13 +59,13 @@ export const createTask = async (
 };
 
 export const updateTask = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   data: UpdateTaskInput,
 ): Promise<Task> => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
     data,
   );
 
@@ -73,23 +73,23 @@ export const updateTask = async (
 };
 
 export const deleteTask = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
 ) => {
   await apiClient.delete(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
   );
 };
 
 export const getTaskActivities = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   params: { page: number; size: number; sort?: string },
 ): Promise<PageResponse<TaskActivity>> => {
   const res = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/activities`,
     { params },
   );
 
@@ -97,13 +97,13 @@ export const getTaskActivities = async (
 };
 
 export const updateTaskStatus = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   status: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}/status`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/status`,
     { status },
   );
 
@@ -111,39 +111,39 @@ export const updateTaskStatus = async (
 };
 
 export const assignUser = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}/assignee/${userId}`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/assignee/${userId}`,
   );
 
   return response.data;
 };
 
 export const assignSupportUser = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}/support/${userId}`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/support/${userId}`,
   );
 
   return response.data;
 };
 
 export const createTaskComment = async (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
   message: string,
 ) => {
   const response = await apiClient.post(
-    `/teams/${teamId}/projects/${projectId}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/activities`,
     { message },
   );
 

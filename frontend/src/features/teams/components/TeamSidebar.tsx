@@ -19,16 +19,16 @@ import { useTeamMe } from "../hooks/useTeamMe";
 import type { Team } from "../types/team.type";
 
 export default function TeamSidebar({
-  teamId,
+  teamKey,
   team,
 }: {
-  teamId: string;
+  teamKey: string;
   team: Team;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
 
   const permissions = getTeamPermissions({
     globalRole: user?.role,
@@ -43,7 +43,7 @@ export default function TeamSidebar({
       )}
     >
       <div className="relative border-b border-border/60 px-3 py-3">
-        <TeamSwitcher teamId={teamId} collapsed={collapsed} />
+        <TeamSwitcher teamKey={teamKey} collapsed={collapsed} />
 
         <Button
           variant="ghost"
@@ -61,7 +61,7 @@ export default function TeamSidebar({
 
       <nav className="flex-1 space-y-1 p-2">
         <NavItem
-          to={`/teams/${teamId}`}
+          to={`/teams/${teamKey}`}
           label="Overview"
           icon={LayoutDashboard}
           collapsed={collapsed}
@@ -69,28 +69,28 @@ export default function TeamSidebar({
         />
 
         <NavItem
-          to={`/teams/${teamId}/projects`}
+          to={`/teams/${teamKey}/projects`}
           label="Projects"
           icon={FolderKanban}
           collapsed={collapsed}
         />
 
         <NavItem
-          to={`/teams/${teamId}/members`}
+          to={`/teams/${teamKey}/members`}
           label="Members"
           icon={Users}
           collapsed={collapsed}
         />
 
         <NavItem
-          to={`/teams/${teamId}/activity`}
+          to={`/teams/${teamKey}/activity`}
           label="Activity"
           icon={Activity}
           collapsed={collapsed}
         />
         {permissions.canAccessTeam && (
           <NavItem
-            to={`/teams/${teamId}/insights`}
+            to={`/teams/${teamKey}/insights`}
             label="Insights"
             icon={BarChart3}
             collapsed={collapsed}

@@ -7,14 +7,14 @@ import {
 import { CreateTaskForm } from "./CreateTaskForm";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateTaskModal({
-  teamId,
+  teamKey,
   projectId,
   open,
   onOpenChange,
@@ -27,7 +27,7 @@ export function CreateTaskModal({
         </DialogHeader>
 
         <CreateTaskForm
-          teamId={teamId}
+          teamKey={teamKey}
           projectId={projectId}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}

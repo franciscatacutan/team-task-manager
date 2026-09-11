@@ -19,7 +19,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   taskId: string;
-  teamId: string;
+  teamKey: string;
   projectId: string;
   onTaskDeleted: () => void;
 }
@@ -28,13 +28,13 @@ export default function TaskModal({
   open,
   onClose,
   taskId,
-  teamId,
+  teamKey,
   projectId,
   onTaskDeleted,
 }: Props) {
-  const { data: task, isLoading } = useTask(teamId, projectId, taskId);
+  const { data: task, isLoading } = useTask(teamKey, projectId, taskId);
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId);
+  const { data: teamMe } = useTeamMe(teamKey);
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
 
@@ -60,7 +60,7 @@ export default function TaskModal({
         <DialogTitle>
           <TaskHeader
             task={task}
-            teamId={teamId}
+            teamKey={teamKey}
             projectId={projectId}
             permissions={permissions}
             onTaskDeleted={onTaskDeleted}
@@ -71,7 +71,7 @@ export default function TaskModal({
           <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4 xl:overflow-hidden">
             <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
               <TaskDescription
-                teamId={teamId}
+                teamKey={teamKey}
                 projectId={projectId}
                 task={task}
                 permissions={permissions}
@@ -79,14 +79,14 @@ export default function TaskModal({
 
               {permissions.canComment && (
                 <TaskCommentForm
-                  teamId={teamId}
+                  teamKey={teamKey}
                   projectId={projectId}
                   taskId={task.id}
                 />
               )}
 
               <TaskActivity
-                teamId={teamId}
+                teamKey={teamKey}
                 projectId={projectId}
                 taskId={task.id}
                 className="min-h-[22rem] xl:min-h-0 xl:flex-1"
@@ -96,7 +96,7 @@ export default function TaskModal({
             <aside className="order-1 xl:order-2 xl:min-h-0 xl:overflow-y-auto">
               <TaskMetadata
                 permissions={permissions}
-                teamId={teamId}
+                teamKey={teamKey}
                 projectId={projectId}
                 task={task}
               />

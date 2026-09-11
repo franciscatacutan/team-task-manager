@@ -15,19 +15,19 @@ import { DeleteTeam } from "./DeleteTeamModal";
 import type { Team } from "../types/team.type";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   isLoading: boolean;
   team: Team;
   permissions: TeamPermissions;
 }
 
 export default function TeamHeader({
-  teamId,
+  teamKey,
   isLoading,
   team,
   permissions,
 }: Props) {
-  const updateTeam = useUpdateTeam(teamId);
+  const updateTeam = useUpdateTeam(teamKey);
   const ownerName = formatUserName(team.owner);
   const createdByName = formatUserName(team.createdBy);
   const deletedByName = formatUserName(team.deletedBy);
@@ -95,7 +95,7 @@ export default function TeamHeader({
 
           <div className="flex shrink-0 items-center gap-3 pt-1">
             {permissions.canDeleteTeam && (
-              <DeleteTeam teamId={team.id} teamName={team.name || ""} />
+              <DeleteTeam teamKey={team.key} teamName={team.name || ""} />
             )}
           </div>
         </div>

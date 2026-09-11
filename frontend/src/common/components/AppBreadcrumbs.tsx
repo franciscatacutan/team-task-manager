@@ -23,33 +23,33 @@ const workspaceSectionLabels: Record<string, string> = {
 
 export default function AppBreadcrumbs() {
   const { pathname } = useLocation();
-  const { teamId, projectId, taskId, userId } = useParams<{
-    teamId?: string;
+  const { teamKey, projectId, taskId, userId } = useParams<{
+    teamKey?: string;
     projectId?: string;
     taskId?: string;
     userId?: string;
   }>();
 
   const segments = pathname.split("/").filter(Boolean);
-  const isWorkspaceRoute = segments[0] === "teams" && !!teamId;
+  const isWorkspaceRoute = segments[0] === "teams" && !!teamKey;
   const section = isWorkspaceRoute ? segments[2] : undefined;
 
   const { data: team, isLoading: teamLoading } = useQuery({
-    queryKey: ["team", teamId],
-    queryFn: () => getTeam(teamId!),
-    enabled: !!teamId,
+    queryKey: ["team", teamKey],
+    queryFn: () => getTeam(teamKey!),
+    enabled: !!teamKey,
   });
 
   const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ["project", teamId, projectId],
-    queryFn: () => getProject(teamId!, projectId!),
-    enabled: !!teamId && !!projectId,
+    queryKey: ["project", teamKey, projectId],
+    queryFn: () => getProject(teamKey!, projectId!),
+    enabled: !!teamKey && !!projectId,
   });
 
   const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ["task", teamId, projectId, taskId],
-    queryFn: () => getTask(teamId!, projectId!, taskId!),
-    enabled: !!teamId && !!projectId && !!taskId,
+    queryKey: ["task", teamKey, projectId, taskId],
+    queryFn: () => getTask(teamKey!, projectId!, taskId!),
+    enabled: !!teamKey && !!projectId && !!taskId,
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
@@ -61,7 +61,7 @@ export default function AppBreadcrumbs() {
   const items = buildBreadcrumbItems({
     pathname,
     segments,
-    teamId,
+    teamKey,
     projectId,
     taskId,
     userId,
@@ -161,7 +161,7 @@ function BreadcrumbContent({
 function buildBreadcrumbItems({
   pathname,
   segments,
-  teamId,
+  teamKey,
   projectId,
   taskId,
   userId,
@@ -174,7 +174,7 @@ function buildBreadcrumbItems({
 }: {
   pathname: string;
   segments: string[];
-  teamId?: string;
+  teamKey?: string;
   projectId?: string;
   taskId?: string;
   userId?: string;
@@ -216,15 +216,15 @@ function buildBreadcrumbItems({
     ];
   }
 
-  if (segments[0] !== "teams" || !teamId) {
+  if (segments[0] !== "teams" || !teamKey) {
     return [];
   }
 
   const items: BreadcrumbItem[] = [
     { label: "Teams", to: "/teams" },
     {
-      label: teamName ?? `Team ${shortId(teamId)}`,
-      to: section ? `/teams/${teamId}` : undefined,
+      label: teamName ?? `Team ${shortId(teamKey)}`,
+      to: section ? `/teams/${teamKey}` : undefined,
       loading: loading.team,
     },
   ];
@@ -235,13 +235,13 @@ function buildBreadcrumbItems({
 
   items.push({
     label: sectionLabel,
-    to: projectId ? `/teams/${teamId}/${section}` : undefined,
+    to: projectId ? `/teams/${teamKey}/${section}` : undefined,
   });
 
   if (projectId) {
     items.push({
       label: projectName ?? `Project ${shortId(projectId)}`,
-      to: taskId ? `/teams/${teamId}/projects/${projectId}` : undefined,
+      to: taskId ? `/teams/${teamKey}/projects/${projectId}` : undefined,
       loading: loading.project,
     });
   }

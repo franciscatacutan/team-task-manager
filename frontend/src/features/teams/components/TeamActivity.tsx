@@ -8,7 +8,7 @@ import { useTeamActivities } from "../hooks/useTeamActivities";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function TeamActivity() {
-  const { teamId } = useParams<{ teamId: string }>();
+  const { teamKey } = useParams<{ teamKey: string }>();
 
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ export default function TeamActivity() {
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useTeamActivities(teamId || "", {
+  const { data, isLoading } = useTeamActivities(teamKey || "", {
     page: page,
     size: 1000,
     search,
@@ -25,7 +25,7 @@ export default function TeamActivity() {
   });
 
   function openTask(projectId: string, taskId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}/tasks/${taskId}`);
+    navigate(`/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`);
   }
 
   return (

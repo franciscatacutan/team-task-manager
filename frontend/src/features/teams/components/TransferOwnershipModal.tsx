@@ -10,7 +10,7 @@ import { useTransferOwnership } from "../hooks/useTransferOwnership";
 import type { TeamMember } from "../types/team.type";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   open: boolean;
   onClose: () => void;
   members: TeamMember[];
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function TransferOwnershipModal({
-  teamId,
+  teamKey,
   open,
   onClose,
   members,
@@ -29,7 +29,7 @@ export default function TransferOwnershipModal({
   );
   const [confirmText, setConfirmText] = useState("");
 
-  const transfer = useTransferOwnership(teamId);
+  const transfer = useTransferOwnership(teamKey);
 
   const eligibleMembers = members.filter(
     (m) =>

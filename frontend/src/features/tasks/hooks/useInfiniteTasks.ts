@@ -6,7 +6,7 @@ import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { TaskStatus } from "../utils/task.constants";
 
 export const useInfiniteTasks = (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   status: TaskStatus,
   params: {
@@ -20,7 +20,7 @@ export const useInfiniteTasks = (
     queryKey: [
       "tasks",
       "infinite",
-      teamId,
+      teamKey,
       projectId,
       status,
       params.search,
@@ -31,7 +31,7 @@ export const useInfiniteTasks = (
     queryFn: ({ pageParam }) => {
       const page = (pageParam ?? 0) as number;
 
-      return getTasks(teamId, projectId, {
+      return getTasks(teamKey, projectId, {
         page,
         size: 10,
         status: [status],

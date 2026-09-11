@@ -10,12 +10,12 @@ import type {
 } from "../types/team.type";
 
 export const getTeamMembers = async (
-  teamId: string,
+  teamKey: string,
   params: BaseQueryParams & {
     roles?: TeamRole[];
   },
 ): Promise<PageResponse<TeamMember>> => {
-  const response = await apiClient.get(`/teams/${teamId}/members`, {
+  const response = await apiClient.get(`/teams/${teamKey}/members`, {
     params: {
       ...params,
       role: params.roles?.length ? params.roles : undefined,
@@ -28,37 +28,37 @@ export const getTeamMembers = async (
 };
 
 export const getAvailableUsers = async (
-  teamId: string,
+  teamKey: string,
   params: Pick<BaseQueryParams, "search" | "size">,
 ): Promise<PageResponse<User>> => {
-  const response = await apiClient.get(`/teams/${teamId}/available-users`, {
+  const response = await apiClient.get(`/teams/${teamKey}/available-users`, {
     params,
   });
   return response.data;
 };
 
 export const addMembers = async (
-  teamId: string,
+  teamKey: string,
   data: AddMembersInput,
 ): Promise<TeamMember> => {
-  const res = await apiClient.post(`/teams/${teamId}/members`, data);
+  const res = await apiClient.post(`/teams/${teamKey}/members`, data);
 
   return res.data;
 };
 
 export const removeMembers = async (
-  teamId: string,
+  teamKey: string,
   data: RemoveMembersInput,
 ): Promise<void> => {
-  await apiClient.delete(`/teams/${teamId}/members`, { data });
+  await apiClient.delete(`/teams/${teamKey}/members`, { data });
 };
 
 export const updateMemberRole = async (
-  teamId: string,
+  teamKey: string,
   userId: string,
   role: "ADMIN" | "MEMBER",
 ): Promise<TeamMember> => {
-  const res = await apiClient.patch(`/teams/${teamId}/members/${userId}/role`, {
+  const res = await apiClient.patch(`/teams/${teamKey}/members/${userId}/role`, {
     role,
   });
 

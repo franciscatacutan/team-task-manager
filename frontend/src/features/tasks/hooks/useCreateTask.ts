@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateTaskInput } from "../types/createTaskSchema";
 import { createTask } from "../api/taskApi";
 
-export function useCreateTask(teamId: string, projectId: string) {
+export function useCreateTask(teamKey: string, projectId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateTaskInput) => createTask(teamId, projectId, data),
+    mutationFn: (data: CreateTaskInput) => createTask(teamKey, projectId, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -14,11 +14,11 @@ export function useCreateTask(teamId: string, projectId: string) {
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectId],
       });
     },
   });

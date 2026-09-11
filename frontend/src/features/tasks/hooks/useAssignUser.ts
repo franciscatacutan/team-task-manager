@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { assignUser } from "../api/taskApi";
 
 export const useAssignUser = (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
 ) => {
@@ -10,27 +10,27 @@ export const useAssignUser = (
 
   return useMutation({
     mutationFn: (userId: string) =>
-      assignUser(teamId, projectId, taskId, userId),
+      assignUser(teamKey, projectId, taskId, userId),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["task", teamId, projectId, taskId],
+        queryKey: ["task", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", teamId, projectId],
+        queryKey: ["tasks", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamId, projectId, taskId],
+        queryKey: ["taskActivities", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectId],
       });
     },
   });

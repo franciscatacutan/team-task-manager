@@ -5,15 +5,15 @@ import TeamObservabilityLogs from "./TeamObservabilityLogs";
 import { useTeamInsights } from "../hooks/useTeamInsights";
 
 export default function TeamInsightsPage() {
-  const { teamId } = useParams<{ teamId: string }>();
+  const { teamKey } = useParams<{ teamKey: string }>();
 
   const {
     data: teamInsights,
     isLoading: isTeamInsightsLoading,
     isError: isTeamInsightsError,
-  } = useTeamInsights(teamId || "");
+  } = useTeamInsights(teamKey || "");
 
-  if (!teamId) {
+  if (!teamKey) {
     return (
       <div className="rounded-2xl border border-dashed border-border/70 bg-background/75 px-6 py-16 text-center">
         <h2 className="text-lg font-semibold text-foreground">Invalid team</h2>
@@ -41,7 +41,7 @@ export default function TeamInsightsPage() {
         isError={isTeamInsightsError}
       />
 
-      <TeamObservabilityLogs teamId={teamId} />
+      <TeamObservabilityLogs teamKey={teamKey} />
     </div>
   );
 }

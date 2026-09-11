@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 interface Props {
   tasks: Task[];
   isLoading?: boolean;
-  teamId: string;
+  teamKey: string;
   projectId: string;
   onCreateTask?: () => void;
   onClearFilters: () => void;
@@ -51,7 +51,7 @@ const SORT_COLUMNS = [
 export default function TaskList({
   tasks,
   isLoading,
-  teamId,
+  teamKey,
   projectId,
   onCreateTask,
   onClearFilters,
@@ -64,7 +64,7 @@ export default function TaskList({
   const navigate = useNavigate();
 
   function openTask(taskId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}/tasks/${taskId}`);
+    navigate(`/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`);
   }
 
   return (

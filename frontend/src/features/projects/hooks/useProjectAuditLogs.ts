@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getProjectAuditLogs } from "../api/projectApi";
 
 export const useProjectAuditLogs = (
-  teamId: string,
+  teamKey: string,
   projectId: string,
   params: {
     page?: number;
@@ -14,14 +14,14 @@ export const useProjectAuditLogs = (
   return useQuery({
     queryKey: [
       "project-audit-logs",
-      teamId,
+      teamKey,
       projectId,
       params.page,
       params.size,
       params.sort,
     ],
-    queryFn: () => getProjectAuditLogs(teamId, projectId, params),
-    enabled: Boolean(teamId && projectId),
+    queryFn: () => getProjectAuditLogs(teamKey, projectId, params),
+    enabled: Boolean(teamKey && projectId),
     placeholderData: keepPreviousData,
   });
 };

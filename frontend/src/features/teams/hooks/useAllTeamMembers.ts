@@ -7,11 +7,11 @@ interface Params {
   search?: string;
 }
 
-export const useAllTeamMembers = (teamId: string, params?: Params) => {
+export const useAllTeamMembers = (teamKey: string, params?: Params) => {
   return useQuery<PageResponse<TeamMember>>({
-    queryKey: ["allTeamMembers", teamId, params?.search],
+    queryKey: ["allTeamMembers", teamKey, params?.search],
     queryFn: () =>
-      getTeamMembers(teamId, {
+      getTeamMembers(teamKey, {
         page: 0,
         size: 1000,
         search: params?.search,

@@ -15,17 +15,17 @@ import { Button } from "../../../components/ui/button";
 import { useDeleteTeam } from "../hooks/UseDeleteTeam";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   teamName: string;
   onTeamDeleted?: () => void;
 }
 
-export function DeleteTeam({ teamId, teamName, onTeamDeleted }: Props) {
+export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
   const navigate = useNavigate();
   const deleteTeamMutation = useDeleteTeam();
 
   const handleDelete = () => {
-    deleteTeamMutation.mutate(teamId, {
+    deleteTeamMutation.mutate(teamKey, {
       onSuccess: () => {
         if (onTeamDeleted) {
           onTeamDeleted();

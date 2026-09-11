@@ -1,7 +1,7 @@
 import type { ProjectStatus } from "./project.types";
 
 export interface ProjectInsights {
-  teamId: string;
+  teamKey: string;
   projectId: string;
   status: ProjectStatus;
   plannedStartDate?: string | null;

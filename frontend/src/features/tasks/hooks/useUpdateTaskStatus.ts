@@ -14,14 +14,14 @@ interface MutationContext {
   previousTasks?: PageResponse<Task>;
 }
 
-export const useUpdateTaskStatus = (teamId: string, projectId: string) => {
+export const useUpdateTaskStatus = (teamKey: string, projectId: string) => {
   const queryClient = useQueryClient();
 
-  const tasksQueryKey = ["tasks", teamId, projectId];
+  const tasksQueryKey = ["tasks", teamKey, projectId];
 
   return useMutation({
     mutationFn: ({ taskId, status }: Params) =>
-      updateTaskStatus(teamId, projectId, taskId, status),
+      updateTaskStatus(teamKey, projectId, taskId, status),
 
     onMutate: async ({ taskId, status }): Promise<MutationContext> => {
       await queryClient.cancelQueries({
@@ -59,7 +59,7 @@ export const useUpdateTaskStatus = (teamId: string, projectId: string) => {
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["task", teamId, projectId, taskId],
+        queryKey: ["task", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
@@ -67,15 +67,15 @@ export const useUpdateTaskStatus = (teamId: string, projectId: string) => {
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamId, projectId, taskId],
+        queryKey: ["taskActivities", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectId],
       });
     },
   });

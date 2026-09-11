@@ -42,7 +42,7 @@ interface Params {
   deletedFilter: DeletedFilter;
 }
 interface Props {
-  teamId: string;
+  teamKey: string;
   projectId: string;
   params: Params;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
@@ -50,7 +50,7 @@ interface Props {
 }
 
 export default function TaskBoard({
-  teamId,
+  teamKey,
   projectId,
   params,
   onStatusChange,
@@ -115,7 +115,7 @@ export default function TaskBoard({
   }
 
   const commonProps = {
-    teamId,
+    teamKey,
     projectId,
     params,
     onOpenTask,
@@ -148,13 +148,13 @@ export default function TaskBoard({
 
 function BoardColumn({
   id,
-  teamId,
+  teamKey,
   projectId,
   params,
   onOpenTask,
 }: {
   id: TaskStatus;
-  teamId: string;
+  teamKey: string;
   projectId: string;
   params: Params;
   onOpenTask: (task: Task) => void;
@@ -162,7 +162,7 @@ function BoardColumn({
   const { setNodeRef } = useDroppable({ id });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteTasks(teamId, projectId, id, params);
+    useInfiniteTasks(teamKey, projectId, id, params);
 
   const tasks = data?.pages.flatMap((page) => page.content) ?? [];
 

@@ -5,7 +5,7 @@ export type Project = {
   name: string;
   description?: string;
   status: ProjectStatus;
-  teamId: string;
+  teamKey: string;
   owner?: User;
   createdBy: User;
   completedBy?: User | null;

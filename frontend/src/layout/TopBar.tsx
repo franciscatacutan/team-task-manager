@@ -21,7 +21,7 @@ import NotificationCenter from "../features/notifications/components/Notificatio
 
 export default function TopBar() {
   const { logout } = useAuth();
-  const { teamId, projectId, teamIdPresent, projectIdPresent, permissions } =
+  const { teamKey, projectId, teamIdPresent, projectIdPresent, permissions } =
     useWorkspaceContext();
 
   const [openTeam, setOpenTeam] = useState(false);
@@ -87,17 +87,17 @@ export default function TopBar() {
 
       <CreateTeamModal open={openTeam} onOpenChange={setOpenTeam} />
 
-      {teamId && (
+      {teamKey && (
         <CreateProjectModal
-          teamId={teamId}
+          teamKey={teamKey}
           open={openProject}
           onOpenChange={setOpenProject}
         />
       )}
 
-      {teamId && projectId && (
+      {teamKey && projectId && (
         <CreateTaskModal
-          teamId={teamId}
+          teamKey={teamKey}
           projectId={projectId}
           open={openTask}
           onOpenChange={setOpenTask}

@@ -45,8 +45,8 @@ import { Pagination } from "@/common/components/pagination/Pagination";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function ProjectDetails() {
-  const { teamId, projectId } = useParams<{
-    teamId: string;
+  const { teamKey, projectId } = useParams<{
+    teamKey: string;
     projectId: string;
   }>();
 
@@ -92,7 +92,7 @@ export default function ProjectDetails() {
     data: project,
     isLoading,
     isError,
-  } = useProject(teamId || "", projectId || "");
+  } = useProject(teamKey || "", projectId || "");
 
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
@@ -108,10 +108,10 @@ export default function ProjectDetails() {
     data: projectInsights,
     isLoading: isProjectInsightsLoading,
     isError: isProjectInsightsError,
-  } = useProjectInsights(teamId || "", projectId || "");
+  } = useProjectInsights(teamKey || "", projectId || "");
 
   const { data: tasksData, isLoading: isTasksLoading } = useTasks(
-    teamId || "",
+    teamKey || "",
     projectId || "",
     {
       page,
@@ -127,7 +127,7 @@ export default function ProjectDetails() {
   const totalPages = tasksData?.totalPages ?? 0;
   const totalElements = tasksData?.totalElements ?? 0;
 
-  const updateStatus = useUpdateTaskStatus(teamId || "", projectId || "");
+  const updateStatus = useUpdateTaskStatus(teamKey || "", projectId || "");
 
   // ---------------- HANDLERS ----------------
 
@@ -197,7 +197,7 @@ export default function ProjectDetails() {
   // ---------------- PERMISSIONS ----------------
 
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
 
   const permissions = getProjectPermissions({
     globalRole: user?.role,
@@ -218,7 +218,7 @@ export default function ProjectDetails() {
     onClear: handleClearFilters,
   };
 
-  if (!teamId || !projectId) {
+  if (!teamKey || !projectId) {
     return (
       <ProjectDetailsState
         title="Invalid project"
@@ -243,14 +243,14 @@ export default function ProjectDetails() {
   return (
     <div className="flex flex-col h-full min-h-0 gap-6 ">
       <ProjectHeader
-        teamId={teamId}
+        teamKey={teamKey}
         project={project}
         onCreateTask={() => setOpen(true)}
-        onProjectDeleted={() => navigate(`/teams/${teamId}/projects`)}
+        onProjectDeleted={() => navigate(`/teams/${teamKey}/projects`)}
         permissions={permissions}
       />
       <CreateTaskModal
-        teamId={teamId}
+        teamKey={teamKey}
         projectId={projectId}
         open={open}
         onOpenChange={setOpen}
@@ -319,7 +319,7 @@ export default function ProjectDetails() {
             className="flex flex-col flex-1 min-h-0 gap-3"
           >
             <TaskBoard
-              teamId={teamId}
+              teamKey={teamKey}
               projectId={projectId}
               params={{
                 search: debouncedSearch,
@@ -338,7 +338,7 @@ export default function ProjectDetails() {
             <TaskList
               tasks={tasks}
               isLoading={isTasksLoading}
-              teamId={teamId}
+              teamKey={teamKey}
               projectId={projectId}
               onCreateTask={() => setOpen(true)}
               onClearFilters={handleClearFilters}
@@ -354,7 +354,7 @@ export default function ProjectDetails() {
             className="flex flex-col flex-1 min-h-0"
           >
             <ProjectActivity
-              teamId={teamId}
+              teamKey={teamKey}
               projectId={projectId}
               onOpenTask={(taskId) => setSelectedTask({ id: taskId } as Task)}
             />
@@ -366,7 +366,7 @@ export default function ProjectDetails() {
               isError={isProjectInsightsError}
             />
             <div className="pb-4">
-              <ProjectObservabilityLogs teamId={teamId} projectId={projectId} />
+              <ProjectObservabilityLogs teamKey={teamKey} projectId={projectId} />
             </div>
           </TabsContent>
         </div>
@@ -391,7 +391,7 @@ export default function ProjectDetails() {
           onClose={() => setSelectedTask(null)}
           onTaskDeleted={() => setSelectedTask(null)}
           taskId={selectedTask.id}
-          teamId={teamId}
+          teamKey={teamKey}
           projectId={projectId}
         />
       )}

@@ -5,22 +5,22 @@ import { useTeamAuditLogs } from "../hooks/useTeamAuditLogs";
 import { useTeamSystemEvents } from "../hooks/useTeamSystemEvents";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
 }
 
 const PAGE_SIZE = 10;
 
-export default function TeamObservabilityLogs({ teamId }: Props) {
+export default function TeamObservabilityLogs({ teamKey }: Props) {
   const [auditPage, setAuditPage] = useState(0);
   const [systemPage, setSystemPage] = useState(0);
   const [sort, setSort] = useState("occurredAt,desc");
 
-  const auditLogs = useTeamAuditLogs(teamId, {
+  const auditLogs = useTeamAuditLogs(teamKey, {
     page: auditPage,
     size: PAGE_SIZE,
     sort,
   });
-  const systemEvents = useTeamSystemEvents(teamId, {
+  const systemEvents = useTeamSystemEvents(teamKey, {
     page: systemPage,
     size: PAGE_SIZE,
     sort,

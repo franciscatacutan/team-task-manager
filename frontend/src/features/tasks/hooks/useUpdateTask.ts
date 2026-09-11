@@ -3,7 +3,7 @@ import type { UpdateTaskInput } from "../types/task.types";
 import { updateTask } from "../api/taskApi";
 
 export function useUpdateTask(
-  teamId: string,
+  teamKey: string,
   projectId: string,
   taskId: string,
 ) {
@@ -11,27 +11,27 @@ export function useUpdateTask(
 
   return useMutation({
     mutationFn: (data: UpdateTaskInput) =>
-      updateTask(teamId, projectId, taskId, data),
+      updateTask(teamKey, projectId, taskId, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["task", teamId, projectId, taskId],
+        queryKey: ["task", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", teamId, projectId],
+        queryKey: ["tasks", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamId, projectId, taskId],
+        queryKey: ["taskActivities", teamKey, projectId, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectId],
       });
     },
   });

@@ -6,13 +6,13 @@ import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { ProjectSearchParams } from "../types/project.requests";
 
 export const useProjects = (
-  teamId: string,
+  teamKey: string,
   params: ProjectSearchParams = {},
 ) => {
   return useQuery<PageResponse<Project>>({
-    queryKey: ["projects", teamId, params],
-    queryFn: () => getProjects(teamId, params),
-    enabled: Boolean(teamId),
+    queryKey: ["projects", teamKey, params],
+    queryFn: () => getProjects(teamKey, params),
+    enabled: Boolean(teamKey),
     placeholderData: keepPreviousData,
   });
 };

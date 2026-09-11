@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProjectStatus } from "../api/projectApi";
 import type { ProjectStatus } from "../types/project.types";
 
-export function useUpdateProjectStatus(teamId: string) {
+export function useUpdateProjectStatus(teamKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -13,15 +13,15 @@ export function useUpdateProjectStatus(teamId: string) {
     }: {
       projectId: string;
       status: ProjectStatus;
-    }) => updateProjectStatus(teamId, projectId, status),
+    }) => updateProjectStatus(teamKey, projectId, status),
 
     onSuccess: (project) => {
       queryClient.invalidateQueries({
-        queryKey: ["project", teamId, project.id],
+        queryKey: ["project", teamKey, project.id],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projects", teamId],
+        queryKey: ["projects", teamKey],
       });
     },
   });

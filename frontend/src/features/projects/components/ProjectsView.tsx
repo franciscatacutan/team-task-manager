@@ -29,8 +29,8 @@ import { Button } from "@/components/ui/button";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function ProjectsPage() {
-  const { teamId } = useParams<{
-    teamId: string;
+  const { teamKey } = useParams<{
+    teamKey: string;
   }>();
 
   const navigate = useNavigate();
@@ -79,7 +79,7 @@ export default function ProjectsPage() {
     deletedFilter: effectiveDeletedFilter,
   };
 
-  const { data, isError, isLoading, refetch } = useProjects(teamId || "", {
+  const { data, isError, isLoading, refetch } = useProjects(teamKey || "", {
     page,
     size,
     search: debouncedSearch,
@@ -151,13 +151,13 @@ export default function ProjectsPage() {
   };
 
   function openProject(projectId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}`);
+    navigate(`/teams/${teamKey}/projects/${projectId}`);
   }
 
   // ---------------- PERMISSIONS ----------------
 
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
 
   const permissions = getProjectPermissions({
     globalRole: user?.role,
@@ -186,7 +186,7 @@ export default function ProjectsPage() {
       />
 
       <CreateProjectModal
-        teamId={teamId || ""}
+        teamKey={teamKey || ""}
         open={open}
         onOpenChange={setOpen}
       />

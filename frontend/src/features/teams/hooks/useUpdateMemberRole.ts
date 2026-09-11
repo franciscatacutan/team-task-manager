@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateMemberRole } from "../api/teamMemberApi";
 
-export const useUpdateMemberRole = (teamId: string) => {
+export const useUpdateMemberRole = (teamKey: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -11,11 +11,11 @@ export const useUpdateMemberRole = (teamId: string) => {
     }: {
       memberId: string;
       role: "ADMIN" | "MEMBER";
-    }) => updateMemberRole(teamId, memberId, role),
+    }) => updateMemberRole(teamKey, memberId, role),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["teamMembers", teamId],
+        queryKey: ["teamMembers", teamKey],
       });
     },
   });

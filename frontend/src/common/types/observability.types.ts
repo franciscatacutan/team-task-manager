@@ -12,7 +12,7 @@ export interface ObservabilityUser {
 
 export interface ObservabilityAuditLog {
   id: string;
-  teamId: string;
+  teamKey: string;
   projectId?: string | null;
   taskId?: string | null;
   entityType: string;
@@ -33,7 +33,7 @@ export interface ObservabilitySystemEvent {
   category: string;
   eventName: string;
   source: string;
-  teamId: string;
+  teamKey: string;
   projectId?: string | null;
   taskId?: string | null;
   message: string;
