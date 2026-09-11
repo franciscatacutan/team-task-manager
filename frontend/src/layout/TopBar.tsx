@@ -21,7 +21,7 @@ import NotificationCenter from "../features/notifications/components/Notificatio
 
 export default function TopBar() {
   const { logout } = useAuth();
-  const { teamKey, projectId, teamIdPresent, projectIdPresent, permissions } =
+  const { teamKey, projectKey, teamKeyPresent, projectKeyPresent, permissions } =
     useWorkspaceContext();
 
   const [openTeam, setOpenTeam] = useState(false);
@@ -63,14 +63,14 @@ export default function TopBar() {
                   New Team
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={!permissions.canCreateProject || !teamIdPresent}
+                  disabled={!permissions.canCreateProject || !teamKeyPresent}
                   onClick={() => setOpenProject(true)}
                 >
                   New Project
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  disabled={!permissions.canCreateTask || !projectIdPresent}
+                  disabled={!permissions.canCreateTask || !projectKeyPresent}
                   onClick={() => setOpenTask(true)}
                 >
                   New Task
@@ -95,10 +95,10 @@ export default function TopBar() {
         />
       )}
 
-      {teamKey && projectId && (
+      {teamKey && projectKey && (
         <CreateTaskModal
           teamKey={teamKey}
-          projectId={projectId}
+          projectKey={projectKey}
           open={openTask}
           onOpenChange={setOpenTask}
         />

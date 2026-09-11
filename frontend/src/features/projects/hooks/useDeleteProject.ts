@@ -5,12 +5,12 @@ export function useDeleteProject(teamKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (projectId: string) => deleteProject(teamKey, projectId),
+    mutationFn: (projectKey: string) => deleteProject(teamKey, projectKey),
 
-    onSuccess: (_, projectId) => {
+    onSuccess: (_, projectKey) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
 
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project", projectKey] });
     },
   });
 }

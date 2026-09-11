@@ -11,15 +11,15 @@ import { getUserFromToken } from "../../users/api/userApi";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function TaskDetailsPage() {
-  const { teamKey, projectId, taskId } = useParams<{
+  const { teamKey, projectKey, taskId } = useParams<{
     teamKey: string;
-    projectId: string;
+    projectKey: string;
     taskId: string;
   }>();
 
   const { data: task, isLoading } = useTask(
     teamKey || "",
-    projectId || "",
+    projectKey || "",
     taskId || "",
   );
 
@@ -28,7 +28,7 @@ export default function TaskDetailsPage() {
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
 
-  if (!teamKey || !projectId || !taskId) {
+  if (!teamKey || !projectKey || !taskId) {
     return <div className="p-6">Invalid task</div>;
   }
 
@@ -50,7 +50,7 @@ export default function TaskDetailsPage() {
       <TaskHeader
         task={task}
         teamKey={teamKey}
-        projectId={projectId}
+        projectKey={projectKey}
         permissions={permissions}
       />
 
@@ -59,21 +59,21 @@ export default function TaskDetailsPage() {
           <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
             <TaskDescription
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               task={task}
               permissions={permissions}
             />
             {permissions.canComment && (
               <TaskCommentForm
                 teamKey={teamKey}
-                projectId={projectId}
+                projectKey={projectKey}
                 taskId={task.id}
               />
             )}
 
             <TaskActivity
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               taskId={task.id}
               className="min-h-[22rem] xl:min-h-0 xl:flex-1"
             />
@@ -83,7 +83,7 @@ export default function TaskDetailsPage() {
             <TaskMetadata
               permissions={permissions}
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               task={task}
             />
           </aside>

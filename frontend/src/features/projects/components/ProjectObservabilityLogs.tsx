@@ -6,22 +6,22 @@ import { useProjectSystemEvents } from "../hooks/useProjectSystemEvents";
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
 }
 
 const PAGE_SIZE = 10;
 
-export default function ProjectObservabilityLogs({ teamKey, projectId }: Props) {
+export default function ProjectObservabilityLogs({ teamKey, projectKey }: Props) {
   const [auditPage, setAuditPage] = useState(0);
   const [systemPage, setSystemPage] = useState(0);
   const [sort, setSort] = useState("occurredAt,desc");
 
-  const auditLogs = useProjectAuditLogs(teamKey, projectId, {
+  const auditLogs = useProjectAuditLogs(teamKey, projectKey, {
     page: auditPage,
     size: PAGE_SIZE,
     sort,
   });
-  const systemEvents = useProjectSystemEvents(teamKey, projectId, {
+  const systemEvents = useProjectSystemEvents(teamKey, projectKey, {
     page: systemPage,
     size: PAGE_SIZE,
     sort,

@@ -68,10 +68,10 @@ export default function AppRoutes() {
             <Route path="members" element={<TeamMembersPage />} />
             <Route path="activity" element={<TeamActivity />} />
             <Route path="insights" element={<TeamInsightsPage />} />
-            <Route path="projects/:projectId" element={<ProjectDetails />} />
+            <Route path="projects/:projectKey" element={<ProjectDetails />} />
 
             <Route
-              path="projects/:projectId/tasks/:taskId"
+              path="projects/:projectKey/tasks/:taskId"
               element={<TaskDetails />}
             />
           </Route>

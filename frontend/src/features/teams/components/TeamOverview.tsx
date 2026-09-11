@@ -172,10 +172,10 @@ export default function TeamOverview() {
             ) : (
               projects.slice(0, 4).map((project) => (
                 <button
-                  key={project.id}
+                  key={project.key}
                   type="button"
                   onClick={() =>
-                    navigate(`/teams/${team.key}/projects/${project.id}`)
+                    navigate(`/teams/${team.key}/projects/${project.key}`)
                   }
                   className="cursor-pointer flex w-full items-start justify-between gap-4 rounded-2xl border border-border/60 bg-background px-4 py-2.5 text-left transition hover:border-border hover:bg-muted/20"
                 >

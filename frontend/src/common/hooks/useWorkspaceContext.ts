@@ -5,7 +5,7 @@ import { useTeamMe } from "../../features/teams/hooks/useTeamMe";
 import { useTeam } from "../../features/teams/hooks/useTeam";
 
 export function useWorkspaceContext() {
-  const { teamKey, projectId } = useParams();
+  const { teamKey, projectKey } = useParams();
 
   const user = getUserFromToken();
 
@@ -20,9 +20,9 @@ export function useWorkspaceContext() {
 
   return {
     teamKey,
-    projectId,
-    teamIdPresent: !!teamKey,
-    projectIdPresent: !!projectId,
+    projectKey,
+    teamKeyPresent: !!teamKey,
+    projectKeyPresent: !!projectKey,
     team,
     permissions,
   };

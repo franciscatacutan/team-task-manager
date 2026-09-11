@@ -8,7 +8,7 @@ import ProjectCard from "./ProjectCard";
 interface Props {
   projects: Project[];
   isLoading: boolean;
-  openProject: (projectId: string) => void;
+  openProject: (projectKey: string) => void;
   onCreateProject: () => void;
   onClearFilters: () => void;
   canCreateProject: boolean;
@@ -42,9 +42,9 @@ export default function ProjectsBoard({
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {projects.map((project) => (
               <ProjectCard
-                key={project.id}
+                key={project.key}
                 project={project}
-                onClick={() => openProject(project.id)}
+                onClick={() => openProject(project.key)}
               />
             ))}
           </div>

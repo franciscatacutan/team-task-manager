@@ -45,9 +45,9 @@ import { Pagination } from "@/common/components/pagination/Pagination";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function ProjectDetails() {
-  const { teamKey, projectId } = useParams<{
+  const { teamKey, projectKey } = useParams<{
     teamKey: string;
-    projectId: string;
+    projectKey: string;
   }>();
 
   const navigate = useNavigate();
@@ -92,7 +92,7 @@ export default function ProjectDetails() {
     data: project,
     isLoading,
     isError,
-  } = useProject(teamKey || "", projectId || "");
+  } = useProject(teamKey || "", projectKey || "");
 
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
@@ -108,11 +108,11 @@ export default function ProjectDetails() {
     data: projectInsights,
     isLoading: isProjectInsightsLoading,
     isError: isProjectInsightsError,
-  } = useProjectInsights(teamKey || "", projectId || "");
+  } = useProjectInsights(teamKey || "", projectKey || "");
 
   const { data: tasksData, isLoading: isTasksLoading } = useTasks(
     teamKey || "",
-    projectId || "",
+    projectKey || "",
     {
       page,
       size,
@@ -127,7 +127,7 @@ export default function ProjectDetails() {
   const totalPages = tasksData?.totalPages ?? 0;
   const totalElements = tasksData?.totalElements ?? 0;
 
-  const updateStatus = useUpdateTaskStatus(teamKey || "", projectId || "");
+  const updateStatus = useUpdateTaskStatus(teamKey || "", projectKey || "");
 
   // ---------------- HANDLERS ----------------
 
@@ -218,7 +218,7 @@ export default function ProjectDetails() {
     onClear: handleClearFilters,
   };
 
-  if (!teamKey || !projectId) {
+  if (!teamKey || !projectKey) {
     return (
       <ProjectDetailsState
         title="Invalid project"
@@ -251,7 +251,7 @@ export default function ProjectDetails() {
       />
       <CreateTaskModal
         teamKey={teamKey}
-        projectId={projectId}
+        projectKey={projectKey}
         open={open}
         onOpenChange={setOpen}
       />
@@ -320,7 +320,7 @@ export default function ProjectDetails() {
           >
             <TaskBoard
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               params={{
                 search: debouncedSearch,
                 status: statusFilter[0],
@@ -339,7 +339,7 @@ export default function ProjectDetails() {
               tasks={tasks}
               isLoading={isTasksLoading}
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               onCreateTask={() => setOpen(true)}
               onClearFilters={handleClearFilters}
               sortField={sortField}
@@ -355,7 +355,7 @@ export default function ProjectDetails() {
           >
             <ProjectActivity
               teamKey={teamKey}
-              projectId={projectId}
+              projectKey={projectKey}
               onOpenTask={(taskId) => setSelectedTask({ id: taskId } as Task)}
             />
           </TabsContent>
@@ -366,7 +366,7 @@ export default function ProjectDetails() {
               isError={isProjectInsightsError}
             />
             <div className="pb-4">
-              <ProjectObservabilityLogs teamKey={teamKey} projectId={projectId} />
+              <ProjectObservabilityLogs teamKey={teamKey} projectKey={projectKey} />
             </div>
           </TabsContent>
         </div>
@@ -392,7 +392,7 @@ export default function ProjectDetails() {
           onTaskDeleted={() => setSelectedTask(null)}
           taskId={selectedTask.id}
           teamKey={teamKey}
-          projectId={projectId}
+          projectKey={projectKey}
         />
       )}
     </div>

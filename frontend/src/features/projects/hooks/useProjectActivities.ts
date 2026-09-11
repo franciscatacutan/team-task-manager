@@ -3,7 +3,7 @@ import { getProjectActivities } from "../api/projectApi";
 
 export const useProjectActivity = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -15,14 +15,14 @@ export const useProjectActivity = (
     queryKey: [
       "projectActivities",
       teamKey,
-      projectId,
+      projectKey,
       params.page,
       params.size,
       params.search,
       params.sort,
     ],
     queryFn: async () =>
-      getProjectActivities(teamKey, projectId, {
+      getProjectActivities(teamKey, projectKey, {
         page: params.page,
         size: params.size,
         search: params.search,

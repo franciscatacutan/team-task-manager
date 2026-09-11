@@ -24,8 +24,8 @@ export default function TeamActivity() {
     sort,
   });
 
-  function openTask(projectId: string, taskId: string) {
-    navigate(`/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`);
+  function openTask(projectKey: string, taskId: string) {
+    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`);
   }
 
   return (
@@ -67,7 +67,7 @@ export default function TeamActivity() {
       behavior={{
         onOpenTask: (item) => {
           if ("project" in item && item.project?.id && item.task?.id) {
-            openTask(item.project.id, item.task.id);
+            openTask(item.project.key, item.task.id);
           }
         },
       }}

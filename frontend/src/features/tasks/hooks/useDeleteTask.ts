@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteTask } from "../api/taskApi";
 
-export function useDeleteTask(teamKey: string, projectId: string) {
+export function useDeleteTask(teamKey: string, projectKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => deleteTask(teamKey, projectId, taskId),
+    mutationFn: (taskId: string) => deleteTask(teamKey, projectKey, taskId),
 
     onSuccess: (_, taskId) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -13,7 +13,7 @@ export function useDeleteTask(teamKey: string, projectId: string) {
       queryClient.invalidateQueries({ queryKey: ["task", taskId] });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamKey, projectId],
+        queryKey: ["projectActivity", teamKey, projectKey],
       });
     },
   });

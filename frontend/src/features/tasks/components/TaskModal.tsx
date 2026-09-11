@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void;
   taskId: string;
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   onTaskDeleted: () => void;
 }
 
@@ -29,10 +29,10 @@ export default function TaskModal({
   onClose,
   taskId,
   teamKey,
-  projectId,
+  projectKey,
   onTaskDeleted,
 }: Props) {
-  const { data: task, isLoading } = useTask(teamKey, projectId, taskId);
+  const { data: task, isLoading } = useTask(teamKey, projectKey, taskId);
   const user = getUserFromToken();
   const { data: teamMe } = useTeamMe(teamKey);
   const { team } = useOutletContext<WorkspaceOutletContext>();
@@ -61,7 +61,7 @@ export default function TaskModal({
           <TaskHeader
             task={task}
             teamKey={teamKey}
-            projectId={projectId}
+            projectKey={projectKey}
             permissions={permissions}
             onTaskDeleted={onTaskDeleted}
           />
@@ -72,7 +72,7 @@ export default function TaskModal({
             <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
               <TaskDescription
                 teamKey={teamKey}
-                projectId={projectId}
+                projectKey={projectKey}
                 task={task}
                 permissions={permissions}
               />
@@ -80,14 +80,14 @@ export default function TaskModal({
               {permissions.canComment && (
                 <TaskCommentForm
                   teamKey={teamKey}
-                  projectId={projectId}
+                  projectKey={projectKey}
                   taskId={task.id}
                 />
               )}
 
               <TaskActivity
                 teamKey={teamKey}
-                projectId={projectId}
+                projectKey={projectKey}
                 taskId={task.id}
                 className="min-h-[22rem] xl:min-h-0 xl:flex-1"
               />
@@ -97,7 +97,7 @@ export default function TaskModal({
               <TaskMetadata
                 permissions={permissions}
                 teamKey={teamKey}
-                projectId={projectId}
+                projectKey={projectKey}
                 task={task}
               />
             </aside>

@@ -22,18 +22,18 @@ import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
 export function CreateTaskForm({
   teamKey,
-  projectId,
+  projectKey,
   onSuccess,
   onCancel,
 }: Props) {
-  const createTaskMutation = useCreateTask(teamKey, projectId);
+  const createTaskMutation = useCreateTask(teamKey, projectKey);
   const { data } = useTeamMembers(teamKey);
   const members = data?.content ?? [];
 

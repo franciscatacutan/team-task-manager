@@ -16,14 +16,14 @@ import { useDeleteProject } from "../hooks/useDeleteProject";
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   projectName: string;
   onProjectDeleted?: () => void;
 }
 
 export function DeleteProjectButton({
   teamKey,
-  projectId,
+  projectKey,
   projectName,
   onProjectDeleted,
 }: Props) {
@@ -31,7 +31,7 @@ export function DeleteProjectButton({
   const deleteProjectMutation = useDeleteProject(teamKey);
 
   const handleDelete = () => {
-    deleteProjectMutation.mutate(projectId, {
+    deleteProjectMutation.mutate(projectKey, {
       onSuccess: () => {
         if (onProjectDeleted) {
           onProjectDeleted();

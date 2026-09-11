@@ -8,14 +8,14 @@ import { CreateTaskForm } from "./CreateTaskForm";
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateTaskModal({
   teamKey,
-  projectId,
+  projectKey,
   open,
   onOpenChange,
 }: Props) {
@@ -28,7 +28,7 @@ export function CreateTaskModal({
 
         <CreateTaskForm
           teamKey={teamKey}
-          projectId={projectId}
+          projectKey={projectKey}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />

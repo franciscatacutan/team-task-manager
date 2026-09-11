@@ -24,7 +24,7 @@ interface Props {
   tasks: Task[];
   isLoading?: boolean;
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   onCreateTask?: () => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
@@ -52,7 +52,7 @@ export default function TaskList({
   tasks,
   isLoading,
   teamKey,
-  projectId,
+  projectKey,
   onCreateTask,
   onClearFilters,
   hasActiveFilters,
@@ -64,7 +64,7 @@ export default function TaskList({
   const navigate = useNavigate();
 
   function openTask(taskId: string) {
-    navigate(`/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`);
+    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`);
   }
 
   return (

@@ -8,13 +8,13 @@ import {
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   onOpenTask: (taskId: string) => void;
 }
 
 export default function ProjectActivity({
   teamKey,
-  projectId,
+  projectKey,
   onOpenTask,
 }: Props) {
   const [page, setPage] = useState(0);
@@ -22,7 +22,7 @@ export default function ProjectActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useProjectActivity(teamKey, projectId, {
+  const { data, isLoading } = useProjectActivity(teamKey, projectKey, {
     page: page,
     size: 1000,
     search,

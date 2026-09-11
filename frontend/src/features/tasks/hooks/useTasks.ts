@@ -7,7 +7,7 @@ import type { TaskStatus } from "../utils/task.constants";
 
 export const useTasks = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: {
     page: number;
     size: number;
@@ -21,7 +21,7 @@ export const useTasks = (
     queryKey: [
       "tasks",
       teamKey,
-      projectId,
+      projectKey,
       params.page,
       params.size,
       params.search,
@@ -31,7 +31,7 @@ export const useTasks = (
     ],
 
     queryFn: () =>
-      getTasks(teamKey, projectId, {
+      getTasks(teamKey, projectKey, {
         page: params.page,
         size: params.size,
         search: params.search,

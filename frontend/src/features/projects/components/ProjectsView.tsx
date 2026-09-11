@@ -150,8 +150,8 @@ export default function ProjectsPage() {
     setPage(0);
   };
 
-  function openProject(projectId: string) {
-    navigate(`/teams/${teamKey}/projects/${projectId}`);
+  function openProject(projectKey: string) {
+    navigate(`/teams/${teamKey}/projects/${projectKey}`);
   }
 
   // ---------------- PERMISSIONS ----------------

@@ -4,7 +4,7 @@ import { getProjectAuditLogs } from "../api/projectApi";
 
 export const useProjectAuditLogs = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -15,13 +15,13 @@ export const useProjectAuditLogs = (
     queryKey: [
       "project-audit-logs",
       teamKey,
-      projectId,
+      projectKey,
       params.page,
       params.size,
       params.sort,
     ],
-    queryFn: () => getProjectAuditLogs(teamKey, projectId, params),
-    enabled: Boolean(teamKey && projectId),
+    queryFn: () => getProjectAuditLogs(teamKey, projectKey, params),
+    enabled: Boolean(teamKey && projectKey),
     placeholderData: keepPreviousData,
   });
 };

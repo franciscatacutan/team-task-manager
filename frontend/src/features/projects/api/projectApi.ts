@@ -48,10 +48,10 @@ export const createProject = async (
 
 export const getProject = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
 ): Promise<Project> => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}`,
+    `/teams/${teamKey}/projects/${projectKey}`,
   );
 
   return response.data;
@@ -59,11 +59,11 @@ export const getProject = async (
 
 export const getProjectActivities = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: BaseQueryParams,
 ): Promise<PageResponse<ProjectActivity>> => {
   const res = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/activities`,
     { params },
   );
   return res.data;
@@ -71,21 +71,21 @@ export const getProjectActivities = async (
 
 export const getProjectInsights = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
 ): Promise<ProjectInsights> => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/insights/summary`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/summary`,
   );
   return response.data;
 };
 
 export const getProjectAuditLogs = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilityAuditLog>> => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/insights/audit-logs`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/audit-logs`,
     { params },
   );
   return response.data;
@@ -93,11 +93,11 @@ export const getProjectAuditLogs = async (
 
 export const getProjectSystemEvents = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilitySystemEvent>> => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/insights/system-events`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/system-events`,
     { params },
   );
   return response.data;
@@ -105,11 +105,11 @@ export const getProjectSystemEvents = async (
 
 export const updateProject = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   data: UpdateProjectInput,
 ): Promise<Project> => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}`,
+    `/teams/${teamKey}/projects/${projectKey}`,
     data,
   );
   return response.data;
@@ -117,16 +117,16 @@ export const updateProject = async (
 
 export const updateProjectStatus = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   status: ProjectStatus,
 ): Promise<Project> => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}/status`,
+    `/teams/${teamKey}/projects/${projectKey}/status`,
     { status },
   );
   return response.data;
 };
 
-export const deleteProject = async (teamKey: string, projectId: string) => {
-  await apiClient.delete(`/teams/${teamKey}/projects/${projectId}`);
+export const deleteProject = async (teamKey: string, projectKey: string) => {
+  await apiClient.delete(`/teams/${teamKey}/projects/${projectKey}`);
 };

@@ -13,7 +13,7 @@ export interface ObservabilityUser {
 export interface ObservabilityAuditLog {
   id: string;
   teamKey: string;
-  projectId?: string | null;
+  projectKey?: string | null;
   taskId?: string | null;
   entityType: string;
   entityId: string;
@@ -34,7 +34,7 @@ export interface ObservabilitySystemEvent {
   eventName: string;
   source: string;
   teamKey: string;
-  projectId?: string | null;
+  projectKey?: string | null;
   taskId?: string | null;
   message: string;
   actor: ObservabilityUser | null;

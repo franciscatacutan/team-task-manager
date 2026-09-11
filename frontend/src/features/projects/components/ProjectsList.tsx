@@ -22,7 +22,7 @@ import {
 interface Props {
   projects: Project[];
   isLoading: boolean;
-  openProject: (projectId: string) => void;
+  openProject: (projectKey: string) => void;
   onCreateProject: () => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
@@ -107,8 +107,8 @@ export default function ProjectsList({
               <TableBody>
                 {projects.map((project) => (
                   <TableRow
-                    key={project.id}
-                    onClick={() => openProject(project.id)}
+                    key={project.key}
+                    onClick={() => openProject(project.key)}
                     className="group cursor-pointer transition-colors hover:bg-muted/40"
                   >
                     <TableCell className="px-4 py-3">

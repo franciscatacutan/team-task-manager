@@ -27,7 +27,7 @@ import {
 interface Props {
   permissions: TaskPermissions;
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   task: Task;
 }
 
@@ -45,7 +45,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 export default function TaskMetadata({
   permissions,
   teamKey,
-  projectId,
+  projectKey,
   task,
 }: Props) {
   const { data } = useTeamMembers(teamKey);
@@ -53,15 +53,15 @@ export default function TaskMetadata({
   const currentAssigneeId = task.assignedUser?.id;
   const currentSupportId = task.supportUser?.id;
 
-  const assignUserMutation = useAssignUser(teamKey, projectId, task.id);
+  const assignUserMutation = useAssignUser(teamKey, projectKey, task.id);
 
   const assignSupportUserMutation = useAssignSupportUser(
     teamKey,
-    projectId,
+    projectKey,
     task.id,
   );
 
-  const updateTaskMutation = useUpdateTask(teamKey, projectId, task.id);
+  const updateTaskMutation = useUpdateTask(teamKey, projectKey, task.id);
 
   function handleAssignUser(userId: string | null) {
     if (!userId || userId === currentAssigneeId) return;
@@ -110,7 +110,7 @@ export default function TaskMetadata({
     });
   }
 
-  const updateStatus = useUpdateTaskStatus(teamKey, projectId);
+  const updateStatus = useUpdateTaskStatus(teamKey, projectKey);
 
   function handleStatusChange(taskId: string, status: TaskStatus) {
     updateStatus.mutate({

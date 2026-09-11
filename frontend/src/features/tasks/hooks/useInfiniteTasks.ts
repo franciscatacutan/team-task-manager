@@ -7,7 +7,7 @@ import type { TaskStatus } from "../utils/task.constants";
 
 export const useInfiniteTasks = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   status: TaskStatus,
   params: {
     search?: string;
@@ -21,7 +21,7 @@ export const useInfiniteTasks = (
       "tasks",
       "infinite",
       teamKey,
-      projectId,
+      projectKey,
       status,
       params.search,
       params.sort,
@@ -31,7 +31,7 @@ export const useInfiniteTasks = (
     queryFn: ({ pageParam }) => {
       const page = (pageParam ?? 0) as number;
 
-      return getTasks(teamKey, projectId, {
+      return getTasks(teamKey, projectKey, {
         page,
         size: 10,
         status: [status],

@@ -7,7 +7,7 @@ import type { TaskStatus } from "../utils/task.constants";
 
 export const getTasks = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -18,7 +18,7 @@ export const getTasks = async (
   },
 ) => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/tasks`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks`,
     {
       params: {
         ...params,
@@ -35,11 +35,11 @@ export const getTasks = async (
 
 export const getTask = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
 ) => {
   const response = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
   );
 
   return response.data;
@@ -47,11 +47,11 @@ export const getTask = async (
 
 export const createTask = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   data: CreateTaskInput,
 ) => {
   const response = await apiClient.post(
-    `/teams/${teamKey}/projects/${projectId}/tasks`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks`,
     data,
   );
 
@@ -60,12 +60,12 @@ export const createTask = async (
 
 export const updateTask = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   data: UpdateTaskInput,
 ): Promise<Task> => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
     data,
   );
 
@@ -74,22 +74,22 @@ export const updateTask = async (
 
 export const deleteTask = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
 ) => {
   await apiClient.delete(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}`,
   );
 };
 
 export const getTaskActivities = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   params: { page: number; size: number; sort?: string },
 ): Promise<PageResponse<TaskActivity>> => {
   const res = await apiClient.get(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/activities`,
     { params },
   );
 
@@ -98,12 +98,12 @@ export const getTaskActivities = async (
 
 export const updateTaskStatus = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   status: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/status`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/status`,
     { status },
   );
 
@@ -112,12 +112,12 @@ export const updateTaskStatus = async (
 
 export const assignUser = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/assignee/${userId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/assignee/${userId}`,
   );
 
   return response.data;
@@ -125,12 +125,12 @@ export const assignUser = async (
 
 export const assignSupportUser = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   userId: string,
 ) => {
   const response = await apiClient.patch(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/support/${userId}`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/support/${userId}`,
   );
 
   return response.data;
@@ -138,12 +138,12 @@ export const assignSupportUser = async (
 
 export const createTaskComment = async (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
   message: string,
 ) => {
   const response = await apiClient.post(
-    `/teams/${teamKey}/projects/${projectId}/tasks/${taskId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/tasks/${taskId}/activities`,
     { message },
   );
 

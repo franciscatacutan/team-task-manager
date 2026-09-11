@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getTask } from "../api/taskApi";
 
-export const useTask = (teamKey: string, projectId: string, taskId: string) => {
+export const useTask = (teamKey: string, projectKey: string, taskId: string) => {
   return useQuery({
-    queryKey: ["task", teamKey, projectId, taskId],
-    queryFn: () => getTask(teamKey, projectId, taskId),
+    queryKey: ["task", teamKey, projectKey, taskId],
+    queryFn: () => getTask(teamKey, projectKey, taskId),
   });
 };

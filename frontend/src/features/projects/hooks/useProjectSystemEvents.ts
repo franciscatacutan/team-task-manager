@@ -4,7 +4,7 @@ import { getProjectSystemEvents } from "../api/projectApi";
 
 export const useProjectSystemEvents = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -15,13 +15,13 @@ export const useProjectSystemEvents = (
     queryKey: [
       "project-system-events",
       teamKey,
-      projectId,
+      projectKey,
       params.page,
       params.size,
       params.sort,
     ],
-    queryFn: () => getProjectSystemEvents(teamKey, projectId, params),
-    enabled: Boolean(teamKey && projectId),
+    queryFn: () => getProjectSystemEvents(teamKey, projectKey, params),
+    enabled: Boolean(teamKey && projectKey),
     placeholderData: keepPreviousData,
   });
 };

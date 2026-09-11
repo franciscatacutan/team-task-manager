@@ -3,22 +3,22 @@ import { createTaskComment } from "../api/taskApi";
 
 export const useCreateTaskComment = (
   teamKey: string,
-  projectId: string,
+  projectKey: string,
   taskId: string,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (message: string) =>
-      createTaskComment(teamKey, projectId, taskId, message),
+      createTaskComment(teamKey, projectKey, taskId, message),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamKey, projectId, taskId],
+        queryKey: ["taskActivities", teamKey, projectKey, taskId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivities", teamKey, projectId],
+        queryKey: ["projectActivities", teamKey, projectKey],
       });
     },
   });

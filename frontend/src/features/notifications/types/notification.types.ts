@@ -37,7 +37,7 @@ export type AppNotification = {
   body: string;
   targetPath: string;
   teamKey?: string | null;
-  projectId?: string | null;
+  projectKey?: string | null;
   taskId?: string | null;
   actor: NotificationActor;
   read: boolean;

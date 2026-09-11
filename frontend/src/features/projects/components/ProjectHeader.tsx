@@ -30,7 +30,7 @@ export default function ProjectHeader({
   onCreateTask,
   onProjectDeleted,
 }: Props) {
-  const updateProject = useUpdateProject(teamKey, project.id);
+  const updateProject = useUpdateProject(teamKey, project.key);
   const updateProjectStatus = useUpdateProjectStatus(teamKey);
 
   const owner = project.owner ?? project.createdBy;
@@ -40,9 +40,9 @@ export default function ProjectHeader({
   const deletedByName = formatUserName(project.deletedBy);
   const isDeleted = Boolean(project.deletedAt);
 
-  function handleStatusChange(projectId: string, status: ProjectStatus) {
+  function handleStatusChange(projectKey: string, status: ProjectStatus) {
     updateProjectStatus.mutate({
-      projectId,
+      projectKey,
       status,
     });
   }
@@ -63,7 +63,7 @@ export default function ProjectHeader({
                   <ProjectStatusSelector
                     value={project.status}
                     onChange={(status) =>
-                      handleStatusChange(project.id, status)
+                      handleStatusChange(project.key, status)
                     }
                   />
                 ) : (
@@ -115,7 +115,7 @@ export default function ProjectHeader({
             {permissions.canDeleteProject && (
               <DeleteProjectButton
                 teamKey={teamKey}
-                projectId={project.id}
+                projectKey={project.key}
                 projectName={project.name}
                 onProjectDeleted={onProjectDeleted}
               />

@@ -8,16 +8,16 @@ export function useUpdateProjectStatus(teamKey: string) {
 
   return useMutation({
     mutationFn: ({
-      projectId,
+      projectKey,
       status,
     }: {
-      projectId: string;
+      projectKey: string;
       status: ProjectStatus;
-    }) => updateProjectStatus(teamKey, projectId, status),
+    }) => updateProjectStatus(teamKey, projectKey, status),
 
     onSuccess: (project) => {
       queryClient.invalidateQueries({
-        queryKey: ["project", teamKey, project.id],
+        queryKey: ["project", teamKey, project.key],
       });
 
       queryClient.invalidateQueries({

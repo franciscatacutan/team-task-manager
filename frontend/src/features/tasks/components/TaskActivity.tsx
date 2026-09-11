@@ -8,14 +8,14 @@ import { cn } from "../../../lib/utils";
 
 interface Props {
   teamKey: string;
-  projectId: string;
+  projectKey: string;
   taskId: string;
   className?: string;
 }
 
 export default function TaskActivity({
   teamKey,
-  projectId,
+  projectKey,
   taskId,
   className,
 }: Props) {
@@ -24,7 +24,7 @@ export default function TaskActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useTaskActivities(teamKey, projectId, taskId, {
+  const { data, isLoading } = useTaskActivities(teamKey, projectKey, taskId, {
     page,
     size: 10,
     sort,
