@@ -9,7 +9,7 @@ import com.example.task_manager.project.entity.ProjectStatus;
  * DTO for returning project information.
  */
 public record ProjectResponse(
-    UUID id,
+    String key,
     String name,
     String description,
     ProjectStatus status,

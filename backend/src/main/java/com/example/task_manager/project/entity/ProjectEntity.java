@@ -21,12 +21,12 @@ import lombok.Setter;
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class) // Enable auditing for createdAt and updatedAt fields
-@Table(name = "projects", indexes = {
-    @Index(name = "idx_project_team_deleted", columnList = "team_id, deleted_at"),
-    @Index(name = "idx_project_team_name", columnList = "team_id, name"),
-    @Index(name = "idx_project_team_status_due", columnList = "team_id, status, planned_due_date, deleted_at")
-
-})
+@Table(name = "projects", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_project_key", columnNames = "project_key") }, indexes = {
+        @Index(name = "idx_project_team_deleted", columnList = "team_id, deleted_at"),
+        @Index(name = "idx_project_team_name", columnList = "team_id, name"),
+        @Index(name = "idx_project_team_status_due", columnList = "team_id, status, planned_due_date, deleted_at")
+    })
 public class ProjectEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,6 +37,9 @@ public class ProjectEntity {
 
   @Column(length = 2000)
   private String description;
+
+  @Column(name = "project_key", nullable = false, unique = true, length = 50)
+  private String key;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)

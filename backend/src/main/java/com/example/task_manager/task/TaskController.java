@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
  * REST controller for managing tasks within projects.
  */
 @RestController
-@RequestMapping("/api/teams/{teamId}/projects/{projectId}/tasks")
+@RequestMapping("/api/teams/{teamKey}/projects/{projectKey}/tasks")
 @RequiredArgsConstructor
 public class TaskController {
 
@@ -41,57 +41,58 @@ public class TaskController {
 
   @PostMapping
   public ResponseEntity<TaskResponse> createTask(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       @Valid @RequestBody CreateTaskRequest request,
       Authentication authentication) {
 
     return ResponseEntity.status(HttpStatus.CREATED.value())
-        .body(taskService.createTask(teamId, projectId, request, authentication.getName()));
+        .body(taskService.createTask(teamKey, projectKey, request, authentication.getName()));
   }
 
-  @PatchMapping("/{taskId}")
+  @PatchMapping("/{taskNumber}")
   public ResponseEntity<TaskResponse> updateTask(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @Valid @RequestBody UpdateTaskDetailsRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.updateTask(teamId, projectId, taskId, request, authentication.getName()));
+    return ResponseEntity
+        .ok(taskService.updateTask(teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
 
-  @DeleteMapping("/{taskId}")
+  @DeleteMapping("/{taskNumber}")
   public ResponseEntity<Void> deleteTask(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       Authentication authentication) {
 
-    taskService.deleteTask(teamId, projectId, taskId, authentication.getName());
+    taskService.deleteTask(teamKey, projectKey, taskNumber, authentication.getName());
 
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping()
   public ResponseEntity<PageResponse<TaskResponse>> getTasks(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       TaskSearchRequest request,
       @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTasks(teamId, projectId, request, pageable, authentication));
+    return ResponseEntity.ok(taskService.getTasks(teamKey, projectKey, request, pageable, authentication));
   }
 
-  @GetMapping("/{taskId}")
+  @GetMapping("/{taskNumber}")
   public ResponseEntity<TaskResponse> getTaskById(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTaskById(teamId, projectId, taskId, authentication));
+    return ResponseEntity.ok(taskService.getTaskById(teamKey, projectKey, taskNumber, authentication));
   }
 
   @GetMapping("/my-task")
@@ -106,69 +107,73 @@ public class TaskController {
 
   @GetMapping("/project-task")
   public ResponseEntity<PageResponse<TaskResponse>> getMyTasksByProject(
-      @PathVariable UUID projectId,
+      @PathVariable String projectKey,
       @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       Authentication authentication) {
 
-    PageResponse<TaskResponse> response = taskService.getMyTasksByProject(projectId, authentication.getName(),
+    PageResponse<TaskResponse> response = taskService.getMyTasksByProject(projectKey, authentication.getName(),
         pageable);
 
     return ResponseEntity.ok(response);
   }
 
-  @GetMapping("/{taskId}/activities")
+  @GetMapping("/{taskNumber}/activities")
   public ResponseEntity<PageResponse<TaskActivityResponse>> getTaskActivities(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTaskActivities(teamId, projectId, taskId, pageable, authentication));
+    return ResponseEntity.ok(taskService.getTaskActivities(teamKey, projectKey, taskNumber, pageable, authentication));
   }
 
-  @PatchMapping("/{taskId}/status")
+  @PatchMapping("/{taskNumber}/status")
   public ResponseEntity<TaskResponse> changeStatus(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @Valid @RequestBody ChangeStatusRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.changeStatus(teamId, projectId, taskId, request, authentication.getName()));
+    return ResponseEntity
+        .ok(taskService.changeStatus(teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
 
-  @PatchMapping("/{taskId}/assignee/{userId}")
+  @PatchMapping("/{taskNumber}/assignee/{userId}")
   public ResponseEntity<TaskResponse> changeAssignee(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @PathVariable UUID userId,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.changeAssignee(teamId, projectId, taskId, userId, authentication.getName()));
+    return ResponseEntity
+        .ok(taskService.changeAssignee(teamKey, projectKey, taskNumber, userId, authentication.getName()));
   }
 
-  @PatchMapping("/{taskId}/support/{userId}")
+  @PatchMapping("/{taskNumber}/support/{userId}")
   public ResponseEntity<TaskResponse> changeSupport(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @PathVariable UUID userId,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.changeSupport(teamId, projectId, taskId, userId, authentication.getName()));
+    return ResponseEntity
+        .ok(taskService.changeSupport(teamKey, projectKey, taskNumber, userId, authentication.getName()));
   }
 
-  @PostMapping("/{taskId}/activities")
+  @PostMapping("/{taskNumber}/activities")
   public ResponseEntity<TaskActivityResponse> addTaskComment(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PathVariable UUID taskId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
       @Valid @RequestBody CreateTaskCommentRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.addTaskComment(teamId, projectId, taskId, request, authentication.getName()));
+    return ResponseEntity
+        .ok(taskService.addTaskComment(teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
 
 }
