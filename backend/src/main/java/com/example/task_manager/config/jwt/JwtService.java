@@ -97,6 +97,7 @@ public class JwtService implements InitializingBean {
   private Claims getClaims(String token) {
     return Jwts.parserBuilder()
         .setSigningKey(getKey())
+        .requireIssuer(issuer)
         .build()
         .parseClaimsJws(token)
         .getBody();
@@ -114,6 +115,12 @@ public class JwtService implements InitializingBean {
   public void afterPropertiesSet() {
     if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
       throw new IllegalStateException("JWT secret must be at least 32 bytes long");
+    }
+    if (issuer == null || issuer.isBlank()) {
+      throw new IllegalStateException("JWT issuer must be configured");
+    }
+    if (accessTokenExpirationMs <= 0) {
+      throw new IllegalStateException("Access-token expiration must be positive");
     }
   }
 }

@@ -31,6 +31,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
   /**
+   * Authentication endpoints use the refresh-token cookie or credentials, never
+   * the bearer token. Skipping them prevents an expired access token from
+   * blocking a valid refresh request before it reaches the controller.
+   */
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    return request.getRequestURI().startsWith("/api/auth/");
+  }
+
+  /**
    * Processes incoming requests and validates JWT tokens.
    * Validate the token and set authentication in the security context
    * 

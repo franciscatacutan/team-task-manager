@@ -18,8 +18,9 @@ export const apiClient = axios.create({
 // Attach token on every request
 apiClient.interceptors.request.use((config) => {
   const token = authStorage.getToken();
+  const isAuthEndpoint = config.url?.includes("/auth/");
 
-  if (token) {
+  if (token && !isAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 

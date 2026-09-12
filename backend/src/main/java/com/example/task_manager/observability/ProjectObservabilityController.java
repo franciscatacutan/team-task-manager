@@ -1,7 +1,5 @@
 package com.example.task_manager.observability;
 
-import java.util.UUID;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -20,37 +18,37 @@ import com.example.task_manager.observability.dto.SystemEventResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/teams/{teamId}/projects/{projectId}/insights")
+@RequestMapping("/api/teams/{teamKey}/projects/{projectKey}/insights")
 @RequiredArgsConstructor
 public class ProjectObservabilityController {
   private final ObservabilityService observabilityService;
 
   @GetMapping("/summary")
   public ResponseEntity<ProjectInsightsResponse> getProjectInsights(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       Authentication authentication) {
 
-    return ResponseEntity.ok(observabilityService.getProjectInsights(teamId, projectId, authentication));
+    return ResponseEntity.ok(observabilityService.getProjectInsights(teamKey, projectKey, authentication));
   }
 
   @GetMapping("/audit-logs")
   public ResponseEntity<PageResponse<AuditLogResponse>> getProjectAuditLogs(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       @PageableDefault(size = 20, sort = "occurredAt", direction = Sort.Direction.DESC) Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(observabilityService.getProjectAuditLogs(teamId, projectId, pageable, authentication));
+    return ResponseEntity.ok(observabilityService.getProjectAuditLogs(teamKey, projectKey, pageable, authentication));
   }
 
   @GetMapping("/system-events")
   public ResponseEntity<PageResponse<SystemEventResponse>> getProjectSystemEvents(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       @PageableDefault(size = 20, sort = "occurredAt", direction = Sort.Direction.DESC) Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(observabilityService.getProjectSystemEvents(teamId, projectId, pageable, authentication));
+    return ResponseEntity.ok(observabilityService.getProjectSystemEvents(teamKey, projectKey, pageable, authentication));
   }
 }
