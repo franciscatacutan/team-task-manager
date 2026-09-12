@@ -11,24 +11,32 @@ import { getUserFromToken } from "../../users/api/userApi";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function TaskDetailsPage() {
-  const { teamId, projectId, taskId } = useParams<{
-    teamId: string;
-    projectId: string;
-    taskId: string;
+  const { teamKey, projectKey, taskNumber } = useParams<{
+    teamKey: string;
+    projectKey: string;
+    taskNumber: string;
   }>();
 
+  const parsedTaskNumber = Number(taskNumber);
+
   const { data: task, isLoading } = useTask(
-    teamId || "",
-    projectId || "",
-    taskId || "",
+    teamKey || "",
+    projectKey || "",
+    parsedTaskNumber,
   );
 
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
 
-  if (!teamId || !projectId || !taskId) {
+  if (
+    !teamKey ||
+    !projectKey ||
+    !taskNumber ||
+    !Number.isSafeInteger(parsedTaskNumber) ||
+    parsedTaskNumber < 1
+  ) {
     return <div className="p-6">Invalid task</div>;
   }
 
@@ -49,8 +57,8 @@ export default function TaskDetailsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <TaskHeader
         task={task}
-        teamId={teamId}
-        projectId={projectId}
+        teamKey={teamKey}
+        projectKey={projectKey}
         permissions={permissions}
       />
 
@@ -58,23 +66,23 @@ export default function TaskDetailsPage() {
         <div className="mx-auto flex h-full min-h-0 max-w-6xl flex-col xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4">
           <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
             <TaskDescription
-              teamId={teamId}
-              projectId={projectId}
+              teamKey={teamKey}
+              projectKey={projectKey}
               task={task}
               permissions={permissions}
             />
             {permissions.canComment && (
               <TaskCommentForm
-                teamId={teamId}
-                projectId={projectId}
-                taskId={task.id}
+                teamKey={teamKey}
+                projectKey={projectKey}
+                taskNumber={task.taskNumber}
               />
             )}
 
             <TaskActivity
-              teamId={teamId}
-              projectId={projectId}
-              taskId={task.id}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              taskNumber={task.taskNumber}
               className="min-h-[22rem] xl:min-h-0 xl:flex-1"
             />
           </div>
@@ -82,8 +90,8 @@ export default function TaskDetailsPage() {
           <aside className="order-1 xl:order-2 xl:min-h-0 xl:overflow-y-auto">
             <TaskMetadata
               permissions={permissions}
-              teamId={teamId}
-              projectId={projectId}
+              teamKey={teamKey}
+              projectKey={projectKey}
               task={task}
             />
           </aside>

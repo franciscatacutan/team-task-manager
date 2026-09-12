@@ -2,23 +2,23 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateTaskInput } from "../types/createTaskSchema";
 import { createTask } from "../api/taskApi";
 
-export function useCreateTask(teamId: string, projectId: string) {
+export function useCreateTask(teamKey: string, projectKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateTaskInput) => createTask(teamId, projectId, data),
+    mutationFn: (data: CreateTaskInput) => createTask(teamKey, projectKey, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["tasks", projectId],
+        queryKey: ["tasks", projectKey],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectKey],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectKey],
       });
     },
   });

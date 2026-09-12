@@ -11,11 +11,11 @@ interface Params {
   roles?: TeamRole[];
 }
 
-export const useTeamMembers = (teamId: string, params?: Params) => {
+export const useTeamMembers = (teamKey: string, params?: Params) => {
   return useQuery<PageResponse<TeamMember>>({
     queryKey: [
       "teamMembers",
-      teamId,
+      teamKey,
       params?.page,
       params?.size,
       params?.search,
@@ -23,14 +23,14 @@ export const useTeamMembers = (teamId: string, params?: Params) => {
       params?.roles,
     ],
     queryFn: () =>
-      getTeamMembers(teamId, {
+      getTeamMembers(teamKey, {
         page: params?.page,
         size: params?.size,
         search: params?.search,
         sort: params?.sort,
         roles: params?.roles,
       }),
-    enabled: Boolean(teamId),
+    enabled: Boolean(teamKey),
     placeholderData: keepPreviousData,
   });
 };

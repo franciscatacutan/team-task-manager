@@ -129,8 +129,8 @@ export default function ProfilePage() {
     }
   };
 
-  const openTeam = (teamId: string) => {
-    navigate(`/teams/${teamId}`);
+  const openTeam = (teamKey: string) => {
+    navigate(`/teams/${teamKey}`);
   };
 
   // ---------------- PERMISSIONS ----------------

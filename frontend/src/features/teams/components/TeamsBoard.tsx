@@ -6,7 +6,7 @@ import type { Team } from "../types/team.type";
 interface Props {
   teams: Team[];
   isLoading: boolean;
-  openTeam: (teamId: string) => void;
+  openTeam: (teamKey: string) => void;
   onCreateTeam: () => void;
   onClearFilters: () => void;
   canCreateTeam: boolean;
@@ -40,9 +40,9 @@ export default function TeamsBoard({
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {teams.map((team) => (
               <TeamCard
-                key={team.id}
+                key={team.key}
                 team={team}
-                onClick={() => openTeam(team.id)}
+                onClick={() => openTeam(team.key)}
               />
             ))}
           </div>

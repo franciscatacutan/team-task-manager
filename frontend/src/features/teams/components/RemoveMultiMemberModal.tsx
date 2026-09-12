@@ -14,7 +14,7 @@ import type { TeamRole } from "../types/team.type";
 
 interface Props {
   userTeamRole: TeamRole;
-  teamId: string;
+  teamKey: string;
   open: boolean;
   isLoading: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,7 +22,7 @@ interface Props {
 
 export default function RemoveMultiMembersModal({
   userTeamRole,
-  teamId,
+  teamKey,
   open,
   isLoading,
   onOpenChange,
@@ -32,11 +32,11 @@ export default function RemoveMultiMembersModal({
 
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data: membersData } = useAllTeamMembers(teamId || "", {
+  const { data: membersData } = useAllTeamMembers(teamKey || "", {
     search: debouncedSearch,
   });
 
-  const removeMembers = useRemoveMembers(teamId);
+  const removeMembers = useRemoveMembers(teamKey);
 
   const removableMembers = useMemo(() => {
     const members = membersData?.content ?? [];

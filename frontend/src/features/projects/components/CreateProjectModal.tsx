@@ -7,12 +7,12 @@ import {
 import { CreateProjectForm } from "./CreateProjectForm";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateProjectModal({ teamId, open, onOpenChange }: Props) {
+export function CreateProjectModal({ teamKey, open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl" aria-describedby={undefined}>
@@ -20,7 +20,7 @@ export function CreateProjectModal({ teamId, open, onOpenChange }: Props) {
           <DialogTitle>Create Project</DialogTitle>
         </DialogHeader>
         <CreateProjectForm
-          teamId={teamId}
+          teamKey={teamKey}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />

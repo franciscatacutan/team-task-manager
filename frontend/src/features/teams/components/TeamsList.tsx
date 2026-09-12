@@ -18,7 +18,7 @@ import { SortHeader } from "@/common/components/toolbar/SortHeader";
 interface Props {
   teams: Team[];
   isLoading: boolean;
-  openTeam: (teamId: string) => void;
+  openTeam: (teamKey: string) => void;
   onCreateTeam?: () => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
@@ -102,8 +102,8 @@ export default function TeamsList({
               <TableBody>
                 {teams.map((team) => (
                   <TableRow
-                    key={team.id}
-                    onClick={() => openTeam(team.id)}
+                    key={team.key}
+                    onClick={() => openTeam(team.key)}
                     className="group cursor-pointer transition-colors hover:bg-muted/40"
                   >
                     <TableCell className="px-4 py-3">

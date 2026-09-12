@@ -10,19 +10,19 @@ import type { TeamMember } from "../types/team.type";
 import { useRemoveMembers } from "../hooks/useRemoveMembers";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   open: boolean;
   onClose: () => void;
   member: TeamMember | null;
 }
 
 export default function RemoveMemberModal({
-  teamId,
+  teamKey,
   open,
   onClose,
   member,
 }: Props) {
-  const removeMember = useRemoveMembers(teamId);
+  const removeMember = useRemoveMembers(teamKey);
 
   const handleRemove = () => {
     if (!member?.id) return;

@@ -3,8 +3,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getProjectSystemEvents } from "../api/projectApi";
 
 export const useProjectSystemEvents = (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -14,14 +14,14 @@ export const useProjectSystemEvents = (
   return useQuery({
     queryKey: [
       "project-system-events",
-      teamId,
-      projectId,
+      teamKey,
+      projectKey,
       params.page,
       params.size,
       params.sort,
     ],
-    queryFn: () => getProjectSystemEvents(teamId, projectId, params),
-    enabled: Boolean(teamId && projectId),
+    queryFn: () => getProjectSystemEvents(teamKey, projectKey, params),
+    enabled: Boolean(teamKey && projectKey),
     placeholderData: keepPreviousData,
   });
 };

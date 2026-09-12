@@ -6,8 +6,8 @@ import type { Task } from "../types/task.types";
 import type { TaskStatus } from "../utils/task.constants";
 
 export const useTasks = (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: {
     page: number;
     size: number;
@@ -20,8 +20,8 @@ export const useTasks = (
   return useQuery<PageResponse<Task>>({
     queryKey: [
       "tasks",
-      teamId,
-      projectId,
+      teamKey,
+      projectKey,
       params.page,
       params.size,
       params.search,
@@ -31,7 +31,7 @@ export const useTasks = (
     ],
 
     queryFn: () =>
-      getTasks(teamId, projectId, {
+      getTasks(teamKey, projectKey, {
         page: params.page,
         size: params.size,
         search: params.search,

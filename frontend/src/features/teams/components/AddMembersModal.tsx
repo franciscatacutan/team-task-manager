@@ -12,7 +12,7 @@ import type { TeamRole } from "../types/team.type";
 
 interface Props {
   userTeamRole: TeamRole;
-  teamId: string;
+  teamKey: string;
   open: boolean;
   isLoading: boolean;
   onOpenChange: (open: boolean) => void;
@@ -20,7 +20,7 @@ interface Props {
 
 export default function AddMembersModal({
   userTeamRole,
-  teamId,
+  teamKey,
   open,
   isLoading,
   onOpenChange,
@@ -28,7 +28,7 @@ export default function AddMembersModal({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data: availableUsersData } = useAvailableUsers(teamId || "", {
+  const { data: availableUsersData } = useAvailableUsers(teamKey || "", {
     search: debouncedSearch,
   });
 
@@ -58,7 +58,7 @@ export default function AddMembersModal({
           userTeamRole={userTeamRole}
           search={search}
           onSearchChange={setSearch}
-          teamId={teamId}
+          teamKey={teamKey}
           users={users}
           onOpenChange={onOpenChange}
         />

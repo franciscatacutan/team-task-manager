@@ -15,30 +15,30 @@ import {
 import { Button } from "../../../components/ui/button";
 
 interface Props {
-  teamId: string;
-  projectId: string;
-  taskId: string;
+  teamKey: string;
+  projectKey: string;
+  taskNumber: number;
   taskTitle: string;
   onTaskDeleted?: () => void;
 }
 
 export default function DeleteTaskButton({
-  teamId,
-  projectId,
-  taskId,
+  teamKey,
+  projectKey,
+  taskNumber,
   taskTitle,
   onTaskDeleted,
 }: Props) {
   const navigate = useNavigate();
-  const deleteTaskMutation = useDeleteTask(teamId, projectId);
+  const deleteTaskMutation = useDeleteTask(teamKey, projectKey);
 
   const handleDelete = () => {
-    deleteTaskMutation.mutate(taskId, {
+    deleteTaskMutation.mutate(taskNumber, {
       onSuccess: () => {
         if (onTaskDeleted) {
           onTaskDeleted();
         }
-        navigate(`/teams/${teamId}/projects/${projectId}`);
+        navigate(`/teams/${teamKey}/projects/${projectKey}`);
       },
     });
   };

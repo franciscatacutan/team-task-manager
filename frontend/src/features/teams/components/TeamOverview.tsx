@@ -30,7 +30,7 @@ import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout"
 
 export default function TeamOverview() {
   const navigate = useNavigate();
-  const { teamId } = useParams<{ teamId: string }>();
+  const { teamKey } = useParams<{ teamKey: string }>();
 
   // ---------------- STATE ----------------
 
@@ -42,9 +42,9 @@ export default function TeamOverview() {
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isLoading = false;
 
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
 
-  const { data: projectsData } = useProjects(teamId || "", {
+  const { data: projectsData } = useProjects(teamKey || "", {
     sort: "updatedAt,desc",
     deletedFilter: "ACTIVE",
   });
@@ -53,7 +53,7 @@ export default function TeamOverview() {
   const projectCount = projectsData?.totalElements ?? 0;
 
   // IMPLEMENT STATISTICS
-  const { data: activeProjectsData } = useProjects(teamId || "", {
+  const { data: activeProjectsData } = useProjects(teamKey || "", {
     status: ["ACTIVE"],
     all: true,
     sort: "updatedAt,desc",
@@ -62,7 +62,7 @@ export default function TeamOverview() {
 
   const activeProjectCount = activeProjectsData?.totalElements ?? 0;
 
-  const { data: membersData } = useTeamMembers(teamId || "", {
+  const { data: membersData } = useTeamMembers(teamKey || "", {
     page: 0,
     size: 10,
     sort: "joinedAt,desc",
@@ -71,7 +71,7 @@ export default function TeamOverview() {
   const members = membersData?.content ?? [];
   const memberCount = membersData?.totalElements ?? 0;
 
-  const { data: activitiesData } = useTeamActivities(teamId || "", {
+  const { data: activitiesData } = useTeamActivities(teamKey || "", {
     page: 0,
     size: 5,
     sort: "createdAt,desc",
@@ -96,7 +96,7 @@ export default function TeamOverview() {
     );
   }
 
-  if (!teamId || !user?.role) {
+  if (!teamKey || !user?.role) {
     return null;
   }
 
@@ -104,7 +104,7 @@ export default function TeamOverview() {
     <section className="flex flex-1 flex-col gap-4 min-h-0 h-fit">
       <TeamHeader
         isLoading={isLoading}
-        teamId={team.id}
+        teamKey={team.key}
         team={team}
         permissions={permissions}
       />
@@ -116,7 +116,7 @@ export default function TeamOverview() {
           value={String(projectCount)}
           description="View and manage project work."
           icon={FolderKanban}
-          onClick={() => navigate(`/teams/${team.id}/projects`)}
+          onClick={() => navigate(`/teams/${team.key}/projects`)}
         />
 
         <TeamOverviewCard
@@ -125,7 +125,7 @@ export default function TeamOverview() {
           value={String(activeProjectCount)}
           description="See what work is moving now."
           icon={Sparkles}
-          onClick={() => navigate(`/teams/${team.id}/projects`)}
+          onClick={() => navigate(`/teams/${team.key}/projects`)}
         />
 
         <TeamOverviewCard
@@ -134,7 +134,7 @@ export default function TeamOverview() {
           value={String(memberCount)}
           description="Review team roles and people."
           icon={Users}
-          onClick={() => navigate(`/teams/${team.id}/members`)}
+          onClick={() => navigate(`/teams/${team.key}/members`)}
         />
 
         <TeamOverviewCard
@@ -143,7 +143,7 @@ export default function TeamOverview() {
           value={String(activityCount)}
           description="Open the full team history."
           icon={Activity}
-          onClick={() => navigate(`/teams/${team.id}/activity`)}
+          onClick={() => navigate(`/teams/${team.key}/activity`)}
         />
       </section>
 
@@ -157,7 +157,7 @@ export default function TeamOverview() {
             <Button
               variant="ghost"
               className="rounded-xl"
-              onClick={() => navigate(`/teams/${team.id}/projects`)}
+              onClick={() => navigate(`/teams/${team.key}/projects`)}
             >
               View all
             </Button>
@@ -172,10 +172,10 @@ export default function TeamOverview() {
             ) : (
               projects.slice(0, 4).map((project) => (
                 <button
-                  key={project.id}
+                  key={project.key}
                   type="button"
                   onClick={() =>
-                    navigate(`/teams/${team.id}/projects/${project.id}`)
+                    navigate(`/teams/${team.key}/projects/${project.key}`)
                   }
                   className="cursor-pointer flex w-full items-start justify-between gap-4 rounded-2xl border border-border/60 bg-background px-4 py-2.5 text-left transition hover:border-border hover:bg-muted/20"
                 >
@@ -213,7 +213,7 @@ export default function TeamOverview() {
               <Button
                 variant="ghost"
                 className="rounded-xl"
-                onClick={() => navigate(`/teams/${team.id}/members`)}
+                onClick={() => navigate(`/teams/${team.key}/members`)}
               >
                 Manage
               </Button>
@@ -268,7 +268,7 @@ export default function TeamOverview() {
           <Button
             variant="ghost"
             className="rounded-xl"
-            onClick={() => navigate(`/teams/${team.id}/activity`)}
+            onClick={() => navigate(`/teams/${team.key}/activity`)}
           >
             View full history
           </Button>
@@ -286,13 +286,13 @@ export default function TeamOverview() {
                   key={activity.id}
                   item={activity}
                   interactive={Boolean(
-                    activity.project?.id && activity.task?.id,
+                    activity.project?.key && activity.task?.taskNumber,
                   )}
                   onOpenTask={
-                    activity.project?.id && activity.task?.id
+                    activity.project?.key && activity.task?.taskNumber
                       ? () =>
                           navigate(
-                            `/teams/${team.id}/projects/${activity.project?.id}/tasks/${activity.task?.id}`,
+                            `/teams/${team.key}/projects/${activity.project?.key}/tasks/${activity.task?.taskNumber}`,
                           )
                       : undefined
                   }
@@ -304,14 +304,14 @@ export default function TeamOverview() {
       </Card>
 
       <CreateProjectModal
-        teamId={team.id}
+        teamKey={team.key}
         open={openCreateTeam}
         onOpenChange={setOpenCreateTeam}
       />
 
       <AddMembersModal
         userTeamRole={teamMe?.role ?? "MEMBER"}
-        teamId={team.id}
+        teamKey={team.key}
         open={openAddMember}
         isLoading={false}
         onOpenChange={setOpenAddMember}

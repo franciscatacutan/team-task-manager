@@ -3,25 +3,25 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProjectStatus } from "../api/projectApi";
 import type { ProjectStatus } from "../types/project.types";
 
-export function useUpdateProjectStatus(teamId: string) {
+export function useUpdateProjectStatus(teamKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
-      projectId,
+      projectKey,
       status,
     }: {
-      projectId: string;
+      projectKey: string;
       status: ProjectStatus;
-    }) => updateProjectStatus(teamId, projectId, status),
+    }) => updateProjectStatus(teamKey, projectKey, status),
 
     onSuccess: (project) => {
       queryClient.invalidateQueries({
-        queryKey: ["project", teamId, project.id],
+        queryKey: ["project", teamKey, project.key],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projects", teamId],
+        queryKey: ["projects", teamKey],
       });
     },
   });

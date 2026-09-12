@@ -189,8 +189,8 @@ function AuditLogList({
                   getActivityTypeLabel({
                     message: log.summary,
                   }),
-                  log.projectId ? `Project ${shortId(log.projectId)}` : null,
-                  log.taskId ? `Task ${shortId(log.taskId)}` : null,
+                  log.projectKey ? `Project ${shortId(log.projectKey)}` : null,
+                  log.taskNumber ? `Task ${shortId(log.taskNumber)}` : null,
                 ]}
               />
             ))}
@@ -263,10 +263,10 @@ function SystemEventList({
                     message: event.eventName,
                   }),
                   event.source,
-                  event.projectId
-                    ? `Project ${shortId(event.projectId)}`
+                  event.projectKey
+                    ? `Project ${shortId(event.projectKey)}`
                     : null,
-                  event.taskId ? `Task ${shortId(event.taskId)}` : null,
+                  event.taskNumber ? `Task ${shortId(event.taskNumber)}` : null,
                 ]}
               />
             ))}

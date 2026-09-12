@@ -7,21 +7,21 @@ import { TaskStatusLabel, TaskStatusStyles } from "../utils/task.constants";
 import DeleteTaskButton from "./DeleteTaskButton";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   task: Task;
   permissions: TaskPermissions;
   onTaskDeleted?: () => void;
 }
 
 export default function TaskHeader({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   task,
   permissions,
   onTaskDeleted,
 }: Props) {
-  const updateTask = useUpdateTask(teamId, projectId, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <div className="border-b border-border/60 bg-background/96 px-6 py-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-7">
@@ -45,9 +45,9 @@ export default function TaskHeader({
 
           {permissions.canDeleteTask && (
             <DeleteTaskButton
-              teamId={teamId}
-              projectId={projectId}
-              taskId={task.id}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              taskNumber={task.taskNumber}
               taskTitle={task.title}
               onTaskDeleted={onTaskDeleted}
             />

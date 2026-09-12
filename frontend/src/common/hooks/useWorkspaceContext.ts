@@ -5,12 +5,12 @@ import { useTeamMe } from "../../features/teams/hooks/useTeamMe";
 import { useTeam } from "../../features/teams/hooks/useTeam";
 
 export function useWorkspaceContext() {
-  const { teamId, projectId } = useParams();
+  const { teamKey, projectKey } = useParams();
 
   const user = getUserFromToken();
 
-  const { data: teamMe } = useTeamMe(teamId || "");
-  const { data: team } = useTeam(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
+  const { data: team } = useTeam(teamKey || "");
 
   const permissions = getTeamPermissions({
     globalRole: user?.role,
@@ -19,10 +19,10 @@ export function useWorkspaceContext() {
   });
 
   return {
-    teamId,
-    projectId,
-    teamIdPresent: !!teamId,
-    projectIdPresent: !!projectId,
+    teamKey,
+    projectKey,
+    teamKeyPresent: !!teamKey,
+    projectKeyPresent: !!projectKey,
     team,
     permissions,
   };

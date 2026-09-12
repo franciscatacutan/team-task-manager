@@ -7,15 +7,15 @@ import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
 import AutoResizeTextarea from "../../../common/components/AutoResizeTextareaForm";
 
 interface Props {
-  teamId: string;
-  projectId: string;
-  taskId: string;
+  teamKey: string;
+  projectKey: string;
+  taskNumber: number;
 }
 
-export default function TaskUCommentForm({ teamId, projectId, taskId }: Props) {
+export default function TaskUCommentForm({ teamKey, projectKey, taskNumber }: Props) {
   const [message, setMessage] = useState("");
 
-  const createUpdate = useCreateTaskComment(teamId, projectId, taskId);
+  const createUpdate = useCreateTaskComment(teamKey, projectKey, taskNumber);
 
   const handleSubmit = () => {
     if (!message.trim()) return;

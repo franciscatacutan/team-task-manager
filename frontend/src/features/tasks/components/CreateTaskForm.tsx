@@ -21,20 +21,20 @@ import FormField from "../../../common/components/FormFieldWrapper";
 import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
 export function CreateTaskForm({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   onSuccess,
   onCancel,
 }: Props) {
-  const createTaskMutation = useCreateTask(teamId, projectId);
-  const { data } = useTeamMembers(teamId);
+  const createTaskMutation = useCreateTask(teamKey, projectKey);
+  const { data } = useTeamMembers(teamKey);
   const members = data?.content ?? [];
 
   const form = useForm<CreateTaskInput>({

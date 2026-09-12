@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getProjectInsights } from "../api/projectApi";
 
-export const useProjectInsights = (teamId: string, projectId: string) => {
+export const useProjectInsights = (teamKey: string, projectKey: string) => {
   return useQuery({
-    queryKey: ["project-insights", teamId, projectId],
-    queryFn: () => getProjectInsights(teamId, projectId),
-    enabled: Boolean(teamId && projectId),
+    queryKey: ["project-insights", teamKey, projectKey],
+    queryFn: () => getProjectInsights(teamKey, projectKey),
+    enabled: Boolean(teamKey && projectKey),
   });
 };

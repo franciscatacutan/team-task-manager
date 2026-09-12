@@ -5,23 +5,23 @@ import { useProjectAuditLogs } from "../hooks/useProjectAuditLogs";
 import { useProjectSystemEvents } from "../hooks/useProjectSystemEvents";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
 }
 
 const PAGE_SIZE = 10;
 
-export default function ProjectObservabilityLogs({ teamId, projectId }: Props) {
+export default function ProjectObservabilityLogs({ teamKey, projectKey }: Props) {
   const [auditPage, setAuditPage] = useState(0);
   const [systemPage, setSystemPage] = useState(0);
   const [sort, setSort] = useState("occurredAt,desc");
 
-  const auditLogs = useProjectAuditLogs(teamId, projectId, {
+  const auditLogs = useProjectAuditLogs(teamKey, projectKey, {
     page: auditPage,
     size: PAGE_SIZE,
     sort,
   });
-  const systemEvents = useProjectSystemEvents(teamId, projectId, {
+  const systemEvents = useProjectSystemEvents(teamKey, projectKey, {
     page: systemPage,
     size: PAGE_SIZE,
     sort,

@@ -46,7 +46,7 @@ import {
 
 interface Props {
   permissions: TeamPermissions;
-  teamId: string;
+  teamKey: string;
   members: TeamMember[];
   isLoading: boolean;
   pagination: PaginationProps;
@@ -56,7 +56,7 @@ interface Props {
 
 export default function MembersList({
   permissions,
-  teamId,
+  teamKey,
   members,
   isLoading,
   pagination,
@@ -68,7 +68,7 @@ export default function MembersList({
   const [removeOpen, setRemoveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
-  const updateRole = useUpdateMemberRole(teamId);
+  const updateRole = useUpdateMemberRole(teamKey);
 
   const handleSort = (field: string) => {
     const [currentField, direction] = sort.split(",");
@@ -91,7 +91,7 @@ export default function MembersList({
     setTransferOpen(true);
   }
 
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
 
   const isOwner = teamMe?.role === "OWNER";
   const isAdmin = teamMe?.role === "ADMIN";
@@ -318,7 +318,7 @@ export default function MembersList({
       )}
 
       <TransferOwnershipModal
-        teamId={teamId}
+        teamKey={teamKey}
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}
@@ -326,7 +326,7 @@ export default function MembersList({
       />
 
       <RemoveMemberModal
-        teamId={teamId}
+        teamKey={teamKey}
         open={removeOpen}
         onClose={() => setRemoveOpen(false)}
         member={selectedMember}

@@ -23,8 +23,8 @@ import { Button } from "@/components/ui/button";
 interface Props {
   tasks: Task[];
   isLoading?: boolean;
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   onCreateTask?: () => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
@@ -51,8 +51,8 @@ const SORT_COLUMNS = [
 export default function TaskList({
   tasks,
   isLoading,
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   onCreateTask,
   onClearFilters,
   hasActiveFilters,
@@ -63,8 +63,8 @@ export default function TaskList({
 }: Props) {
   const navigate = useNavigate();
 
-  function openTask(taskId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}/tasks/${taskId}`);
+  function openTask(taskNumber: number) {
+    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
   }
 
   return (
@@ -124,8 +124,8 @@ export default function TaskList({
               <TableBody>
                 {tasks.map((task) => (
                   <TableRow
-                    key={task.id}
-                    onClick={() => openTask(task.id)}
+                    key={task.taskNumber}
+                    onClick={() => openTask(task.taskNumber)}
                     className="group cursor-pointer transition-colors hover:bg-muted/40"
                   >
                     <TableCell className="px-4 py-3">

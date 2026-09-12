@@ -4,19 +4,19 @@ import type { Task } from "../types/task.types";
 import type { TaskPermissions } from "../utils/taskPermissions";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   task: Task;
   permissions: TaskPermissions;
 }
 
 export default function TaskDescription({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   task,
   permissions,
 }: Props) {
-  const updateTask = useUpdateTask(teamId, projectId, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <section className="space-y-2 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">

@@ -1,26 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addMembers } from "../api/teamMemberApi";
 
-export const useAddMembers = (teamId: string) => {
+export const useAddMembers = (teamKey: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: {
       members: { userId: string; role: "ADMIN" | "MEMBER" }[];
-    }) => addMembers(teamId, data),
+    }) => addMembers(teamKey, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["teamMembers", teamId],
+        queryKey: ["teamMembers", teamKey],
       });
       queryClient.invalidateQueries({
-        queryKey: ["allTeamMembers", teamId],
+        queryKey: ["allTeamMembers", teamKey],
       });
       queryClient.invalidateQueries({
-        queryKey: ["availableUsers", teamId],
+        queryKey: ["availableUsers", teamKey],
       });
       queryClient.invalidateQueries({
-        queryKey: ["team", teamId],
+        queryKey: ["team", teamKey],
       });
       queryClient.invalidateQueries({
         queryKey: ["teams"],

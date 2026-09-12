@@ -18,23 +18,23 @@ import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout"
 interface Props {
   open: boolean;
   onClose: () => void;
-  taskId: string;
-  teamId: string;
-  projectId: string;
+  taskNumber: number;
+  teamKey: string;
+  projectKey: string;
   onTaskDeleted: () => void;
 }
 
 export default function TaskModal({
   open,
   onClose,
-  taskId,
-  teamId,
-  projectId,
+  taskNumber,
+  teamKey,
+  projectKey,
   onTaskDeleted,
 }: Props) {
-  const { data: task, isLoading } = useTask(teamId, projectId, taskId);
+  const { data: task, isLoading } = useTask(teamKey, projectKey, taskNumber);
   const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId);
+  const { data: teamMe } = useTeamMe(teamKey);
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
 
@@ -60,8 +60,8 @@ export default function TaskModal({
         <DialogTitle>
           <TaskHeader
             task={task}
-            teamId={teamId}
-            projectId={projectId}
+            teamKey={teamKey}
+            projectKey={projectKey}
             permissions={permissions}
             onTaskDeleted={onTaskDeleted}
           />
@@ -71,24 +71,24 @@ export default function TaskModal({
           <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4 xl:overflow-hidden">
             <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
               <TaskDescription
-                teamId={teamId}
-                projectId={projectId}
+                teamKey={teamKey}
+                projectKey={projectKey}
                 task={task}
                 permissions={permissions}
               />
 
               {permissions.canComment && (
                 <TaskCommentForm
-                  teamId={teamId}
-                  projectId={projectId}
-                  taskId={task.id}
+                  teamKey={teamKey}
+                  projectKey={projectKey}
+                  taskNumber={task.taskNumber}
                 />
               )}
 
               <TaskActivity
-                teamId={teamId}
-                projectId={projectId}
-                taskId={task.id}
+                teamKey={teamKey}
+                projectKey={projectKey}
+                taskNumber={task.taskNumber}
                 className="min-h-[22rem] xl:min-h-0 xl:flex-1"
               />
             </div>
@@ -96,8 +96,8 @@ export default function TaskModal({
             <aside className="order-1 xl:order-2 xl:min-h-0 xl:overflow-y-auto">
               <TaskMetadata
                 permissions={permissions}
-                teamId={teamId}
-                projectId={projectId}
+                teamKey={teamKey}
+                projectKey={projectKey}
                 task={task}
               />
             </aside>

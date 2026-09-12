@@ -3,35 +3,35 @@ import type { UpdateTaskInput } from "../types/task.types";
 import { updateTask } from "../api/taskApi";
 
 export function useUpdateTask(
-  teamId: string,
-  projectId: string,
-  taskId: string,
+  teamKey: string,
+  projectKey: string,
+  taskNumber: number,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: UpdateTaskInput) =>
-      updateTask(teamId, projectId, taskId, data),
+      updateTask(teamKey, projectKey, taskNumber, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["task", teamId, projectId, taskId],
+        queryKey: ["task", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", teamId, projectId],
+        queryKey: ["tasks", teamKey, projectKey],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamId, projectId],
+        queryKey: ["tasks", "infinite", teamKey, projectKey],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamId, projectId, taskId],
+        queryKey: ["taskActivities", teamKey, projectKey, taskNumber],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamId, projectId],
+        queryKey: ["projectActivity", teamKey, projectKey],
       });
     },
   });

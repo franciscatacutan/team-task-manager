@@ -42,16 +42,16 @@ interface Params {
   deletedFilter: DeletedFilter;
 }
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   params: Params;
-  onStatusChange: (taskId: string, status: TaskStatus) => void;
+  onStatusChange: (taskNumber: number, status: TaskStatus) => void;
   onOpenTask: (task: Task) => void;
 }
 
 export default function TaskBoard({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   params,
   onStatusChange,
   onOpenTask,
@@ -93,7 +93,7 @@ export default function TaskBoard({
 
     if (!over) return;
 
-    const activeId = active.id as string;
+    const activeId = active.id as number;
     const overId = over.id as string;
 
     const activeTask = active.data.current?.task as Task | undefined;
@@ -115,8 +115,8 @@ export default function TaskBoard({
   }
 
   const commonProps = {
-    teamId,
-    projectId,
+    teamKey,
+    projectKey,
     params,
     onOpenTask,
   };
@@ -148,21 +148,21 @@ export default function TaskBoard({
 
 function BoardColumn({
   id,
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   params,
   onOpenTask,
 }: {
   id: TaskStatus;
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   params: Params;
   onOpenTask: (task: Task) => void;
 }) {
   const { setNodeRef } = useDroppable({ id });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteTasks(teamId, projectId, id, params);
+    useInfiniteTasks(teamKey, projectKey, id, params);
 
   const tasks = data?.pages.flatMap((page) => page.content) ?? [];
 
@@ -210,11 +210,11 @@ function BoardColumn({
           </div>
         ) : (
           <SortableContext
-            items={tasks.map((t) => t.id)}
+            items={tasks.map((t) => t.taskNumber)}
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <SortableTask key={task.id} task={task} onOpenTask={onOpenTask} />
+              <SortableTask key={task.taskNumber} task={task} onOpenTask={onOpenTask} />
             ))}
           </SortableContext>
         )}
@@ -250,7 +250,7 @@ function SortableTask({
     transition,
     isDragging,
   } = useSortable({
-    id: task.id,
+    id: task.taskNumber,
     data: { task },
   });
 

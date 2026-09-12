@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getProject } from "../api/projectApi";
 
-export const useProject = (teamId: string, projectId: string) => {
+export const useProject = (teamKey: string, projectKey: string) => {
   return useQuery({
-    queryKey: ["project", teamId, projectId],
-    queryFn: () => getProject(teamId, projectId),
+    queryKey: ["project", teamKey, projectKey],
+    queryFn: () => getProject(teamKey, projectKey),
   });
 };

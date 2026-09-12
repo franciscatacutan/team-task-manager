@@ -15,7 +15,7 @@ import type {
 } from "../types/project.types";
 
 export const getProjects = async (
-  teamId: string,
+  teamKey: string,
   params: {
     page?: number;
     size?: number;
@@ -26,7 +26,7 @@ export const getProjects = async (
     deletedFilter?: DeletedFilter;
   },
 ) => {
-  const response = await apiClient.get(`/teams/${teamId}/projects`, {
+  const response = await apiClient.get(`/teams/${teamKey}/projects`, {
     params: {
       ...params,
       status: params.status?.length ? params.status : undefined,
@@ -39,94 +39,94 @@ export const getProjects = async (
 };
 
 export const createProject = async (
-  teamId: string,
+  teamKey: string,
   data: { name: string; description?: string },
 ): Promise<Project> => {
-  const response = await apiClient.post(`/teams/${teamId}/projects`, data);
+  const response = await apiClient.post(`/teams/${teamKey}/projects`, data);
   return response.data;
 };
 
 export const getProject = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
 ): Promise<Project> => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}`,
+    `/teams/${teamKey}/projects/${projectKey}`,
   );
 
   return response.data;
 };
 
 export const getProjectActivities = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: BaseQueryParams,
 ): Promise<PageResponse<ProjectActivity>> => {
   const res = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/activities`,
+    `/teams/${teamKey}/projects/${projectKey}/activities`,
     { params },
   );
   return res.data;
 };
 
 export const getProjectInsights = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
 ): Promise<ProjectInsights> => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/insights/summary`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/summary`,
   );
   return response.data;
 };
 
 export const getProjectAuditLogs = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilityAuditLog>> => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/insights/audit-logs`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/audit-logs`,
     { params },
   );
   return response.data;
 };
 
 export const getProjectSystemEvents = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilitySystemEvent>> => {
   const response = await apiClient.get(
-    `/teams/${teamId}/projects/${projectId}/insights/system-events`,
+    `/teams/${teamKey}/projects/${projectKey}/insights/system-events`,
     { params },
   );
   return response.data;
 };
 
 export const updateProject = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   data: UpdateProjectInput,
 ): Promise<Project> => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}`,
+    `/teams/${teamKey}/projects/${projectKey}`,
     data,
   );
   return response.data;
 };
 
 export const updateProjectStatus = async (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   status: ProjectStatus,
 ): Promise<Project> => {
   const response = await apiClient.patch(
-    `/teams/${teamId}/projects/${projectId}/status`,
+    `/teams/${teamKey}/projects/${projectKey}/status`,
     { status },
   );
   return response.data;
 };
 
-export const deleteProject = async (teamId: string, projectId: string) => {
-  await apiClient.delete(`/teams/${teamId}/projects/${projectId}`);
+export const deleteProject = async (teamKey: string, projectKey: string) => {
+  await apiClient.delete(`/teams/${teamKey}/projects/${projectKey}`);
 };

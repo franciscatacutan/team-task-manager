@@ -16,7 +16,7 @@ import type { TeamRole } from "../types/team.type";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
 export default function MembersPage() {
-  const { teamId } = useParams<{ teamId: string }>();
+  const { teamKey } = useParams<{ teamKey: string }>();
 
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [removeMembersOpen, setRemoveMembersOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function MembersPage() {
   const debouncedSearch = useDebounce(search, 400);
 
   const { data: membersData, isLoading: membersLoading } = useTeamMembers(
-    teamId || "",
+    teamKey || "",
     {
       page,
       size: 10,
@@ -41,7 +41,7 @@ export default function MembersPage() {
       roles: roleFilter,
     },
   );
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { data: teamMe } = useTeamMe(teamKey || "");
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
   if (!teamMe?.role) return;
@@ -67,7 +67,7 @@ export default function MembersPage() {
     }
   }
 
-  if (!teamId) return <div className="p-6">Invalid team</div>;
+  if (!teamKey) return <div className="p-6">Invalid team</div>;
 
   return (
     <section className="flex flex-col h-full min-h-0 gap-6">
@@ -87,7 +87,7 @@ export default function MembersPage() {
 
       <MembersList
         permissions={permissions}
-        teamId={teamId}
+        teamKey={teamKey}
         members={members}
         isLoading={membersLoading}
         pagination={{
@@ -107,7 +107,7 @@ export default function MembersPage() {
 
       <RemoveMultiMembersModal
         userTeamRole={teamMe.role}
-        teamId={teamId}
+        teamKey={teamKey}
         open={removeMembersOpen}
         isLoading={false}
         onOpenChange={setRemoveMembersOpen}
@@ -115,14 +115,14 @@ export default function MembersPage() {
 
       <AddMembersModal
         userTeamRole={teamMe.role}
-        teamId={teamId}
+        teamKey={teamKey}
         open={addMembersOpen}
         isLoading={false}
         onOpenChange={setAddMembersOpen}
       />
 
       <TransferOwnershipModal
-        teamId={teamId}
+        teamKey={teamKey}
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}

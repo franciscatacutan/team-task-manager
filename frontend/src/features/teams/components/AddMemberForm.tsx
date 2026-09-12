@@ -35,7 +35,7 @@ type FormValues = z.infer<typeof schema>;
 
 interface Props {
   userTeamRole: TeamRole;
-  teamId: string;
+  teamKey: string;
   users: User[];
   search: string;
   onSearchChange: (value: string) => void;
@@ -44,7 +44,7 @@ interface Props {
 
 export function AddMemberForm({
   userTeamRole,
-  teamId,
+  teamKey,
   users,
   search,
   onSearchChange,
@@ -64,7 +64,7 @@ export function AddMemberForm({
   });
   const selectedCount = selectedMembers.length;
 
-  const addMember = useAddMembers(teamId);
+  const addMember = useAddMembers(teamKey);
 
   const onSubmit = (data: FormValues) => {
     addMember.mutate(data, {

@@ -768,7 +768,7 @@ public class TaskService {
     boolean allowed = task.getAssignee().getId().equals(userId) ||
         (task.getSupport() != null && task.getSupport().getId().equals(userId));
 
-    if (!allowed || !teamAuthorizationService.canManageTeam(member)) {
+    if (!allowed && !teamAuthorizationService.canManageTeam(member)) {
       throw new ForbiddenException("Cannot change task status");
     }
   }

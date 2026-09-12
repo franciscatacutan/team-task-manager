@@ -23,11 +23,11 @@ import { useState } from "react";
 import { Separator } from "../../../components/ui/separator";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   collapsed?: boolean;
 }
 
-export default function TeamSwitcher({ teamId, collapsed }: Props) {
+export default function TeamSwitcher({ teamKey, collapsed }: Props) {
   const navigate = useNavigate();
   const { data } = useAllTeams();
   
@@ -36,10 +36,10 @@ export default function TeamSwitcher({ teamId, collapsed }: Props) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const currentTeam = teams.find((t) => t.id === teamId);
+  const currentTeam = teams.find((t) => t.key === teamKey);
 
   function switchTeam(id: string) {
-    if (id === teamId) return;
+    if (id === teamKey) return;
 
     setOpen(false);
     navigate(`/teams/${id}`);
@@ -100,13 +100,13 @@ export default function TeamSwitcher({ teamId, collapsed }: Props) {
               <CommandEmpty>No teams found.</CommandEmpty>
 
               {teams.map((team) => {
-                const isActive = team.id === teamId;
+                const isActive = team.key === teamKey;
 
                 return (
                   <CommandItem
-                    key={team.id}
-                    value={team.id}
-                    onSelect={() => switchTeam(team.id)}
+                    key={team.key}
+                    value={team.key}
+                    onSelect={() => switchTeam(team.key)}
                     className={cn(
                       "flex items-center gap-2 rounded-xl px-2 py-2",
                       isActive && "bg-muted/60 font-medium",
@@ -145,7 +145,7 @@ export default function TeamSwitcher({ teamId, collapsed }: Props) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSuccess={(team) => {
-          navigate(`/teams/${team.id}`);
+          navigate(`/teams/${team.key}`);
         }}
       />
     </>

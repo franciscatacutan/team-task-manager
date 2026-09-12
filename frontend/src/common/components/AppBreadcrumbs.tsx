@@ -23,33 +23,33 @@ const workspaceSectionLabels: Record<string, string> = {
 
 export default function AppBreadcrumbs() {
   const { pathname } = useLocation();
-  const { teamId, projectId, taskId, userId } = useParams<{
-    teamId?: string;
-    projectId?: string;
-    taskId?: string;
+  const { teamKey, projectKey, taskNumber, userId } = useParams<{
+    teamKey?: string;
+    projectKey?: string;
+    taskNumber?: string;
     userId?: string;
   }>();
 
   const segments = pathname.split("/").filter(Boolean);
-  const isWorkspaceRoute = segments[0] === "teams" && !!teamId;
+  const isWorkspaceRoute = segments[0] === "teams" && !!teamKey;
   const section = isWorkspaceRoute ? segments[2] : undefined;
 
   const { data: team, isLoading: teamLoading } = useQuery({
-    queryKey: ["team", teamId],
-    queryFn: () => getTeam(teamId!),
-    enabled: !!teamId,
+    queryKey: ["team", teamKey],
+    queryFn: () => getTeam(teamKey!),
+    enabled: !!teamKey,
   });
 
   const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ["project", teamId, projectId],
-    queryFn: () => getProject(teamId!, projectId!),
-    enabled: !!teamId && !!projectId,
+    queryKey: ["project", teamKey, projectKey],
+    queryFn: () => getProject(teamKey!, projectKey!),
+    enabled: !!teamKey && !!projectKey,
   });
 
   const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ["task", teamId, projectId, taskId],
-    queryFn: () => getTask(teamId!, projectId!, taskId!),
-    enabled: !!teamId && !!projectId && !!taskId,
+    queryKey: ["task", teamKey, projectKey, taskNumber],
+    queryFn: () => getTask(teamKey!, projectKey!, Number(taskNumber)),
+    enabled: !!teamKey && !!projectKey && !!taskNumber,
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
@@ -61,16 +61,16 @@ export default function AppBreadcrumbs() {
   const items = buildBreadcrumbItems({
     pathname,
     segments,
-    teamId,
-    projectId,
-    taskId,
+    teamKey,
+    projectKey,
+    taskNumber,
     userId,
     teamName: team?.name,
     projectName: project?.name,
     taskLabel: task
       ? `#${task.taskNumber} ${task.title}`
-      : taskId
-        ? `Task ${shortId(taskId)}`
+      : taskNumber
+        ? `Task ${taskNumber}`
         : undefined,
     userName: user ? `${user.firstName} ${user.lastName}` : undefined,
     loading: {
@@ -161,9 +161,9 @@ function BreadcrumbContent({
 function buildBreadcrumbItems({
   pathname,
   segments,
-  teamId,
-  projectId,
-  taskId,
+  teamKey,
+  projectKey,
+  taskNumber,
   userId,
   teamName,
   projectName,
@@ -174,9 +174,9 @@ function buildBreadcrumbItems({
 }: {
   pathname: string;
   segments: string[];
-  teamId?: string;
-  projectId?: string;
-  taskId?: string;
+  teamKey?: string;
+  projectKey?: string;
+  taskNumber?: string;
   userId?: string;
   teamName?: string;
   projectName?: string;
@@ -216,15 +216,15 @@ function buildBreadcrumbItems({
     ];
   }
 
-  if (segments[0] !== "teams" || !teamId) {
+  if (segments[0] !== "teams" || !teamKey) {
     return [];
   }
 
   const items: BreadcrumbItem[] = [
     { label: "Teams", to: "/teams" },
     {
-      label: teamName ?? `Team ${shortId(teamId)}`,
-      to: section ? `/teams/${teamId}` : undefined,
+      label: teamName ?? `Team ${shortId(teamKey)}`,
+      to: section ? `/teams/${teamKey}` : undefined,
       loading: loading.team,
     },
   ];
@@ -235,20 +235,20 @@ function buildBreadcrumbItems({
 
   items.push({
     label: sectionLabel,
-    to: projectId ? `/teams/${teamId}/${section}` : undefined,
+    to: projectKey ? `/teams/${teamKey}/${section}` : undefined,
   });
 
-  if (projectId) {
+  if (projectKey) {
     items.push({
-      label: projectName ?? `Project ${shortId(projectId)}`,
-      to: taskId ? `/teams/${teamId}/projects/${projectId}` : undefined,
+      label: projectName ?? `Project ${shortId(projectKey)}`,
+      to: taskNumber ? `/teams/${teamKey}/projects/${projectKey}` : undefined,
       loading: loading.project,
     });
   }
 
-  if (taskId) {
+  if (taskNumber) {
     items.push({
-      label: taskLabel ?? `Task ${shortId(taskId)}`,
+      label: taskLabel ?? `Task ${taskNumber}`,
       loading: loading.task,
     });
   }

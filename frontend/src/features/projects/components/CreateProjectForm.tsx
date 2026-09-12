@@ -12,13 +12,13 @@ import AutoResizeTextareaBase from "../../../common/components/AutoResizeTextare
 import FormField from "../../../common/components/FormFieldWrapper";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function CreateProjectForm({ teamId, onSuccess, onCancel }: Props) {
-  const createProjectMutation = useCreateProject(teamId);
+export function CreateProjectForm({ teamKey, onSuccess, onCancel }: Props) {
+  const createProjectMutation = useCreateProject(teamKey);
 
   const form = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
