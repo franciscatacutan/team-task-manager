@@ -1,4 +1,4 @@
-import { useOutletContext, useParams } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 
 import { useTeamMembers } from "../hooks/useTeamMembers";

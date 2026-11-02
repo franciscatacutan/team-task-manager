@@ -1,8 +1,6 @@
 package com.example.task_manager.observability.entity;
 
-/**
- * High-level action categories used by audit consumers and analytics.
- */
+/** High-level action categories used by audit consumers and analytics. */
 public enum AuditAction {
   CREATE,
   UPDATE,

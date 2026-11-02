@@ -1,27 +1,25 @@
 package com.example.task_manager.user.entity;
 
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
-/**
- * Entity representing a user.
- */
+/** Entity representing a user. */
 @Getter
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class) // Enable auditing for createdAt and updatedAt fields
-@Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email"),
-    @Index(name = "idx_user_role", columnList = "role")
-})
+@Table(
+    name = "users",
+    indexes = {
+      @Index(name = "idx_user_email", columnList = "email"),
+      @Index(name = "idx_user_role", columnList = "role")
+    })
 public class UserEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -56,6 +54,5 @@ public class UserEntity {
   @Column(nullable = false)
   private UserRole role;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 }

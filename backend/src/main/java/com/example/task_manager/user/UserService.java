@@ -1,9 +1,27 @@
 package com.example.task_manager.user;
 
+import com.example.task_manager.auth.RefreshTokenService;
+import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.exception.api.BadRequestInputException;
+import com.example.task_manager.exception.api.ConflictException;
+import com.example.task_manager.exception.api.ForbiddenException;
+import com.example.task_manager.exception.api.ResourceNotFoundException;
+import com.example.task_manager.exception.api.UserNotFoundException;
+import com.example.task_manager.user.dto.AdminResetPasswordRequest;
+import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
+import com.example.task_manager.user.dto.UpdateEmailRequest;
+import com.example.task_manager.user.dto.UpdatePasswordRequest;
+import com.example.task_manager.user.dto.UpdateUserProfileRequest;
+import com.example.task_manager.user.dto.UpdateUserRoleRequest;
+import com.example.task_manager.user.dto.UserResponse;
+import com.example.task_manager.user.dto.UserSearchRequest;
+import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,28 +31,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.task_manager.exception.api.BadRequestInputException;
-import com.example.task_manager.exception.api.ConflictException;
-import com.example.task_manager.exception.api.ForbiddenException;
-import com.example.task_manager.exception.api.ResourceNotFoundException;
-import com.example.task_manager.exception.api.UserNotFoundException;
-import com.example.task_manager.auth.RefreshTokenService;
-import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
-import com.example.task_manager.user.dto.AdminResetPasswordRequest;
-import com.example.task_manager.user.dto.UpdateEmailRequest;
-import com.example.task_manager.user.dto.UpdatePasswordRequest;
-import com.example.task_manager.user.dto.UpdateUserProfileRequest;
-import com.example.task_manager.user.dto.UpdateUserRoleRequest;
-import com.example.task_manager.user.dto.UserResponse;
-import com.example.task_manager.user.dto.UserSearchRequest;
-import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
-
-import lombok.RequiredArgsConstructor;
-
-/* 
-* Service layer for managing users.
+/*
+ * Service layer for managing users.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,13 +47,9 @@ public class UserService {
    */
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional(readOnly = true)
-  public PageResponse<UserResponse> getAllUsers(
-      UserSearchRequest request,
-      Pageable pageable) {
+  public PageResponse<UserResponse> getAllUsers(UserSearchRequest request, Pageable pageable) {
 
-    Specification<UserEntity> spec = UserSpecification.build(
-        request.search(),
-        request.roles());
+    Specification<UserEntity> spec = UserSpecification.build(request.search(), request.roles());
 
     pageable = validateSorting(pageable);
 
@@ -77,15 +71,10 @@ public class UserService {
   @Transactional(readOnly = true)
   public UserResponse getUser(UUID userId) {
 
-    UserEntity user = userRepository.findById(userId)
-        .orElseThrow(UserNotFoundException::new);
+    UserEntity user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
     return new UserResponse(
-        user.getId(),
-        user.getFirstName(),
-        user.getLastName(),
-        user.getEmail(),
-        user.getRole());
+        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
   }
 
   /*
@@ -96,11 +85,13 @@ public class UserService {
   @Transactional
   public void updateUserRole(UUID targetUserId, UpdateUserRoleRequest request, String requester) {
 
-    UserEntity currentUser = userRepository.findByEmailIgnoreCase(normalizeEmail(requester))
-        .orElseThrow(UserNotFoundException::new);
+    UserEntity currentUser =
+        userRepository
+            .findByEmailIgnoreCase(normalizeEmail(requester))
+            .orElseThrow(UserNotFoundException::new);
 
-    UserEntity targetUser = userRepository.findById(targetUserId)
-        .orElseThrow(UserNotFoundException::new);
+    UserEntity targetUser =
+        userRepository.findById(targetUserId).orElseThrow(UserNotFoundException::new);
 
     if (currentUser.getId().equals(targetUserId) && request.role() != UserRole.SUPER_ADMIN) {
       throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
@@ -116,13 +107,13 @@ public class UserService {
   @PreAuthorize("#userId == authentication.principal.id or hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public UserResponse updateProfile(
-      UUID userId,
-      UpdateUserProfileRequest request,
-      String requesterEmail) {
+      UUID userId, UpdateUserProfileRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     assertCanManageTargetUser(requester, user);
 
@@ -169,27 +160,24 @@ public class UserService {
    */
   @PreAuthorize("#userId == authentication.principal.id")
   @Transactional
-  public void updatePassword(
-      UUID userId,
-      UpdatePasswordRequest request,
-      String requesterEmail) {
+  public void updatePassword(UUID userId, UpdatePasswordRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity target =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (!requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the admin password reset flow for another user.");
     }
 
-    if (!passwordEncoder.matches(request.currentPassword(),
-        target.getPassword())) {
+    if (!passwordEncoder.matches(request.currentPassword(), target.getPassword())) {
       throw new BadRequestInputException("Current password incorrect");
     }
 
     target.setPassword(passwordEncoder.encode(request.newPassword()));
     refreshTokenService.revokeAllForUser(target.getId());
-
   }
 
   /*
@@ -199,13 +187,13 @@ public class UserService {
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public void resetPasswordByAdmin(
-      UUID targetUserId,
-      AdminResetPasswordRequest request,
-      String requesterEmail) {
+      UUID targetUserId, AdminResetPasswordRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity target =
+        userRepository
+            .findById(targetUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the regular password change flow for your own account.");
@@ -224,13 +212,13 @@ public class UserService {
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public UserResponse updateEmailByAdmin(
-      UUID targetUserId,
-      AdminUpdateEmailRequest request,
-      String requesterEmail) {
+      UUID targetUserId, AdminUpdateEmailRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity target =
+        userRepository
+            .findById(targetUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the regular email change flow for your own account.");
@@ -260,7 +248,8 @@ public class UserService {
   }
 
   private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmailIgnoreCase(normalizeEmail(email))
+    return userRepository
+        .findByEmailIgnoreCase(normalizeEmail(email))
         .orElseThrow(UserNotFoundException::new);
   }
 
@@ -292,11 +281,7 @@ public class UserService {
 
   private UserResponse mapToResponse(UserEntity user) {
     return new UserResponse(
-        user.getId(),
-        user.getFirstName(),
-        user.getLastName(),
-        user.getEmail(),
-        user.getRole());
+        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
   }
 
   private String normalizeEmail(String email) {
@@ -306,13 +291,8 @@ public class UserService {
   /*
    * Allowed Sorting Fields
    */
-  private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-      "firstName",
-      "email",
-      "lastName",
-      "createdAt",
-      "updatedAt",
-      "role");
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of("firstName", "email", "lastName", "createdAt", "updatedAt", "role");
 
   /*
    * Check sort request
@@ -321,12 +301,10 @@ public class UserService {
 
     for (Sort.Order order : pageable.getSort()) {
       if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-        throw new BadRequestInputException(
-            "Invalid sort field: " + order.getProperty());
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
       }
     }
 
     return pageable;
   }
-
 }

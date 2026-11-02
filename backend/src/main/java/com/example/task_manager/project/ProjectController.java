@@ -1,5 +1,14 @@
 package com.example.task_manager.project;
 
+import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.project.dto.ChangeProjectStatusRequest;
+import com.example.task_manager.project.dto.CreateProjectRequest;
+import com.example.task_manager.project.dto.ProjectActivityResponse;
+import com.example.task_manager.project.dto.ProjectResponse;
+import com.example.task_manager.project.dto.ProjectSearchRequest;
+import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -17,20 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.project.dto.ChangeProjectStatusRequest;
-import com.example.task_manager.project.dto.CreateProjectRequest;
-import com.example.task_manager.project.dto.ProjectActivityResponse;
-import com.example.task_manager.project.dto.ProjectResponse;
-import com.example.task_manager.project.dto.ProjectSearchRequest;
-import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-/**
- * REST controller for managing projects.
- */
+/** REST controller for managing projects. */
 @RestController
 @RequestMapping("/api/teams/{teamKey}/projects")
 @RequiredArgsConstructor
@@ -46,7 +42,6 @@ public class ProjectController {
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(projectService.createProject(teamKey, request, authentication.getName()));
-
   }
 
   @PatchMapping("/{projectKey}")
@@ -56,7 +51,8 @@ public class ProjectController {
       @Valid @RequestBody UpdateProjectDetailsRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.updateProject(teamKey, projectKey, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.updateProject(teamKey, projectKey, request, authentication.getName()));
   }
 
   @DeleteMapping("/{projectKey}")
@@ -75,10 +71,12 @@ public class ProjectController {
   public ResponseEntity<PageResponse<ProjectResponse>> getProjects(
       @PathVariable String teamKey,
       @ModelAttribute ProjectSearchRequest request,
-      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.getProjects(teamKey, request, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjects(teamKey, request, pageable, authentication));
   }
 
   @GetMapping("/{projectKey}")
@@ -93,9 +91,11 @@ public class ProjectController {
   public ResponseEntity<PageResponse<ProjectActivityResponse>> getProjectActivities(
       @PathVariable String teamKey,
       @PathVariable String projectKey,
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
-    return ResponseEntity.ok(projectService.getProjectActivities(teamKey, projectKey, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjectActivities(teamKey, projectKey, pageable, authentication));
   }
 
   @PatchMapping("/{projectKey}/status")
@@ -104,7 +104,7 @@ public class ProjectController {
       @PathVariable String projectKey,
       @Valid @RequestBody ChangeProjectStatusRequest request,
       Authentication authentication) {
-    return ResponseEntity
-        .ok(projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
   }
 }

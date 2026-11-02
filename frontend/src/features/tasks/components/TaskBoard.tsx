@@ -214,7 +214,11 @@ function BoardColumn({
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <SortableTask key={task.taskNumber} task={task} onOpenTask={onOpenTask} />
+              <SortableTask
+                key={task.taskNumber}
+                task={task}
+                onOpenTask={onOpenTask}
+              />
             ))}
           </SortableContext>
         )}

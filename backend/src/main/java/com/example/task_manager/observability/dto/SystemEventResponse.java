@@ -1,10 +1,9 @@
 package com.example.task_manager.observability.dto;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.observability.entity.SystemEventSeverity;
+import java.time.Instant;
+import java.util.UUID;
 
 public record SystemEventResponse(
     UUID id,
@@ -20,10 +19,5 @@ public record SystemEventResponse(
     ActivityEventDetails context,
     Instant occurredAt) {
 
-  public record User(
-      UUID id,
-      String firstName,
-      String lastName,
-      String email) {
-  }
+  public record User(UUID id, String firstName, String lastName, String email) {}
 }

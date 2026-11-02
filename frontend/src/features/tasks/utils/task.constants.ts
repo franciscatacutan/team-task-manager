@@ -2,12 +2,7 @@ import { BASE_SORT_OPTIONS } from "@/common/constants/sort.constants";
 import type { SortField } from "@/common/types/sort.types";
 
 export type TaskStatus =
-  | "TODO"
-  | "IN_PROGRESS"
-  | "IN_REVIEW"
-  | "ON_HOLD"
-  | "DONE"
-  | "CANCELLED";
+  "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "ON_HOLD" | "DONE" | "CANCELLED";
 
 /*
  Transition rule:

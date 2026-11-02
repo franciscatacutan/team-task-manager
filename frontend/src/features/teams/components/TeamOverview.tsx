@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router";
 import { Activity, FolderKanban, Sparkles, Users } from "lucide-react";
 
 import { Button } from "../../../components/ui/button";

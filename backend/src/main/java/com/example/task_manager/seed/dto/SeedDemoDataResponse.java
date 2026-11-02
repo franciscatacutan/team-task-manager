@@ -1,8 +1,6 @@
 package com.example.task_manager.seed.dto;
 
-/**
- * Response payload for generated demo data.
- */
+/** Response payload for generated demo data. */
 public record SeedDemoDataResponse(
     String batchId,
     String sharedPassword,
@@ -12,5 +10,4 @@ public record SeedDemoDataResponse(
     int tasksCreated,
     int commentsCreated,
     String firstUserEmail,
-    String requesterEmail) {
-}
+    String requesterEmail) {}

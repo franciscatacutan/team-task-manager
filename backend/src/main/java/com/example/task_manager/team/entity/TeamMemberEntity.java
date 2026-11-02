@@ -1,12 +1,6 @@
 package com.example.task_manager.team.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import org.hibernate.annotations.CreationTimestamp;
-
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,20 +15,24 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
-/**
- * Entity representing a team member.
- */
+/** Entity representing a team member. */
 @Entity
-@Table(name = "team_members", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_teamMember_team_user", columnNames = { "team_id", "user_id" })
-}, indexes = {
-    @Index(name = "idx_teamMember_team", columnList = "team_id")
-})
+@Table(
+    name = "team_members",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_teamMember_team_user",
+          columnNames = {"team_id", "user_id"})
+    },
+    indexes = {@Index(name = "idx_teamMember_team", columnList = "team_id")})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -63,9 +61,7 @@ public class TeamMemberEntity {
   @JoinColumn(name = "added_by", nullable = false)
   private UserEntity addedBy;
 
-  @CreationTimestamp
-  private Instant joinedAt;
+  @CreationTimestamp private Instant joinedAt;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 }

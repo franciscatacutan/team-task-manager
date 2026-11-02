@@ -1,23 +1,9 @@
 package com.example.task_manager.observability;
 
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Function;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
-import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.exception.api.ForbiddenException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
@@ -46,12 +32,21 @@ import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
-
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Owns audit logging, operational events, and query-friendly analytics.
- */
+/** Owns audit logging, operational events, and query-friendly analytics. */
 @Service
 @RequiredArgsConstructor
 public class ObservabilityService {
@@ -142,62 +137,85 @@ public class ObservabilityService {
     Instant since = now.minus(INSIGHT_WINDOW);
 
     long totalTasks = taskRepository.countByProjectTeamIdAndDeletedAtIsNull(teamId);
-    long done = taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.DONE);
-    long cancelled = taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.CANCELLED);
-    long overdueTasks = taskRepository.countOverdueOpenTasks(teamId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
+    long done =
+        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.DONE);
+    long cancelled =
+        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
+            teamId, TaskStatus.CANCELLED);
+    long overdueTasks =
+        taskRepository.countOverdueOpenTasks(
+            teamId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
     long totalMembers = teamMemberRepository.countByTeamId(teamId);
     long totalProjects = projectRepository.countByTeamIdAndDeletedAtIsNull(teamId);
-    long activeProjects = projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.ACTIVE);
-    long completedProjects = projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED);
+    long activeProjects =
+        projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.ACTIVE);
+    long completedProjects =
+        projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED);
 
-    TeamInsightsResponse.MembershipMetrics membershipMetrics = new TeamInsightsResponse.MembershipMetrics(
-        totalMembers,
-        teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.OWNER),
-        teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.ADMIN),
-        teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.MEMBER));
+    TeamInsightsResponse.MembershipMetrics membershipMetrics =
+        new TeamInsightsResponse.MembershipMetrics(
+            totalMembers,
+            teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.OWNER),
+            teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.ADMIN),
+            teamMemberRepository.countByTeamIdAndRole(teamId, TeamRole.MEMBER));
 
-    TeamInsightsResponse.TaskMetrics taskMetrics = new TeamInsightsResponse.TaskMetrics(
-        totalTasks,
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.TODO),
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.IN_PROGRESS),
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.IN_REVIEW),
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.ON_HOLD),
-        done,
-        cancelled,
-        overdueTasks,
-        taskRepository.countByProjectTeamIdAndPriorityAndDeletedAtIsNull(teamId, TaskPriority.HIGH),
-        taskRepository.countByProjectTeamIdAndPriorityAndDeletedAtIsNull(teamId, TaskPriority.CRITICAL));
+    TeamInsightsResponse.TaskMetrics taskMetrics =
+        new TeamInsightsResponse.TaskMetrics(
+            totalTasks,
+            taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.TODO),
+            taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
+                teamId, TaskStatus.IN_PROGRESS),
+            taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
+                teamId, TaskStatus.IN_REVIEW),
+            taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
+                teamId, TaskStatus.ON_HOLD),
+            done,
+            cancelled,
+            overdueTasks,
+            taskRepository.countByProjectTeamIdAndPriorityAndDeletedAtIsNull(
+                teamId, TaskPriority.HIGH),
+            taskRepository.countByProjectTeamIdAndPriorityAndDeletedAtIsNull(
+                teamId, TaskPriority.CRITICAL));
 
-    long completedProjectsLast7Days = projectRepository
-        .countByTeamIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED, since);
+    long completedProjectsLast7Days =
+        projectRepository.countByTeamIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(
+            teamId, ProjectStatus.COMPLETED, since);
 
-    TeamInsightsResponse.ProjectMetrics projectMetrics = new TeamInsightsResponse.ProjectMetrics(
-        totalProjects,
-        activeProjects,
-        projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.ON_HOLD),
-        completedProjects,
-        completedProjectsLast7Days,
-        totalProjects == 0 ? 0 : roundPercent((double) completedProjects / totalProjects * 100));
+    TeamInsightsResponse.ProjectMetrics projectMetrics =
+        new TeamInsightsResponse.ProjectMetrics(
+            totalProjects,
+            activeProjects,
+            projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(
+                teamId, ProjectStatus.ON_HOLD),
+            completedProjects,
+            completedProjectsLast7Days,
+            totalProjects == 0
+                ? 0
+                : roundPercent((double) completedProjects / totalProjects * 100));
 
-    long completedLast7Days = taskRepository
-        .countByProjectTeamIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(teamId, TaskStatus.DONE, since);
+    long completedLast7Days =
+        taskRepository.countByProjectTeamIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(
+            teamId, TaskStatus.DONE, since);
 
-    TeamInsightsResponse.FlowMetrics flowMetrics = new TeamInsightsResponse.FlowMetrics(
-        completedLast7Days,
-        totalTasks == 0 ? 0 : roundPercent((double) done / totalTasks * 100),
-        averageCycleTimeHours(teamId));
+    TeamInsightsResponse.FlowMetrics flowMetrics =
+        new TeamInsightsResponse.FlowMetrics(
+            completedLast7Days,
+            totalTasks == 0 ? 0 : roundPercent((double) done / totalTasks * 100),
+            averageCycleTimeHours(teamId));
 
-    TeamInsightsResponse.ActivityMetrics activityMetrics = new TeamInsightsResponse.ActivityMetrics(
-        activityEventRepository.countByTeamIdAndCreatedAtAfter(teamId, since),
-        auditLogRepository.countByTeamIdAndOccurredAtAfter(teamId, since),
-        systemEventRepository.countByTeamIdAndOccurredAtAfter(teamId, since));
+    TeamInsightsResponse.ActivityMetrics activityMetrics =
+        new TeamInsightsResponse.ActivityMetrics(
+            activityEventRepository.countByTeamIdAndCreatedAtAfter(teamId, since),
+            auditLogRepository.countByTeamIdAndOccurredAtAfter(teamId, since),
+            systemEventRepository.countByTeamIdAndOccurredAtAfter(teamId, since));
 
     long openTasks = Math.max(0, totalTasks - done - cancelled);
-    TeamInsightsResponse.HealthMetrics healthMetrics = new TeamInsightsResponse.HealthMetrics(
-        openTasks,
-        overdueTasks,
-        totalMembers == 0 ? 0 : roundPercent((double) openTasks / totalMembers),
-        totalMembers == 0 ? 0 : roundPercent((double) activeProjects / totalMembers));
+    TeamInsightsResponse.HealthMetrics healthMetrics =
+        new TeamInsightsResponse.HealthMetrics(
+            openTasks,
+            overdueTasks,
+            totalMembers == 0 ? 0 : roundPercent((double) openTasks / totalMembers),
+            totalMembers == 0 ? 0 : roundPercent((double) activeProjects / totalMembers));
 
     return new TeamInsightsResponse(
         teamId,
@@ -212,9 +230,7 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<AuditLogResponse> getAuditLogs(
-      String teamKey,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, Pageable pageable, Authentication authentication) {
 
     TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
 
@@ -225,11 +241,10 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public ProjectInsightsResponse getProjectInsights(
-      String teamKey,
-      String projectKey,
-      Authentication authentication) {
+      String teamKey, String projectKey, Authentication authentication) {
 
-    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
+    ProjectEntity project =
+        validateCanReadProjectObservability(teamKey, projectKey, authentication);
     UUID teamId = project.getTeam().getId();
     UUID projectId = project.getId();
 
@@ -237,41 +252,56 @@ public class ObservabilityService {
     Instant since = now.minus(INSIGHT_WINDOW);
 
     long totalTasks = taskRepository.countByProjectIdAndDeletedAtIsNull(projectId);
-    long done = taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.DONE);
+    long done =
+        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.DONE);
 
-    ProjectInsightsResponse.TaskMetrics taskMetrics = new ProjectInsightsResponse.TaskMetrics(
-        totalTasks,
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.TODO),
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.IN_PROGRESS),
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.IN_REVIEW),
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.ON_HOLD),
-        done,
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.CANCELLED),
-        taskRepository.countOverdueOpenTasksByProject(projectId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED)),
-        taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(projectId, TaskPriority.HIGH),
-        taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(projectId, TaskPriority.CRITICAL));
+    ProjectInsightsResponse.TaskMetrics taskMetrics =
+        new ProjectInsightsResponse.TaskMetrics(
+            totalTasks,
+            taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.TODO),
+            taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(
+                projectId, TaskStatus.IN_PROGRESS),
+            taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(
+                projectId, TaskStatus.IN_REVIEW),
+            taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(
+                projectId, TaskStatus.ON_HOLD),
+            done,
+            taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(
+                projectId, TaskStatus.CANCELLED),
+            taskRepository.countOverdueOpenTasksByProject(
+                projectId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED)),
+            taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(
+                projectId, TaskPriority.HIGH),
+            taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(
+                projectId, TaskPriority.CRITICAL));
 
-    long completedLast7Days = taskRepository
-        .countByProjectIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(projectId, TaskStatus.DONE, since);
+    long completedLast7Days =
+        taskRepository.countByProjectIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(
+            projectId, TaskStatus.DONE, since);
 
-    ProjectInsightsResponse.FlowMetrics flowMetrics = new ProjectInsightsResponse.FlowMetrics(
-        completedLast7Days,
-        totalTasks == 0 ? 0 : roundPercent((double) done / totalTasks * 100),
-        averageProjectCycleTimeHours(projectId));
+    ProjectInsightsResponse.FlowMetrics flowMetrics =
+        new ProjectInsightsResponse.FlowMetrics(
+            completedLast7Days,
+            totalTasks == 0 ? 0 : roundPercent((double) done / totalTasks * 100),
+            averageProjectCycleTimeHours(projectId));
 
-    ProjectInsightsResponse.ActivityMetrics activityMetrics = new ProjectInsightsResponse.ActivityMetrics(
-        activityEventRepository.countByProjectIdAndCreatedAtAfter(projectId, since),
-        auditLogRepository.countByProjectIdAndOccurredAtAfter(projectId, since),
-        systemEventRepository.countByProjectIdAndOccurredAtAfter(projectId, since));
+    ProjectInsightsResponse.ActivityMetrics activityMetrics =
+        new ProjectInsightsResponse.ActivityMetrics(
+            activityEventRepository.countByProjectIdAndCreatedAtAfter(projectId, since),
+            auditLogRepository.countByProjectIdAndOccurredAtAfter(projectId, since),
+            systemEventRepository.countByProjectIdAndOccurredAtAfter(projectId, since));
 
-    ProjectInsightsResponse.HealthMetrics healthMetrics = new ProjectInsightsResponse.HealthMetrics(
-        project.getPlannedDueDate() != null
-            && project.getActualCompletionDate() == null
-            && project.getPlannedDueDate().isBefore(now),
-        project.getPlannedDueDate() == null ? 0 : ChronoUnit.DAYS.between(now, project.getPlannedDueDate()),
-        project.getActualCompletionDate() != null
-            && project.getPlannedDueDate() != null
-            && !project.getActualCompletionDate().isAfter(project.getPlannedDueDate()));
+    ProjectInsightsResponse.HealthMetrics healthMetrics =
+        new ProjectInsightsResponse.HealthMetrics(
+            project.getPlannedDueDate() != null
+                && project.getActualCompletionDate() == null
+                && project.getPlannedDueDate().isBefore(now),
+            project.getPlannedDueDate() == null
+                ? 0
+                : ChronoUnit.DAYS.between(now, project.getPlannedDueDate()),
+            project.getActualCompletionDate() != null
+                && project.getPlannedDueDate() != null
+                && !project.getActualCompletionDate().isAfter(project.getPlannedDueDate()));
 
     return new ProjectInsightsResponse(
         teamId,
@@ -290,9 +320,7 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<SystemEventResponse> getSystemEvents(
-      String teamKey,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, Pageable pageable, Authentication authentication) {
 
     TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
 
@@ -303,12 +331,10 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<AuditLogResponse> getProjectAuditLogs(
-      String teamKey,
-      String projectKey,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, String projectKey, Pageable pageable, Authentication authentication) {
 
-    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
+    ProjectEntity project =
+        validateCanReadProjectObservability(teamKey, projectKey, authentication);
 
     Page<AuditLogEntity> page = auditLogRepository.findByProjectId(project.getId(), pageable);
 
@@ -317,12 +343,10 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<SystemEventResponse> getProjectSystemEvents(
-      String teamKey,
-      String projectKey,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, String projectKey, Pageable pageable, Authentication authentication) {
 
-    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
+    ProjectEntity project =
+        validateCanReadProjectObservability(teamKey, projectKey, authentication);
 
     Page<SystemEventEntity> page = systemEventRepository.findByProjectId(project.getId(), pageable);
 
@@ -330,13 +354,16 @@ public class ObservabilityService {
   }
 
   private double averageCycleTimeHours(UUID teamId) {
-    List<TaskEntity> completedTasks = taskRepository
-        .findTop500ByProjectTeamIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
-            teamId,
-            TaskStatus.DONE);
+    List<TaskEntity> completedTasks =
+        taskRepository
+            .findTop500ByProjectTeamIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
+                teamId, TaskStatus.DONE);
 
     return completedTasks.stream()
-        .mapToLong(task -> Duration.between(task.getActualStartDate(), task.getActualCompletionDate()).toMinutes())
+        .mapToLong(
+            task ->
+                Duration.between(task.getActualStartDate(), task.getActualCompletionDate())
+                    .toMinutes())
         .average()
         .stream()
         .map(minutes -> Math.round((minutes / 60.0) * 100.0) / 100.0)
@@ -345,13 +372,16 @@ public class ObservabilityService {
   }
 
   private double averageProjectCycleTimeHours(UUID projectId) {
-    List<TaskEntity> completedTasks = taskRepository
-        .findTop500ByProjectIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
-            projectId,
-            TaskStatus.DONE);
+    List<TaskEntity> completedTasks =
+        taskRepository
+            .findTop500ByProjectIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
+                projectId, TaskStatus.DONE);
 
     return completedTasks.stream()
-        .mapToLong(task -> Duration.between(task.getActualStartDate(), task.getActualCompletionDate()).toMinutes())
+        .mapToLong(
+            task ->
+                Duration.between(task.getActualStartDate(), task.getActualCompletionDate())
+                    .toMinutes())
         .average()
         .stream()
         .map(minutes -> Math.round((minutes / 60.0) * 100.0) / 100.0)
@@ -364,10 +394,14 @@ public class ObservabilityService {
       case TEAM_CREATED, PROJECT_CREATED, TASK_CREATED -> AuditAction.CREATE;
       case TEAM_DELETED, PROJECT_DELETED, TASK_DELETED -> AuditAction.DELETE;
       case PROJECT_STATUS_CHANGED, TASK_STATUS_CHANGED -> AuditAction.STATUS_CHANGE;
-      case TASK_ASSIGNEE_CHANGED, TASK_SUPPORT_ASSIGNED, TASK_SUPPORT_CHANGED, TASK_SUPPORT_REMOVED ->
-        AuditAction.ASSIGNMENT_CHANGE;
+      case TASK_ASSIGNEE_CHANGED,
+          TASK_SUPPORT_ASSIGNED,
+          TASK_SUPPORT_CHANGED,
+          TASK_SUPPORT_REMOVED ->
+          AuditAction.ASSIGNMENT_CHANGE;
       case TASK_COMMENTED -> AuditAction.COMMENT;
-      case TEAM_MEMBER_ADDED, TEAM_MEMBER_REMOVED, TEAM_MEMBER_ROLE_CHANGED -> AuditAction.MEMBERSHIP_CHANGE;
+      case TEAM_MEMBER_ADDED, TEAM_MEMBER_REMOVED, TEAM_MEMBER_ROLE_CHANGED ->
+          AuditAction.MEMBERSHIP_CHANGE;
       case TEAM_OWNERSHIP_TRANSFERRED -> AuditAction.OWNERSHIP_TRANSFER;
       case TEAM_UPDATED, PROJECT_UPDATED, TASK_UPDATED -> AuditAction.UPDATE;
     };
@@ -377,8 +411,7 @@ public class ObservabilityService {
     // Keep system events high-signal. Routine collaboration changes already
     // live in activity and audit logs; this stream is for operational review.
     return switch (eventType) {
-      case TEAM_DELETED, PROJECT_DELETED, TASK_DELETED, TEAM_OWNERSHIP_TRANSFERRED ->
-        true;
+      case TEAM_DELETED, PROJECT_DELETED, TASK_DELETED, TEAM_OWNERSHIP_TRANSFERRED -> true;
       default -> false;
     };
   }
@@ -387,9 +420,12 @@ public class ObservabilityService {
     return Math.round(value * 100.0) / 100.0;
   }
 
-  private TeamEntity validateCanReadTeamObservability(String teamKey, Authentication authentication) {
-    TeamEntity team = teamRepository.findByKey(teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+  private TeamEntity validateCanReadTeamObservability(
+      String teamKey, Authentication authentication) {
+    TeamEntity team =
+        teamRepository
+            .findByKey(teamKey)
+            .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
 
     if (isGlobalAdmin(authentication)) {
       return team;
@@ -397,9 +433,9 @@ public class ObservabilityService {
 
     TeamMemberEntity membership = requireMembership(team.getId(), authentication);
 
-    if (team.getDeletedAt() != null &&
-        membership.getRole() != TeamRole.OWNER &&
-        membership.getRole() != TeamRole.ADMIN) {
+    if (team.getDeletedAt() != null
+        && membership.getRole() != TeamRole.OWNER
+        && membership.getRole() != TeamRole.ADMIN) {
       throw new ResourceNotFoundException("Team not found");
     }
 
@@ -407,12 +443,12 @@ public class ObservabilityService {
   }
 
   private ProjectEntity validateCanReadProjectObservability(
-      String teamKey,
-      String projectKey,
-      Authentication authentication) {
+      String teamKey, String projectKey, Authentication authentication) {
 
-    ProjectEntity project = projectRepository.findByKeyAndTeamKey(projectKey, teamKey)
-        .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+    ProjectEntity project =
+        projectRepository
+            .findByKeyAndTeamKey(projectKey, teamKey)
+            .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
     validateCanReadTeamObservability(teamKey, authentication);
 
@@ -429,15 +465,20 @@ public class ObservabilityService {
 
   private boolean isGlobalAdmin(Authentication authentication) {
     return authentication.getAuthorities().stream()
-        .anyMatch(authority -> authority.getAuthority().equals("ROLE_SUPER_ADMIN")
-            || authority.getAuthority().equals("ROLE_ADMIN"));
+        .anyMatch(
+            authority ->
+                authority.getAuthority().equals("ROLE_SUPER_ADMIN")
+                    || authority.getAuthority().equals("ROLE_ADMIN"));
   }
 
   private TeamMemberEntity requireMembership(UUID teamId, Authentication authentication) {
-    UserEntity requester = userRepository.findByEmail(authentication.getName())
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity requester =
+        userRepository
+            .findByEmail(authentication.getName())
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    return teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
+    return teamMemberRepository
+        .findByTeamIdAndUserId(teamId, requester.getId())
         .orElseThrow(() -> new ForbiddenException("User is not a team member"));
   }
 
@@ -455,14 +496,16 @@ public class ObservabilityService {
   private void snapshotProjectMetrics(UUID projectId) {
     Instant now = Instant.now();
     long totalTasks = taskRepository.countByProjectIdAndDeletedAtIsNull(projectId);
-    long doneTasks = taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.DONE);
-    long cancelledTasks = taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.CANCELLED);
+    long doneTasks =
+        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.DONE);
+    long cancelledTasks =
+        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.CANCELLED);
     long openTasks = Math.max(0, totalTasks - doneTasks - cancelledTasks);
-    long overdueTasks = taskRepository.countOverdueOpenTasksByProject(
-        projectId,
-        now,
-        List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
-    double completionRate = totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
+    long overdueTasks =
+        taskRepository.countOverdueOpenTasksByProject(
+            projectId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
+    double completionRate =
+        totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
 
     saveProjectMetric(projectId, "project.tasks.total", totalTasks, "count");
     saveProjectMetric(projectId, "project.tasks.open", openTasks, "count");
@@ -478,17 +521,22 @@ public class ObservabilityService {
     Instant now = Instant.now();
     long totalMembers = teamMemberRepository.countByTeamId(teamId);
     long totalTasks = taskRepository.countByProjectTeamIdAndDeletedAtIsNull(teamId);
-    long doneTasks = taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.DONE);
-    long cancelledTasks = taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.CANCELLED);
+    long doneTasks =
+        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.DONE);
+    long cancelledTasks =
+        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
+            teamId, TaskStatus.CANCELLED);
     long openTasks = Math.max(0, totalTasks - doneTasks - cancelledTasks);
-    long overdueTasks = taskRepository.countOverdueOpenTasks(
-        teamId,
-        now,
-        List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
+    long overdueTasks =
+        taskRepository.countOverdueOpenTasks(
+            teamId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
     long totalProjects = projectRepository.countByTeamIdAndDeletedAtIsNull(teamId);
-    long completedProjects = projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED);
-    double taskCompletionRate = totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
-    double projectCompletionRate = totalProjects == 0 ? 0 : roundPercent((double) completedProjects / totalProjects * 100);
+    long completedProjects =
+        projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED);
+    double taskCompletionRate =
+        totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
+    double projectCompletionRate =
+        totalProjects == 0 ? 0 : roundPercent((double) completedProjects / totalProjects * 100);
 
     saveTeamMetric(teamId, "team.members.total", totalMembers, "count");
     saveTeamMetric(teamId, "team.tasks.open", openTasks, "count");
@@ -509,7 +557,8 @@ public class ObservabilityService {
     metricSnapshotRepository.save(metric);
   }
 
-  private void saveProjectKpi(UUID projectId, String kpiKey, double value, String unit, Instant now) {
+  private void saveProjectKpi(
+      UUID projectId, String kpiKey, double value, String unit, Instant now) {
     KpiSnapshotEntity kpi = new KpiSnapshotEntity();
     kpi.setKpiKey(kpiKey);
     kpi.setScope(MetricScope.PROJECT);
@@ -547,11 +596,12 @@ public class ObservabilityService {
   }
 
   private AuditLogResponse toAuditLogResponse(AuditLogEntity entity) {
-    AuditLogResponse.User actor = new AuditLogResponse.User(
-        entity.getActor().getId(),
-        entity.getActor().getFirstName(),
-        entity.getActor().getLastName(),
-        entity.getActor().getEmail());
+    AuditLogResponse.User actor =
+        new AuditLogResponse.User(
+            entity.getActor().getId(),
+            entity.getActor().getFirstName(),
+            entity.getActor().getLastName(),
+            entity.getActor().getEmail());
 
     return new AuditLogResponse(
         entity.getId(),
@@ -569,13 +619,14 @@ public class ObservabilityService {
   }
 
   private SystemEventResponse toSystemEventResponse(SystemEventEntity entity) {
-    SystemEventResponse.User actor = entity.getActor() == null
-        ? null
-        : new SystemEventResponse.User(
-            entity.getActor().getId(),
-            entity.getActor().getFirstName(),
-            entity.getActor().getLastName(),
-            entity.getActor().getEmail());
+    SystemEventResponse.User actor =
+        entity.getActor() == null
+            ? null
+            : new SystemEventResponse.User(
+                entity.getActor().getId(),
+                entity.getActor().getFirstName(),
+                entity.getActor().getLastName(),
+                entity.getActor().getEmail());
 
     return new SystemEventResponse(
         entity.getId(),

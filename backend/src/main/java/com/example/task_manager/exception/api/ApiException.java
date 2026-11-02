@@ -1,12 +1,9 @@
 package com.example.task_manager.exception.api;
 
+import com.example.task_manager.exception.ErrorResponse;
 import org.springframework.http.HttpStatus;
 
-import com.example.task_manager.exception.ErrorResponse;
-
-/**
- * Base class for API exceptions.
- */
+/** Base class for API exceptions. */
 public abstract class ApiException extends RuntimeException {
 
   private final HttpStatus status;
@@ -16,7 +13,6 @@ public abstract class ApiException extends RuntimeException {
     super(message);
     this.status = status;
     this.errorCode = errorCode;
-
   }
 
   public HttpStatus getStatus() {

@@ -5,21 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.notification.entity.NotificationEntity;
@@ -32,6 +17,19 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -55,13 +53,14 @@ class NotificationServiceTest {
     service.createFromActivity(event);
     var saved = ArgumentCaptor.forClass(NotificationEntity.class);
     verify(notifications).save(saved.capture());
-    assertThat(saved.getValue().getTargetPath()).isEqualTo("/teams/TEAM-A/projects/PROJ-A/tasks/42");
+    assertThat(saved.getValue().getTargetPath())
+        .isEqualTo("/teams/TEAM-A/projects/PROJ-A/tasks/42");
   }
 
   @ParameterizedTest
-  @EnumSource(value = ActivityEventType.class, names = {
-      "TASK_COMMENTED", "PROJECT_UPDATED", "TEAM_MEMBER_ADDED", "TEAM_DELETED"
-  })
+  @EnumSource(
+      value = ActivityEventType.class,
+      names = {"TASK_COMMENTED", "PROJECT_UPDATED", "TEAM_MEMBER_ADDED", "TEAM_DELETED"})
   void existingInboxItemsResolveCurrentRoutesInsteadOfStoredUuidPaths(ActivityEventType type) {
     TeamEntity team = team();
     ProjectEntity project = project(team);
@@ -85,7 +84,12 @@ class NotificationServiceTest {
     item.setActivityEvent(event);
     item.setTargetPath("/teams/" + team.getId());
     when(notifications.findInbox(any(), any())).thenReturn(new PageImpl<>(List.of(item)));
-    assertThat(service.getInbox("test@example.test", Pageable.unpaged()).content().getFirst().targetPath())
+    assertThat(
+            service
+                .getInbox("test@example.test", Pageable.unpaged())
+                .content()
+                .getFirst()
+                .targetPath())
         .isEqualTo(expected);
   }
 
@@ -120,7 +124,8 @@ class NotificationServiceTest {
     return user;
   }
 
-  private ActivityEventEntity event(ActivityEventType type, TeamEntity team, ProjectEntity project, TaskEntity task) {
+  private ActivityEventEntity event(
+      ActivityEventType type, TeamEntity team, ProjectEntity project, TaskEntity task) {
     ActivityEventEntity event = new ActivityEventEntity();
     event.setUser(user());
     event.setEventType(type);

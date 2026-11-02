@@ -1,8 +1,6 @@
 package com.example.task_manager.activity.dto;
 
-/**
- * Structured activity event types.
- */
+/** Structured activity event types. */
 public enum ActivityEventType {
   TEAM_CREATED,
   TASK_CREATED,

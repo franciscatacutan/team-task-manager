@@ -1,9 +1,8 @@
 package com.example.task_manager.team.dto;
 
+import com.example.task_manager.task.dto.TaskActivityResponse.ActivityDetails;
 import java.time.Instant;
 import java.util.UUID;
-
-import com.example.task_manager.task.dto.TaskActivityResponse.ActivityDetails;
 
 public record TeamActivityResponse(
     UUID id,
@@ -15,21 +14,9 @@ public record TeamActivityResponse(
     Task task,
     Instant createdAt) {
 
-  public record User(
-      UUID id,
-      String firstName,
-      String lastName,
-      String email) {
-  }
+  public record User(UUID id, String firstName, String lastName, String email) {}
 
-  public record Project(
-      UUID id,
-      String name) {
-  }
+  public record Project(UUID id, String name) {}
 
-  public record Task(
-      UUID id,
-      String name) {
-  }
-
+  public record Task(UUID id, String name) {}
 }

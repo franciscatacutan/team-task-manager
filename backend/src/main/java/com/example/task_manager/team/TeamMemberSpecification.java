@@ -1,41 +1,29 @@
 package com.example.task_manager.team;
 
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-
-import org.springframework.data.jpa.domain.Specification;
-
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
 
-/**
- * Builds dynamic filtering logic for TeamMemberEntity queries.
- */
+/** Builds dynamic filtering logic for TeamMemberEntity queries. */
 public final class TeamMemberSpecification {
 
-  private TeamMemberSpecification() {
-  }
+  private TeamMemberSpecification() {}
 
   public static Specification<TeamMemberEntity> build(
-      UUID teamId,
-      String search,
-      Set<TeamRole> roles) {
+      UUID teamId, String search, Set<TeamRole> roles) {
 
-    return Specification
-        .where(belongsToTeam(teamId))
-        .and(search(search))
-        .and(hasRoles(roles));
+    return Specification.where(belongsToTeam(teamId)).and(search(search)).and(hasRoles(roles));
   }
 
   private static Specification<TeamMemberEntity> belongsToTeam(UUID teamId) {
-    return (root, query, cb) -> teamId == null
-        ? cb.conjunction()
-        : cb.equal(root.get("team").get("id"), teamId);
+    return (root, query, cb) ->
+        teamId == null ? cb.conjunction() : cb.equal(root.get("team").get("id"), teamId);
   }
 
   private static Specification<TeamMemberEntity> search(String keyword) {
@@ -55,8 +43,7 @@ public final class TeamMemberSpecification {
   }
 
   private static Specification<TeamMemberEntity> hasRoles(Set<TeamRole> roles) {
-    return (root, query, cb) -> roles == null || roles.isEmpty()
-        ? cb.conjunction()
-        : root.get("role").in(roles);
+    return (root, query, cb) ->
+        roles == null || roles.isEmpty() ? cb.conjunction() : root.get("role").in(roles);
   }
 }

@@ -15,7 +15,8 @@ export function useThemePreference() {
     const systemPrefersDark = window.matchMedia(
       "(prefers-color-scheme: dark)",
     ).matches;
-    const shouldUseDark = theme === "dark" || (theme === "system" && systemPrefersDark);
+    const shouldUseDark =
+      theme === "dark" || (theme === "system" && systemPrefersDark);
 
     root.classList.toggle("dark", shouldUseDark);
     window.localStorage.setItem(STORAGE_KEY, theme);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { AlertCircle, LayoutGrid, LayoutList, RefreshCw } from "lucide-react";
 
 import { useTeams } from "../features/teams/hooks/useTeams";

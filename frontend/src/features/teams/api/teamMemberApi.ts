@@ -58,9 +58,12 @@ export const updateMemberRole = async (
   userId: string,
   role: "ADMIN" | "MEMBER",
 ): Promise<TeamMember> => {
-  const res = await apiClient.patch(`/teams/${teamKey}/members/${userId}/role`, {
-    role,
-  });
+  const res = await apiClient.patch(
+    `/teams/${teamKey}/members/${userId}/role`,
+    {
+      role,
+    },
+  );
 
   return res.data;
 };

@@ -24,7 +24,7 @@ export const useUpdateTaskStatus = (teamKey: string, projectKey: string) => {
       updateTaskStatus(teamKey, projectKey, taskNumber, status),
 
     onMutate: async ({ taskNumber, status }): Promise<MutationContext> => {
-          console.log("TEST2")
+      console.log("TEST2");
 
       await queryClient.cancelQueries({
         queryKey: tasksQueryKey,

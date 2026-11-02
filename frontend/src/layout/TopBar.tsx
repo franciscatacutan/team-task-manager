@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
@@ -21,8 +21,13 @@ import NotificationCenter from "../features/notifications/components/Notificatio
 
 export default function TopBar() {
   const { logout } = useAuth();
-  const { teamKey, projectKey, teamKeyPresent, projectKeyPresent, permissions } =
-    useWorkspaceContext();
+  const {
+    teamKey,
+    projectKey,
+    teamKeyPresent,
+    projectKeyPresent,
+    permissions,
+  } = useWorkspaceContext();
 
   const [openTeam, setOpenTeam] = useState(false);
   const [openProject, setOpenProject] = useState(false);

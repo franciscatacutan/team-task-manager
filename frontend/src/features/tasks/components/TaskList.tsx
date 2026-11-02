@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ArrowUpDown, Plus } from "lucide-react";
 
 import type { Task } from "../types/task.types";

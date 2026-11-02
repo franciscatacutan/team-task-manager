@@ -1,30 +1,12 @@
 package com.example.task_manager.project;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.ActivityEventService;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
-import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.activity.dto.ActivityEventType;
-import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.KeyGenerator;
+import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.ProjectAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
@@ -45,28 +27,42 @@ import com.example.task_manager.team.TeamMemberRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.entity.UserEntity;
-
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Contains business logic for managing projects.
- */
+/** Contains business logic for managing projects. */
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
 
-  private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-      "name",
-      "owner",
-      "status",
-      "plannedStartDate",
-      "plannedDueDate",
-      "actualCompletionDate",
-      "createdBy",
-      "lastActivityAt",
-      "statusChangedAt",
-      "createdAt",
-      "updatedAt");
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of(
+          "name",
+          "owner",
+          "status",
+          "plannedStartDate",
+          "plannedDueDate",
+          "actualCompletionDate",
+          "createdBy",
+          "lastActivityAt",
+          "statusChangedAt",
+          "createdAt",
+          "updatedAt");
 
   private final ProjectRepository projectRepository;
   private final TeamMemberRepository teamMemberRepository;
@@ -79,15 +75,12 @@ public class ProjectService {
   private final KeyGenerator keyGenerator;
 
   /**
-   * Creates a new project for the authenticated user.
-   * User must be Team Owner or Admin
-   * Project name must be unique for Team
+   * Creates a new project for the authenticated user. User must be Team Owner or Admin Project name
+   * must be unique for Team
    */
   @Transactional
   public ProjectResponse createProject(
-      String teamKey,
-      CreateProjectRequest request,
-      String requesterEmail) {
+      String teamKey, CreateProjectRequest request, String requesterEmail) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
@@ -132,20 +125,20 @@ public class ProjectService {
             null,
             List.of(
                 activityEventService.change("name", "name", null, project.getName()),
-                activityEventService.change("description", "description", null, project.getDescription()),
+                activityEventService.change(
+                    "description", "description", null, project.getDescription()),
                 activityEventService.change("status", "status", null, project.getStatus()),
-                activityEventService.change("plannedStartDate", "planned start", null, project.getPlannedStartDate()),
-                activityEventService.change("plannedDueDate", "planned due", null, project.getPlannedDueDate())),
+                activityEventService.change(
+                    "plannedStartDate", "planned start", null, project.getPlannedStartDate()),
+                activityEventService.change(
+                    "plannedDueDate", "planned due", null, project.getPlannedDueDate())),
             null),
         null);
 
     return mapToResponse(project);
   }
 
-  /**
-   * Updates an existing project.
-   * Only Owner and Admin can update the project
-   */
+  /** Updates an existing project. Only Owner and Admin can update the project */
   @Transactional
   public ProjectResponse updateProject(
       String teamKey,
@@ -159,7 +152,8 @@ public class ProjectService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+    ProjectEntity project =
+        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     String previousName = project.getName();
     String previousDescription = project.getDescription();
@@ -184,28 +178,29 @@ public class ProjectService {
       project.setDescription(request.description().trim());
     }
 
-    Instant newPlannedStart = request.plannedStartDate() != null
-        ? request.plannedStartDate()
-        : project.getPlannedStartDate();
+    Instant newPlannedStart =
+        request.plannedStartDate() != null
+            ? request.plannedStartDate()
+            : project.getPlannedStartDate();
 
-    Instant newPlannedDue = request.plannedDueDate() != null
-        ? request.plannedDueDate()
-        : project.getPlannedDueDate();
+    Instant newPlannedDue =
+        request.plannedDueDate() != null ? request.plannedDueDate() : project.getPlannedDueDate();
 
     validateDates(newPlannedStart, newPlannedDue);
 
     project.setPlannedStartDate(newPlannedStart);
     project.setPlannedDueDate(newPlannedDue);
 
-    ProjectDetailsUpdateMessage updateMessage = buildProjectUpdateMessage(
-        previousName,
-        previousDescription,
-        previousPlannedStart,
-        previousPlannedDue,
-        project.getName(),
-        project.getDescription(),
-        project.getPlannedStartDate(),
-        project.getPlannedDueDate());
+    ProjectDetailsUpdateMessage updateMessage =
+        buildProjectUpdateMessage(
+            previousName,
+            previousDescription,
+            previousPlannedStart,
+            previousPlannedDue,
+            project.getName(),
+            project.getDescription(),
+            project.getPlannedStartDate(),
+            project.getPlannedDueDate());
 
     if (!updateMessage.fields().isEmpty()) {
       activityEventService.recordProjectEvent(
@@ -213,12 +208,7 @@ public class ProjectService {
           requester,
           ActivityEventType.PROJECT_UPDATED,
           buildProjectActivityDetails(
-              updateMessage.fields(),
-              null,
-              null,
-              null,
-              updateMessage.changes(),
-              null),
+              updateMessage.fields(), null, null, null, updateMessage.changes(), null),
           updateMessage.message());
     }
 
@@ -226,14 +216,11 @@ public class ProjectService {
   }
 
   /**
-   * Soft-deletes a project and cascades soft-delete to all dependent data.
-   * Only Owner and Admin can soft-delete project
+   * Soft-deletes a project and cascades soft-delete to all dependent data. Only Owner and Admin can
+   * soft-delete project
    */
   @Transactional
-  public void deleteProject(
-      String teamKey,
-      String projectKey,
-      String requesterEmail) {
+  public void deleteProject(String teamKey, String projectKey, String requesterEmail) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
@@ -241,11 +228,12 @@ public class ProjectService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+    ProjectEntity project =
+        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     Instant now = Instant.now();
-    List<TaskEntity> activeTasks = taskRepository
-        .findAllByProjectIdAndDeletedAtIsNull(project.getId());
+    List<TaskEntity> activeTasks =
+        taskRepository.findAllByProjectIdAndDeletedAtIsNull(project.getId());
 
     project.setStatus(ProjectStatus.DELETED);
     project.setStatusChangedAt(Instant.now());
@@ -268,16 +256,11 @@ public class ProjectService {
         ActivityEventType.PROJECT_DELETED,
         activityEventService.emptyDetails(),
         null);
-
   }
 
   /**
-   * Retrieves projects for a team with support for:
-   * - Search
-   * - Filtering
-   * - Sorting
-   * - Pagination
-   * - Role-based soft-delete visibility
+   * Retrieves projects for a team with support for: - Search - Filtering - Sorting - Pagination -
+   * Role-based soft-delete visibility
    */
   @Transactional(readOnly = true)
   public PageResponse<ProjectResponse> getProjects(
@@ -292,34 +275,29 @@ public class ProjectService {
 
     boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    boolean canViewDeleted = globalAuthorizationService.canViewDeleted(team, requester.getId(), isGlobalAdmin);
+    boolean canViewDeleted =
+        globalAuthorizationService.canViewDeleted(team, requester.getId(), isGlobalAdmin);
 
-    pageable = request.all()
-        ? Pageable.unpaged()
-        : requireSorting(pageable);
+    pageable = request.all() ? Pageable.unpaged() : requireSorting(pageable);
 
-    Specification<ProjectEntity> spec = ProjectSpecification.build(
-        team.getId(),
-        request.search(),
-        request.status(),
-        request.createdBy(),
-        request.deletedFilter(),
-        canViewDeleted);
+    Specification<ProjectEntity> spec =
+        ProjectSpecification.build(
+            team.getId(),
+            request.search(),
+            request.status(),
+            request.createdBy(),
+            request.deletedFilter(),
+            canViewDeleted);
 
     Page<ProjectEntity> page = projectRepository.findAll(spec, pageable);
 
     return toPageResponse(page, this::mapToResponse);
   }
 
-  /**
-   * Returns a project by id.
-   * Only Global Admin, Owner and Team Admin can view deleted project
-   */
+  /** Returns a project by id. Only Global Admin, Owner and Team Admin can view deleted project */
   @Transactional(readOnly = true)
   public ProjectResponse getProjectById(
-      String teamKey,
-      String projectKey,
-      Authentication authentication) {
+      String teamKey, String projectKey, Authentication authentication) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
 
@@ -332,30 +310,23 @@ public class ProjectService {
     return mapToResponse(project);
   }
 
-  /**
-   * Returns all updates by projects.
-   */
+  /** Returns all updates by projects. */
   @Transactional(readOnly = true)
   public PageResponse<ProjectActivityResponse> getProjectActivities(
-      String teamKey,
-      String projectKey,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, String projectKey, Pageable pageable, Authentication authentication) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
     boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
     ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
     validateCanReadProject(project, requester.getId(), isGlobalAdmin);
 
-    Page<ActivityEventEntity> page = activityEventRepository.findByProjectId(project.getId(), pageable);
+    Page<ActivityEventEntity> page =
+        activityEventRepository.findByProjectId(project.getId(), pageable);
 
     return toPageResponse(page, activityEventService::toProjectActivitiesResponse);
   }
 
-  /**
-   * Change the status of a project
-   * Only admin and owner can change status
-   */
+  /** Change the status of a project Only admin and owner can change status */
   @Transactional
   public ProjectResponse changeProjectStatus(
       String teamKey,
@@ -369,7 +340,8 @@ public class ProjectService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    ProjectEntity project = projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+    ProjectEntity project =
+        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     validateStatusChange(project, newStatus.status());
 
@@ -400,7 +372,8 @@ public class ProjectService {
             currentStatus.name(),
             newStatus.status().name(),
             null,
-            List.of(activityEventService.change("status", "status", currentStatus, newStatus.status())),
+            List.of(
+                activityEventService.change("status", "status", currentStatus, newStatus.status())),
             null),
         null);
 
@@ -423,33 +396,37 @@ public class ProjectService {
   }
 
   private ProjectResponse mapToResponse(ProjectEntity project) {
-    ProjectResponse.ProjectUserSummary owner = new ProjectResponse.ProjectUserSummary(
-        project.getOwner().getId(),
-        project.getOwner().getFirstName(),
-        project.getOwner().getLastName(),
-        project.getOwner().getEmail());
+    ProjectResponse.ProjectUserSummary owner =
+        new ProjectResponse.ProjectUserSummary(
+            project.getOwner().getId(),
+            project.getOwner().getFirstName(),
+            project.getOwner().getLastName(),
+            project.getOwner().getEmail());
 
-    ProjectResponse.ProjectUserSummary createdBy = new ProjectResponse.ProjectUserSummary(
-        project.getCreatedBy().getId(),
-        project.getCreatedBy().getFirstName(),
-        project.getCreatedBy().getLastName(),
-        project.getCreatedBy().getEmail());
+    ProjectResponse.ProjectUserSummary createdBy =
+        new ProjectResponse.ProjectUserSummary(
+            project.getCreatedBy().getId(),
+            project.getCreatedBy().getFirstName(),
+            project.getCreatedBy().getLastName(),
+            project.getCreatedBy().getEmail());
 
-    ProjectResponse.ProjectUserSummary completedBy = project.getCompletedBy() == null
-        ? null
-        : new ProjectResponse.ProjectUserSummary(
-            project.getCompletedBy().getId(),
-            project.getCompletedBy().getFirstName(),
-            project.getCompletedBy().getLastName(),
-            project.getCompletedBy().getEmail());
+    ProjectResponse.ProjectUserSummary completedBy =
+        project.getCompletedBy() == null
+            ? null
+            : new ProjectResponse.ProjectUserSummary(
+                project.getCompletedBy().getId(),
+                project.getCompletedBy().getFirstName(),
+                project.getCompletedBy().getLastName(),
+                project.getCompletedBy().getEmail());
 
-    ProjectResponse.ProjectUserSummary deletedBy = project.getDeletedBy() == null
-        ? null
-        : new ProjectResponse.ProjectUserSummary(
-            project.getDeletedBy().getId(),
-            project.getDeletedBy().getFirstName(),
-            project.getDeletedBy().getLastName(),
-            project.getDeletedBy().getEmail());
+    ProjectResponse.ProjectUserSummary deletedBy =
+        project.getDeletedBy() == null
+            ? null
+            : new ProjectResponse.ProjectUserSummary(
+                project.getDeletedBy().getId(),
+                project.getDeletedBy().getFirstName(),
+                project.getDeletedBy().getLastName(),
+                project.getDeletedBy().getEmail());
 
     boolean isDeleted = project.getDeletedAt() != null;
 
@@ -482,17 +459,14 @@ public class ProjectService {
 
     for (Sort.Order order : pageable.getSort()) {
       if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-        throw new BadRequestInputException(
-            "Invalid sort field: " + order.getProperty());
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
       }
     }
 
     return pageable;
   }
 
-  /**
-   * Checks if Start Date < Due Date
-   */
+  /** Checks if Start Date < Due Date */
   private void validateDates(Instant start, Instant due) {
     if (start != null && due != null && due.isBefore(start)) {
       throw new ConflictException("Project due date must be after start date");
@@ -500,13 +474,10 @@ public class ProjectService {
   }
 
   /**
-   * Ensures:
-   * - Project status cannot be changed to its current value
-   * - All transitions between ACTIVE, ON_HOLD, COMPLETED are allowed
+   * Ensures: - Project status cannot be changed to its current value - All transitions between
+   * ACTIVE, ON_HOLD, COMPLETED are allowed
    */
-  private void validateStatusChange(
-      ProjectEntity project,
-      ProjectStatus newStatus) {
+  private void validateStatusChange(ProjectEntity project, ProjectStatus newStatus) {
 
     if (newStatus == null) {
       throw new BadRequestInputException("Project status is required");
@@ -517,39 +488,33 @@ public class ProjectService {
     }
 
     if (project.getStatus() == newStatus) {
-      throw new ConflictException(
-          "Project is already in this status");
+      throw new ConflictException("Project is already in this status");
     }
   }
 
-  /**
-   * Ensures:
-   * - Project exist
-   * - Project is active and unique for Team
-   * 
-   */
+  /** Ensures: - Project exist - Project is active and unique for Team */
   private void validateExistByTeamAndName(UUID teamId, String name) {
 
-    boolean project = projectRepository.existsByTeamIdAndNameIgnoreCaseAndDeletedAtIsNull(teamId, name);
+    boolean project =
+        projectRepository.existsByTeamIdAndNameIgnoreCaseAndDeletedAtIsNull(teamId, name);
 
     if (project) {
       throw new ConflictException("Project name already exists for Team");
     }
   }
 
-  /**
-   * Ensures:
-   * - User is able to read project
-   * - User is Global admin or team member
-   */
-  private void validateCanReadProject(ProjectEntity project, UUID requesterId, boolean isGlobalAdmin) {
+  /** Ensures: - User is able to read project - User is Global admin or team member */
+  private void validateCanReadProject(
+      ProjectEntity project, UUID requesterId, boolean isGlobalAdmin) {
     if (isGlobalAdmin) {
       return;
     }
 
     UUID teamId = project.getTeam().getId();
-    TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(teamId, requesterId)
-        .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+    TeamMemberEntity membership =
+        teamMemberRepository
+            .findByTeamIdAndUserId(teamId, requesterId)
+            .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
     boolean deleted = project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null;
     if (deleted && !teamAuthorizationService.canManageTeam(membership)) {
@@ -557,9 +522,7 @@ public class ProjectService {
     }
   }
 
-  /**
-   * Checks if a Project Name is unique for an active project
-   */
+  /** Checks if a Project Name is unique for an active project */
   private String normalizeProjectName(String name) {
     return name.trim().toLowerCase(Locale.ROOT);
   }
@@ -584,18 +547,23 @@ public class ProjectService {
 
     if (!Objects.equals(previousDescription, newDescription)) {
       fields.add("description");
-      changes.add(activityEventService.change("description", "description", previousDescription, newDescription));
+      changes.add(
+          activityEventService.change(
+              "description", "description", previousDescription, newDescription));
     }
 
     if (!Objects.equals(previousPlannedStart, newPlannedStart)) {
       fields.add("planned start");
-      changes.add(activityEventService.change("plannedStartDate", "planned start", previousPlannedStart,
-          newPlannedStart));
+      changes.add(
+          activityEventService.change(
+              "plannedStartDate", "planned start", previousPlannedStart, newPlannedStart));
     }
 
     if (!Objects.equals(previousPlannedDue, newPlannedDue)) {
       fields.add("planned due");
-      changes.add(activityEventService.change("plannedDueDate", "planned due", previousPlannedDue, newPlannedDue));
+      changes.add(
+          activityEventService.change(
+              "plannedDueDate", "planned due", previousPlannedDue, newPlannedDue));
     }
 
     if (fields.isEmpty()) {
@@ -603,16 +571,11 @@ public class ProjectService {
     }
 
     return new ProjectDetailsUpdateMessage(
-        "Project updated: " + String.join(", ", fields),
-        fields,
-        changes);
+        "Project updated: " + String.join(", ", fields), fields, changes);
   }
 
   private record ProjectDetailsUpdateMessage(
-      String message,
-      List<String> fields,
-      List<ActivityEventDetails.ActivityChange> changes) {
-  }
+      String message, List<String> fields, List<ActivityEventDetails.ActivityChange> changes) {}
 
   private ActivityEventDetails buildProjectActivityDetails(
       List<String> fields,
@@ -643,5 +606,4 @@ public class ProjectService {
 
     return key;
   }
-
 }

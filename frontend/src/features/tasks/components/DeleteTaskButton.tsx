@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { useDeleteTask } from "../hooks/useDeleteTask";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,8 +63,7 @@ export default function DeleteTaskButton({
 
             <span className="block">
               You are about to delete{" "}
-              <span className="font-medium text-foreground">"{taskName}"</span>
-              .
+              <span className="font-medium text-foreground">"{taskName}"</span>.
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>

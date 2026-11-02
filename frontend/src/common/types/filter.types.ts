@@ -10,4 +10,3 @@ export type FilterGroup = {
   type?: "single" | "multi";
   options: FilterOption[];
 };
-

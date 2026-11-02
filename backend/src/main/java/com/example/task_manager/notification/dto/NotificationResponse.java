@@ -1,10 +1,9 @@
 package com.example.task_manager.notification.dto;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.notification.entity.NotificationType;
+import java.time.Instant;
+import java.util.UUID;
 
 public record NotificationResponse(
     UUID id,
@@ -21,10 +20,5 @@ public record NotificationResponse(
     Instant readAt,
     Instant createdAt) {
 
-  public record User(
-      UUID id,
-      String firstName,
-      String lastName,
-      String email) {
-  }
+  public record User(UUID id, String firstName, String lastName, String email) {}
 }

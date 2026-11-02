@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { useLogin } from "../features/auth/hooks/useLogin";
 import { useRegister } from "../features/auth/hooks/useRegister";

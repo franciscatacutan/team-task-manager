@@ -1,13 +1,11 @@
 package com.example.task_manager.auth;
 
+import com.example.task_manager.auth.entity.RefreshTokenEntity;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-
-import com.example.task_manager.auth.entity.RefreshTokenEntity;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity, UUID> {
 

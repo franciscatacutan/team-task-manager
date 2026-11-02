@@ -1,4 +1,4 @@
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 import { useDebounce } from "../../../common/hooks/useDebounce";
 import { useProjects } from "../hooks/useProjects";

@@ -1,7 +1,4 @@
-import type {
-  ActivityDetails,
-  ActivityType,
-} from "./activity.types";
+import type { ActivityDetails, ActivityType } from "./activity.types";
 
 export interface ObservabilityUser {
   id: string;

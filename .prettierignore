@@ -1,0 +1,10 @@
+**/node_modules/**
+**/dist/**
+**/target/**
+**/coverage/**
+**/package-lock.json
+**/.env
+**/.env.*
+!.env.example
+**/mvnw
+**/mvnw.cmd

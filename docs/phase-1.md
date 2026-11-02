@@ -21,7 +21,7 @@ No application data reset or schema migration is part of this phase. Only dispos
 
 ## Follow-up work requiring approval
 
-- Dependency hygiene: npm audit currently reports 36 advisories (1 critical, 23 high, 10 moderate, 2 low). The critical proxy-addr dependency is reached through the existing shadcn CLI -> MCP SDK -> Express chain. Review unused packages, CLI placement, and compatible patched versions before upgrading; do not use a blanket force fix.
+- Dependency hygiene (historical Phase 1 snapshot; superseded by [Phase 2A](phase-2a.md)): npm audit reported 36 advisories (1 critical, 23 high, 10 moderate, 2 low). The critical proxy-addr dependency is reached through the existing shadcn CLI -> MCP SDK -> Express chain. Review unused packages, CLI placement, and compatible patched versions before upgrading; do not use a blanket force fix.
 - Versioned database migrations and explicit archive/read policies.
 - Remaining permissions, pagination, assignment clearing, board/cache behavior, and API-contract consistency.
 - Module boundaries, formatting conventions, UI/UX, bundle size, deployment, and broader production hardening remain later phases.

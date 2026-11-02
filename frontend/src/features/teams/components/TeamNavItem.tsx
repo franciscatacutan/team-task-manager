@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../../lib/utils";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 
 interface NavItemProps {
   to: string;

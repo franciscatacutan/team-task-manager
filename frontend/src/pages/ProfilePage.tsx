@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 import { useUser } from "@/features/users/hooks/useUser";
 import { useTeams } from "@/features/teams/hooks/useTeams";

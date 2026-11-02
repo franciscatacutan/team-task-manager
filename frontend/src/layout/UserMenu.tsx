@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { LogOut, Settings, Shield, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import {

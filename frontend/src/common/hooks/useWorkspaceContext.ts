@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { getUserFromToken } from "../../features/users/api/userApi";
 import { getTeamPermissions } from "../../features/teams/utils/teamPermissions";
 import { useTeamMe } from "../../features/teams/hooks/useTeamMe";

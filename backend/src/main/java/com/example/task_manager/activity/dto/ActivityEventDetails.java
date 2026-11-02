@@ -3,9 +3,7 @@ package com.example.task_manager.activity.dto;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Structured metadata for activity events.
- */
+/** Structured metadata for activity events. */
 public record ActivityEventDetails(
     List<String> fields,
     String from,
@@ -22,15 +20,7 @@ public record ActivityEventDetails(
     changes = changes == null ? List.of() : List.copyOf(changes);
   }
 
-  public record ActivityChange(
-      String field,
-      String label,
-      String from,
-      String to) {
-  }
+  public record ActivityChange(String field, String label, String from, String to) {}
 
-  public record ActivityReference(
-      UUID id,
-      String label) {
-  }
+  public record ActivityReference(UUID id, String label) {}
 }

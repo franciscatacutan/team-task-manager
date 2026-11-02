@@ -52,9 +52,12 @@ export const updateUserProfile = async (
   );
 
   if (payload.email && payload.email !== updatedProfile.email) {
-    const { data } = await apiClient.patch<User>(`/admin/users/${userId}/email`, {
-      email: payload.email,
-    });
+    const { data } = await apiClient.patch<User>(
+      `/admin/users/${userId}/email`,
+      {
+        email: payload.email,
+      },
+    );
     return data;
   }
 

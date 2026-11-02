@@ -417,11 +417,8 @@ export function activityFormatter(
 
       return (
         <>
-          Changed the project status from{" "}
-          {renderProjectStatus(details.from)}{" "}
-          to{" "}
-          {renderProjectStatus(details.to)}
-          .
+          Changed the project status from {renderProjectStatus(details.from)} to{" "}
+          {renderProjectStatus(details.to)}.
         </>
       );
 

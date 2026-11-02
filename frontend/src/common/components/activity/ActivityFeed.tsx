@@ -15,11 +15,7 @@ import { formatDate } from "../../utils/dateFormatter";
 import { getActivityTypeLabel } from "../../utils/activityFormatter";
 
 export type ActivityFeedGroupBy =
-  | "date"
-  | "project"
-  | "task"
-  | "person"
-  | "type";
+  "date" | "project" | "task" | "person" | "type";
 type ActivityFeedVariant = "team" | "project" | "task";
 
 interface ActivityFeedDetails {

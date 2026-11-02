@@ -1,15 +1,14 @@
 package com.example.task_manager.task.dto;
 
-import java.util.List;
-import java.util.UUID;
-
 import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.task.entity.TaskPriority;
 import com.example.task_manager.task.entity.TaskStatus;
+import java.util.List;
+import java.util.UUID;
 
 /*
-* DTO for fetching task with search, filtering and sort
-*/
+ * DTO for fetching task with search, filtering and sort
+ */
 public record TaskSearchRequest(
     String search,
     List<TaskStatus> status,

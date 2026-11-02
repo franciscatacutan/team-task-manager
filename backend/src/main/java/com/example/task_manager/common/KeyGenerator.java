@@ -1,7 +1,6 @@
 package com.example.task_manager.common;
 
 import java.security.SecureRandom;
-
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,8 +16,7 @@ public class KeyGenerator {
     StringBuilder key = new StringBuilder(KEY_LENGTH);
 
     for (int i = 0; i < KEY_LENGTH; i++) {
-      key.append(CHARACTERS.charAt(
-          random.nextInt(CHARACTERS.length())));
+      key.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
     }
 
     return key.toString();

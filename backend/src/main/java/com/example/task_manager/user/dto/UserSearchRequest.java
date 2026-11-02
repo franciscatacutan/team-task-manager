@@ -1,14 +1,9 @@
 package com.example.task_manager.user.dto;
 
+import com.example.task_manager.user.entity.UserRole;
 import java.util.Set;
 
-import com.example.task_manager.user.entity.UserRole;
-
 /*
-* DTO for fetching teams with search, filtering and sort
-*/
-public record UserSearchRequest(
-    String search,
-    Set<UserRole> roles) {
-
-}
+ * DTO for fetching teams with search, filtering and sort
+ */
+public record UserSearchRequest(String search, Set<UserRole> roles) {}

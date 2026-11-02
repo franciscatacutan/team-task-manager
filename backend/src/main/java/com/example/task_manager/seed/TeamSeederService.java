@@ -1,15 +1,12 @@
 package com.example.task_manager.seed;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.example.task_manager.team.TeamService;
 import com.example.task_manager.team.dto.CreateTeamRequest;
 import com.example.task_manager.team.dto.TeamResponse;
-
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -22,11 +19,12 @@ public class TeamSeederService {
 
     for (int index = 0; index < count; index++) {
       int number = index + 1;
-      teams.add(teamService.createTeam(
-          new CreateTeamRequest(
-              "Demo Team " + number + " [" + batchId + "]",
-              "Seeded team " + number + " for UI and workflow testing."),
-          requesterEmail));
+      teams.add(
+          teamService.createTeam(
+              new CreateTeamRequest(
+                  "Demo Team " + number + " [" + batchId + "]",
+                  "Seeded team " + number + " for UI and workflow testing."),
+              requesterEmail));
     }
 
     return teams;

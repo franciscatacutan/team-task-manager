@@ -6,7 +6,8 @@ export function useCreateTask(teamKey: string, projectKey: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateTaskInput) => createTask(teamKey, projectKey, data),
+    mutationFn: (data: CreateTaskInput) =>
+      createTask(teamKey, projectKey, data),
 
     onSuccess: () => {
       queryClient.invalidateQueries({

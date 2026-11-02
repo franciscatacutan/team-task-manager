@@ -7,18 +7,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
 import com.example.task_manager.auth.dto.AuthResponse;
 import com.example.task_manager.auth.dto.LoginRequest;
 import com.example.task_manager.auth.dto.RegisterRequest;
@@ -28,35 +16,35 @@ import com.example.task_manager.exception.api.EmailAlreadyInUseException;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-/**
- * Unit tests for AuthService.
- */
+/** Unit tests for AuthService. */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
   // Mocked dependencies
-  @Mock
-  private UserRepository userRepository;
+  @Mock private UserRepository userRepository;
 
-  @Mock
-  private PasswordEncoder passwordEncoder;
+  @Mock private PasswordEncoder passwordEncoder;
 
-  @Mock
-  private AuthenticationManager authenticationManager;
+  @Mock private AuthenticationManager authenticationManager;
 
-  @Mock
-  private JwtService jwtService;
+  @Mock private JwtService jwtService;
 
-  @Mock
-  private RefreshTokenService refreshTokenService;
+  @Mock private RefreshTokenService refreshTokenService;
 
-  @InjectMocks
-  private AuthService authService;
+  @InjectMocks private AuthService authService;
 
-  /**
-   * Tests successful user registration.
-   */
+  /** Tests successful user registration. */
   @Test
   void shouldRegisterUserSuccessfully() {
 
@@ -64,32 +52,26 @@ class AuthServiceTest {
     String email = "test@test.com";
     String password = "password123";
 
-    RegisterRequest request = new RegisterRequest(
-        email,
-        "Test",
-        "Name",
-        password,
-        password);
+    RegisterRequest request = new RegisterRequest(email, "Test", "Name", password, password);
 
-    when(userRepository.existsByEmailIgnoreCase(email))
-        .thenReturn(false);
+    when(userRepository.existsByEmailIgnoreCase(email)).thenReturn(false);
 
-    when(passwordEncoder.encode(password))
-        .thenReturn("hashed-pass");
+    when(passwordEncoder.encode(password)).thenReturn("hashed-pass");
 
     when(userRepository.save(any(UserEntity.class)))
-        .thenAnswer(invocation -> {
-          UserEntity savedUser = invocation.getArgument(0);
-          savedUser.setId(UUID.randomUUID());
-          return savedUser;
-        });
+        .thenAnswer(
+            invocation -> {
+              UserEntity savedUser = invocation.getArgument(0);
+              savedUser.setId(UUID.randomUUID());
+              return savedUser;
+            });
 
-    when(jwtService.generateToken(any(UserEntity.class)))
-        .thenReturn("fake-jwt-token");
+    when(jwtService.generateToken(any(UserEntity.class))).thenReturn("fake-jwt-token");
     when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(900L);
     when(refreshTokenService.createSession(any(UserEntity.class), any(), any()))
         .thenReturn(
-            new RefreshTokenService.RefreshTokenSession("refresh-token", java.time.Instant.now().plusSeconds(3600)));
+            new RefreshTokenService.RefreshTokenSession(
+                "refresh-token", java.time.Instant.now().plusSeconds(3600)));
 
     AuthService.AuthSession session = authService.register(request, "127.0.0.1", "JUnit");
     AuthResponse response = session.response();
@@ -101,30 +83,23 @@ class AuthServiceTest {
     // Verify that the token was generated
     assertThat(response.token()).isEqualTo("fake-jwt-token");
     assertThat(response.user().email()).isEqualTo("test@test.com");
-
   }
 
-  /**
-   * Tests registration failure when email is already in use.
-   */
+  /** Tests registration failure when email is already in use. */
   @Test
   void shouldThrowExceptionWhenEmailAlreadyExists() {
 
     // Existing email
     String email = "john@test.com";
 
-    RegisterRequest request = new RegisterRequest(
-        email,
-        "John",
-        "Doe",
-        "password123",
-        "password123");
+    RegisterRequest request =
+        new RegisterRequest(email, "John", "Doe", "password123", "password123");
 
-    when(userRepository.existsByEmailIgnoreCase(email))
-        .thenReturn(true);
+    when(userRepository.existsByEmailIgnoreCase(email)).thenReturn(true);
 
     // Assert that EmailAlreadyInUseException is thrown
-    assertThrows(EmailAlreadyInUseException.class,
+    assertThrows(
+        EmailAlreadyInUseException.class,
         () -> authService.register(request, "127.0.0.1", "JUnit"));
   }
 
@@ -144,13 +119,16 @@ class AuthServiceTest {
     LoginRequest request = new LoginRequest("  JANE@test.com ", "Password123!");
 
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-        .thenReturn(UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities()));
+        .thenReturn(
+            UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, principal.getAuthorities()));
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(jwtService.generateToken(user)).thenReturn("jwt-token");
     when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(900L);
     when(refreshTokenService.createSession(any(UserEntity.class), any(), any()))
         .thenReturn(
-            new RefreshTokenService.RefreshTokenSession("refresh-token", java.time.Instant.now().plusSeconds(3600)));
+            new RefreshTokenService.RefreshTokenSession(
+                "refresh-token", java.time.Instant.now().plusSeconds(3600)));
 
     AuthService.AuthSession session = authService.login(request, "127.0.0.1", "JUnit");
     AuthResponse response = session.response();

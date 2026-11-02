@@ -1,8 +1,5 @@
 package com.example.task_manager.support;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
@@ -11,8 +8,9 @@ import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
-
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.util.UUID;
 
 public final class TestFixtures {
   private TestFixtures() {}
@@ -63,7 +61,8 @@ public final class TestFixtures {
     return new Workspace(owner, team, project, task);
   }
 
-  public record Workspace(UserEntity owner, TeamEntity team, ProjectEntity project, TaskEntity task) {
+  public record Workspace(
+      UserEntity owner, TeamEntity team, ProjectEntity project, TaskEntity task) {
     public String taskPath() {
       return "/api/teams/" + team.getKey() + "/projects/" + project.getKey() + "/tasks/1";
     }

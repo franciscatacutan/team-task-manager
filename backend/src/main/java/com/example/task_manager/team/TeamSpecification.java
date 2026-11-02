@@ -1,27 +1,21 @@
 package com.example.task_manager.team;
 
-import java.util.Locale;
-import java.util.UUID;
-
-import org.springframework.data.jpa.domain.Specification;
-
 import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Subquery;
+import java.util.Locale;
+import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
 
-/**
- * Builds dynamic filtering logic for TeamEntity queries.
- */
+/** Builds dynamic filtering logic for TeamEntity queries. */
 public final class TeamSpecification {
 
-  private TeamSpecification() {
-  }
+  private TeamSpecification() {}
 
   public static Specification<TeamEntity> build(
       UUID requesterId,
@@ -31,8 +25,7 @@ public final class TeamSpecification {
       DeletedFilter deletedFilter,
       boolean isGlobalAdmin) {
 
-    return Specification
-        .where(search(search))
+    return Specification.where(search(search))
         .and(hasOwner(ownerId))
         .and(hasMember(memberId))
         .and(isVisibleTo(requesterId, isGlobalAdmin))
@@ -42,7 +35,6 @@ public final class TeamSpecification {
   private static Specification<TeamEntity> search(String keyword) {
 
     return (root, query, cb) -> {
-
       if (keyword == null || keyword.isBlank()) {
         return cb.conjunction();
       }
@@ -61,15 +53,13 @@ public final class TeamSpecification {
 
   private static Specification<TeamEntity> hasOwner(UUID ownerId) {
 
-    return (root, query, cb) -> ownerId == null
-        ? cb.conjunction()
-        : cb.equal(root.get("owner").get("id"), ownerId);
+    return (root, query, cb) ->
+        ownerId == null ? cb.conjunction() : cb.equal(root.get("owner").get("id"), ownerId);
   }
 
   private static Specification<TeamEntity> hasMember(UUID memberId) {
 
     return (root, query, cb) -> {
-
       if (memberId == null) {
         return cb.conjunction();
       }
@@ -80,12 +70,9 @@ public final class TeamSpecification {
     };
   }
 
-  private static Specification<TeamEntity> isVisibleTo(
-      UUID requesterId,
-      boolean isGlobalAdmin) {
+  private static Specification<TeamEntity> isVisibleTo(UUID requesterId, boolean isGlobalAdmin) {
 
     return (root, query, cb) -> {
-
       if (isGlobalAdmin) {
         return cb.conjunction();
       }
@@ -107,11 +94,12 @@ public final class TeamSpecification {
   }
 
   private static Specification<TeamEntity> hasDeletedState(DeletedFilter filter) {
-    return (root, query, cb) -> switch (filter == null ? DeletedFilter.ACTIVE : filter) {
-      case ACTIVE -> cb.isNull(root.get("deletedAt"));
-      case DELETED -> cb.isNotNull(root.get("deletedAt"));
-      case ALL -> cb.conjunction();
-    };
+    return (root, query, cb) ->
+        switch (filter == null ? DeletedFilter.ACTIVE : filter) {
+          case ACTIVE -> cb.isNull(root.get("deletedAt"));
+          case DELETED -> cb.isNotNull(root.get("deletedAt"));
+          case ALL -> cb.conjunction();
+        };
   }
 
   private static jakarta.persistence.criteria.Predicate hasMembership(
@@ -122,7 +110,8 @@ public final class TeamSpecification {
 
     Subquery<UUID> subquery = query.subquery(UUID.class);
     var member = subquery.from(TeamMemberEntity.class);
-    subquery.select(member.get("id"))
+    subquery
+        .select(member.get("id"))
         .where(
             cb.equal(member.get("team").get("id"), root.get("id")),
             cb.equal(member.get("user").get("id"), requesterId));
@@ -138,7 +127,8 @@ public final class TeamSpecification {
 
     Subquery<UUID> subquery = query.subquery(UUID.class);
     var member = subquery.from(TeamMemberEntity.class);
-    subquery.select(member.get("id"))
+    subquery
+        .select(member.get("id"))
         .where(
             cb.equal(member.get("team").get("id"), root.get("id")),
             cb.equal(member.get("user").get("id"), requesterId),

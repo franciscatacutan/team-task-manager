@@ -3,7 +3,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "../../../components/ui/dialog";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext } from "react-router";
 import { useTeamMe } from "../../teams/hooks/useTeamMe";
 import { useTask } from "../hooks/useTask";
 import { getTaskPermissions } from "../utils/taskPermissions";

@@ -1,7 +1,12 @@
 package com.example.task_manager.config.jwt;
 
+import com.example.task_manager.config.security.CustomUserDetailsService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,17 +16,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.task_manager.config.security.CustomUserDetailsService;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-
-/**
- * Filter for handling JWT authentication.
- */
+/** Filter for handling JWT authentication. */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -31,9 +26,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
   /**
-   * Authentication endpoints use the refresh-token cookie or credentials, never
-   * the bearer token. Skipping them prevents an expired access token from
-   * blocking a valid refresh request before it reaches the controller.
+   * Authentication endpoints use the refresh-token cookie or credentials, never the bearer token.
+   * Skipping them prevents an expired access token from blocking a valid refresh request before it
+   * reaches the controller.
    */
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -41,14 +36,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   }
 
   /**
-   * Processes incoming requests and validates JWT tokens.
-   * Validate the token and set authentication in the security context
-   * 
+   * Processes incoming requests and validates JWT tokens. Validate the token and set authentication
+   * in the security context
    */
   @Override
-  protected void doFilterInternal(HttpServletRequest request,
-      HttpServletResponse response,
-      FilterChain filterChain)
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
 
     String authHeader = request.getHeader("Authorization");
@@ -71,11 +64,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
         if (jwtService.isTokenValid(token, userDetails)) {
-          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-              userDetails, null, userDetails.getAuthorities());
+          UsernamePasswordAuthenticationToken authToken =
+              new UsernamePasswordAuthenticationToken(
+                  userDetails, null, userDetails.getAuthorities());
 
-          authToken.setDetails(
-              new WebAuthenticationDetailsSource().buildDetails(request));
+          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
           SecurityContextHolder.getContext().setAuthentication(authToken);
         }
       }
@@ -90,8 +83,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
           request,
           response,
           new org.springframework.security.authentication.BadCredentialsException(
-              "Invalid or expired bearer token",
-              ex));
+              "Invalid or expired bearer token", ex));
     }
   }
 }

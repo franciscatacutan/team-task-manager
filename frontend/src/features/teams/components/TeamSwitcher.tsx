@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ChevronsUpDown, Plus, Check } from "lucide-react";
 
 import { useAllTeams } from "../hooks/useAllTeams";
@@ -30,7 +30,7 @@ interface Props {
 export default function TeamSwitcher({ teamKey, collapsed }: Props) {
   const navigate = useNavigate();
   const { data } = useAllTeams();
-  
+
   const teams = data?.content ?? [];
 
   const [open, setOpen] = useState(false);

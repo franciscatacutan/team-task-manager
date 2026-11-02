@@ -24,11 +24,16 @@ export default function TaskActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useTaskActivities(teamKey, projectKey, taskNumber, {
-    page,
-    size: 10,
-    sort,
-  });
+  const { data, isLoading } = useTaskActivities(
+    teamKey,
+    projectKey,
+    taskNumber,
+    {
+      page,
+      size: 10,
+      sort,
+    },
+  );
 
   return (
     <section

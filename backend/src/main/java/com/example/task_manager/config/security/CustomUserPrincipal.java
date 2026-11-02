@@ -1,21 +1,18 @@
 package com.example.task_manager.config.security;
 
+import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
-
 /**
  * Represents the authenticated user within the security context.
  *
- * This class decouples the persistence layer (UserEntity)
- * from the security layer.
+ * <p>This class decouples the persistence layer (UserEntity) from the security layer.
  */
 public class CustomUserPrincipal implements UserDetails {
 
@@ -53,8 +50,7 @@ public class CustomUserPrincipal implements UserDetails {
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of(
-        new SimpleGrantedAuthority("ROLE_" + role.name()));
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
   }
 
   @Override

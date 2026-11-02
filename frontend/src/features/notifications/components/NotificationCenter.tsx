@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Bell,
   CheckCheck,
@@ -267,7 +267,9 @@ function EmptyNotifications({ filter }: { filter: "all" | "unread" }) {
         <Bell className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="mt-3 text-sm font-medium">
-        {filter === "unread" ? "No unread notifications" : "No notifications yet"}
+        {filter === "unread"
+          ? "No unread notifications"
+          : "No notifications yet"}
       </div>
       <p className="mx-auto mt-1 max-w-56 text-xs leading-5 text-muted-foreground">
         {filter === "unread"

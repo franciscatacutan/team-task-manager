@@ -1,20 +1,16 @@
 package com.example.task_manager.activity;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.example.task_manager.activity.dto.ActivityEntityType;
+import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventDetails.ActivityChange;
 import com.example.task_manager.activity.dto.ActivityEventDetails.ActivityReference;
-import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
-import com.example.task_manager.observability.ObservabilityService;
 import com.example.task_manager.notification.NotificationService;
-import com.example.task_manager.project.entity.ProjectEntity;
+import com.example.task_manager.observability.ObservabilityService;
 import com.example.task_manager.project.ProjectRepository;
 import com.example.task_manager.project.dto.ProjectActivityResponse;
+import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.dto.TaskActivityResponse;
 import com.example.task_manager.task.entity.TaskEntity;
@@ -22,12 +18,11 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.dto.TeamActivityResponse;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.user.entity.UserEntity;
-
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-/**
- * Records and maps unified activity events.
- */
+/** Records and maps unified activity events. */
 @Service
 @RequiredArgsConstructor
 public class ActivityEventService {
@@ -47,28 +42,24 @@ public class ActivityEventService {
       ActivityEventDetails details,
       String message) {
 
-    ActivityEventDetails enrichedDetails = withContext(
-        details,
-        reference(team.getId(), team.getName()),
-        null,
-        null);
+    ActivityEventDetails enrichedDetails =
+        withContext(details, reference(team.getId(), team.getName()), null, null);
 
-    ActivityEventEntity event = saveEvent(
-        team.getId(),
-        null,
-        null,
-        ActivityEntityType.TEAM,
-        team.getId(),
-        null,
-        null,
-        actor,
-        eventType,
-        enrichedDetails,
-        message);
+    ActivityEventEntity event =
+        saveEvent(
+            team.getId(),
+            null,
+            null,
+            ActivityEntityType.TEAM,
+            team.getId(),
+            null,
+            null,
+            actor,
+            eventType,
+            enrichedDetails,
+            message);
 
-    teamRepository.updateLastActivity(
-        team.getId(),
-        event.getCreatedAt());
+    teamRepository.updateLastActivity(team.getId(), event.getCreatedAt());
 
     return event;
   }
@@ -80,28 +71,28 @@ public class ActivityEventService {
       ActivityEventDetails details,
       String message) {
 
-    ActivityEventDetails enrichedDetails = withContext(
-        details,
-        reference(project.getTeam().getId(), project.getTeam().getName()),
-        reference(project.getId(), project.getName()),
-        null);
+    ActivityEventDetails enrichedDetails =
+        withContext(
+            details,
+            reference(project.getTeam().getId(), project.getTeam().getName()),
+            reference(project.getId(), project.getName()),
+            null);
 
-    ActivityEventEntity event = saveEvent(
-        project.getTeam().getId(),
-        project.getId(),
-        null,
-        ActivityEntityType.PROJECT,
-        project.getId(),
-        ActivityEntityType.TEAM,
-        project.getTeam().getId(),
-        actor,
-        eventType,
-        enrichedDetails,
-        message);
+    ActivityEventEntity event =
+        saveEvent(
+            project.getTeam().getId(),
+            project.getId(),
+            null,
+            ActivityEntityType.PROJECT,
+            project.getId(),
+            ActivityEntityType.TEAM,
+            project.getTeam().getId(),
+            actor,
+            eventType,
+            enrichedDetails,
+            message);
 
-    projectRepository.updateLastActivity(
-        project.getId(),
-        event.getCreatedAt());
+    projectRepository.updateLastActivity(project.getId(), event.getCreatedAt());
 
     return event;
   }
@@ -113,28 +104,28 @@ public class ActivityEventService {
       ActivityEventDetails details,
       String message) {
 
-    ActivityEventDetails enrichedDetails = withContext(
-        details,
-        reference(task.getProject().getTeam().getId(), task.getProject().getTeam().getName()),
-        reference(task.getProject().getId(), task.getProject().getName()),
-        reference(task.getId(), task.getName()));
+    ActivityEventDetails enrichedDetails =
+        withContext(
+            details,
+            reference(task.getProject().getTeam().getId(), task.getProject().getTeam().getName()),
+            reference(task.getProject().getId(), task.getProject().getName()),
+            reference(task.getId(), task.getName()));
 
-    ActivityEventEntity event = saveEvent(
-        task.getProject().getTeam().getId(),
-        task.getProject().getId(),
-        task.getId(),
-        ActivityEntityType.TASK,
-        task.getId(),
-        ActivityEntityType.PROJECT,
-        task.getProject().getId(),
-        actor,
-        eventType,
-        enrichedDetails,
-        message);
+    ActivityEventEntity event =
+        saveEvent(
+            task.getProject().getTeam().getId(),
+            task.getProject().getId(),
+            task.getId(),
+            ActivityEntityType.TASK,
+            task.getId(),
+            ActivityEntityType.PROJECT,
+            task.getProject().getId(),
+            actor,
+            eventType,
+            enrichedDetails,
+            message);
 
-    taskRepository.updateLastActivity(
-        task.getId(),
-        event.getCreatedAt());
+    taskRepository.updateLastActivity(task.getId(), event.getCreatedAt());
 
     return event;
   }
@@ -172,32 +163,25 @@ public class ActivityEventService {
     return savedEvent;
   }
 
-  public ActivityEventEntity recordTaskComment(
-      TaskEntity task,
-      UserEntity actor,
-      String message) {
-    return recordTaskEvent(
-        task,
-        actor,
-        ActivityEventType.TASK_COMMENTED,
-        emptyDetails(),
-        message);
+  public ActivityEventEntity recordTaskComment(TaskEntity task, UserEntity actor, String message) {
+    return recordTaskEvent(task, actor, ActivityEventType.TASK_COMMENTED, emptyDetails(), message);
   }
 
   public TaskActivityResponse toTaskActivitiesResponse(ActivityEventEntity entity) {
     ActivityEventDetails details = readDetails(entity);
 
-    TaskActivityResponse.User user = new TaskActivityResponse.User(
-        entity.getUser().getId(),
-        entity.getUser().getFirstName(),
-        entity.getUser().getLastName(),
-        entity.getUser().getEmail());
+    TaskActivityResponse.User user =
+        new TaskActivityResponse.User(
+            entity.getUser().getId(),
+            entity.getUser().getFirstName(),
+            entity.getUser().getLastName(),
+            entity.getUser().getEmail());
 
-    TaskActivityResponse.Task task = entity.getTaskId() == null
-        ? null
-        : new TaskActivityResponse.Task(
-            entity.getTaskId(),
-            entity.getTask() != null ? entity.getTask().getName() : null);
+    TaskActivityResponse.Task task =
+        entity.getTaskId() == null
+            ? null
+            : new TaskActivityResponse.Task(
+                entity.getTaskId(), entity.getTask() != null ? entity.getTask().getName() : null);
 
     return new TaskActivityResponse(
         entity.getId(),
@@ -212,17 +196,18 @@ public class ActivityEventService {
   public ProjectActivityResponse toProjectActivitiesResponse(ActivityEventEntity entity) {
     ActivityEventDetails details = readDetails(entity);
 
-    ProjectActivityResponse.User user = new ProjectActivityResponse.User(
-        entity.getUser().getId(),
-        entity.getUser().getFirstName(),
-        entity.getUser().getLastName(),
-        entity.getUser().getEmail());
+    ProjectActivityResponse.User user =
+        new ProjectActivityResponse.User(
+            entity.getUser().getId(),
+            entity.getUser().getFirstName(),
+            entity.getUser().getLastName(),
+            entity.getUser().getEmail());
 
-    ProjectActivityResponse.Task task = entity.getTaskId() == null
-        ? null
-        : new ProjectActivityResponse.Task(
-            entity.getTaskId(),
-            resolveTaskLabel(entity, details));
+    ProjectActivityResponse.Task task =
+        entity.getTaskId() == null
+            ? null
+            : new ProjectActivityResponse.Task(
+                entity.getTaskId(), resolveTaskLabel(entity, details));
 
     return new ProjectActivityResponse(
         entity.getId(),
@@ -237,23 +222,23 @@ public class ActivityEventService {
   public TeamActivityResponse toTeamActivitiesResponse(ActivityEventEntity entity) {
     ActivityEventDetails details = readDetails(entity);
 
-    TeamActivityResponse.User user = new TeamActivityResponse.User(
-        entity.getUser().getId(),
-        entity.getUser().getFirstName(),
-        entity.getUser().getLastName(),
-        entity.getUser().getEmail());
+    TeamActivityResponse.User user =
+        new TeamActivityResponse.User(
+            entity.getUser().getId(),
+            entity.getUser().getFirstName(),
+            entity.getUser().getLastName(),
+            entity.getUser().getEmail());
 
-    TeamActivityResponse.Project project = entity.getProjectId() == null
-        ? null
-        : new TeamActivityResponse.Project(
-            entity.getProjectId(),
-            resolveProjectLabel(entity, details));
+    TeamActivityResponse.Project project =
+        entity.getProjectId() == null
+            ? null
+            : new TeamActivityResponse.Project(
+                entity.getProjectId(), resolveProjectLabel(entity, details));
 
-    TeamActivityResponse.Task task = entity.getTaskId() == null
-        ? null
-        : new TeamActivityResponse.Task(
-            entity.getTaskId(),
-            resolveTaskLabel(entity, details));
+    TeamActivityResponse.Task task =
+        entity.getTaskId() == null
+            ? null
+            : new TeamActivityResponse.Task(entity.getTaskId(), resolveTaskLabel(entity, details));
 
     return new TeamActivityResponse(
         entity.getId(),
@@ -272,13 +257,13 @@ public class ActivityEventService {
         details.from(),
         details.to(),
         details.target(),
-        details.changes() == null ? List.of()
+        details.changes() == null
+            ? List.of()
             : details.changes().stream()
-                .map(change -> new TaskActivityResponse.ActivityChange(
-                    change.field(),
-                    change.label(),
-                    change.from(),
-                    change.to()))
+                .map(
+                    change ->
+                        new TaskActivityResponse.ActivityChange(
+                            change.field(), change.label(), change.from(), change.to()))
                 .toList(),
         toFrontendReference(details.team()),
         toFrontendReference(details.project()),
@@ -335,9 +320,7 @@ public class ActivityEventService {
   }
 
   private String resolveMessage(
-      ActivityEventType eventType,
-      ActivityEventDetails details,
-      String message) {
+      ActivityEventType eventType, ActivityEventDetails details, String message) {
 
     if (message != null && !message.isBlank()) {
       return message;

@@ -1,5 +1,8 @@
 package com.example.task_manager.auth;
 
+import com.example.task_manager.auth.entity.RefreshTokenEntity;
+import com.example.task_manager.user.UserRepository;
+import com.example.task_manager.user.entity.UserEntity;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -8,19 +11,12 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.task_manager.auth.entity.RefreshTokenEntity;
-import com.example.task_manager.user.UserRepository;
-import com.example.task_manager.user.entity.UserEntity;
-
-/**
- * Handles refresh token issuance, rotation, reuse detection and revocation.
- */
+/** Handles refresh token issuance, rotation, reuse detection and revocation. */
 @Service
 public class RefreshTokenService {
 
@@ -59,13 +55,17 @@ public class RefreshTokenService {
   @Transactional(noRollbackFor = BadCredentialsException.class)
   public RefreshTokenSession rotate(String rawToken, String ipAddress, String userAgent) {
     String tokenHash = hashToken(rawToken);
-    UUID userId = refreshTokenRepository.findUserIdByTokenHash(tokenHash)
-        .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
+    UUID userId =
+        refreshTokenRepository
+            .findUserIdByTokenHash(tokenHash)
+            .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
     // Serialize the whole user's token family, including ancestor reuse racing
     // with a descendant rotation. Load token state only after acquiring the lock.
     lockUser(userId);
-    RefreshTokenEntity currentToken = refreshTokenRepository.findByTokenHash(tokenHash)
-        .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
+    RefreshTokenEntity currentToken =
+        refreshTokenRepository
+            .findByTokenHash(tokenHash)
+            .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
 
     if (currentToken.isRevoked()) {
       revokeFamily(currentToken.getFamilyId());
@@ -106,25 +106,32 @@ public class RefreshTokenService {
     }
 
     String tokenHash = hashToken(rawToken);
-    refreshTokenRepository.findUserIdByTokenHash(tokenHash).ifPresent(userId -> {
-      lockUser(userId);
-      refreshTokenRepository.findByTokenHash(tokenHash)
-          .ifPresent(token -> token.setRevokedAt(Instant.now()));
-    });
+    refreshTokenRepository
+        .findUserIdByTokenHash(tokenHash)
+        .ifPresent(
+            userId -> {
+              lockUser(userId);
+              refreshTokenRepository
+                  .findByTokenHash(tokenHash)
+                  .ifPresent(token -> token.setRevokedAt(Instant.now()));
+            });
   }
 
   @Transactional
   public void revokeAllForUser(UUID userId) {
     lockUser(userId);
-    List<RefreshTokenEntity> tokens = refreshTokenRepository.findAllByUser_IdAndRevokedAtIsNull(userId);
+    List<RefreshTokenEntity> tokens =
+        refreshTokenRepository.findAllByUser_IdAndRevokedAtIsNull(userId);
     Instant now = Instant.now();
     tokens.forEach(token -> token.setRevokedAt(now));
   }
 
   @Transactional(readOnly = true)
   public UserEntity getUserForRefreshToken(String rawToken) {
-    RefreshTokenEntity token = refreshTokenRepository.findByTokenHash(hashToken(rawToken))
-        .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
+    RefreshTokenEntity token =
+        refreshTokenRepository
+            .findByTokenHash(hashToken(rawToken))
+            .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
 
     if (token.isRevoked() || token.isExpired()) {
       throw new BadCredentialsException("Refresh token is invalid");
@@ -134,13 +141,15 @@ public class RefreshTokenService {
   }
 
   private void lockUser(UUID userId) {
-    userRepository.findByIdForUpdate(userId)
+    userRepository
+        .findByIdForUpdate(userId)
         .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
   }
 
   private void revokeFamily(UUID familyId) {
     Instant now = Instant.now();
-    refreshTokenRepository.findAllByFamilyIdAndRevokedAtIsNull(familyId)
+    refreshTokenRepository
+        .findAllByFamilyIdAndRevokedAtIsNull(familyId)
         .forEach(token -> token.setRevokedAt(now));
   }
 
@@ -166,6 +175,5 @@ public class RefreshTokenService {
     return value.length() <= maxLength ? value : value.substring(0, maxLength);
   }
 
-  public record RefreshTokenSession(String token, Instant expiresAt) {
-  }
+  public record RefreshTokenSession(String token, Instant expiresAt) {}
 }

@@ -1,27 +1,23 @@
 package com.example.task_manager.config.security;
 
+import com.example.task_manager.user.UserRepository;
+import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.example.task_manager.user.UserRepository;
-import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * Initializes system-level data at application startup.
  *
- * Responsibilities:
- * - Creates a bootstrap SUPER_ADMIN if one does not exist.
- * - Ensures idempotent execution.
- * - Prevents accidental duplicate creation.
+ * <p>Responsibilities: - Creates a bootstrap SUPER_ADMIN if one does not exist. - Ensures
+ * idempotent execution. - Prevents accidental duplicate creation.
  *
- * This is intended for initial system provisioning only.
+ * <p>This is intended for initial system provisioning only.
  */
 @Slf4j
 @Component
@@ -67,11 +63,8 @@ public class DataInitializer implements CommandLineRunner {
     }
   }
 
-  /**
-   * Ensures bootstrap credentials are present.
-   */
+  /** Ensures bootstrap credentials are present. */
   private boolean isBootstrapConfigured() {
-    return email != null && !email.isBlank()
-        && password != null && !password.isBlank();
+    return email != null && !email.isBlank() && password != null && !password.isBlank();
   }
 }

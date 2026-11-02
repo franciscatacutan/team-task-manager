@@ -181,7 +181,10 @@ export default function EditUserDialog({
           {canManageRole && (
             <div className="space-y-2">
               <Label htmlFor="edit-user-role">Global role</Label>
-              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value as UserRole)}
+              >
                 <SelectTrigger
                   id="edit-user-role"
                   className="h-10 w-full rounded-xl"

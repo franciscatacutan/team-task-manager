@@ -1,17 +1,10 @@
 package com.example.task_manager.activity.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.example.task_manager.activity.dto.ActivityEntityType;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -25,25 +18,30 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Unified activity event for task, project, and team history.
- */
+/** Unified activity event for task, project, and team history. */
 @Getter
 @Setter
 @Entity
-@Table(name = "activity_events", indexes = {
-    @Index(name = "idx_activity_team_created_at", columnList = "team_id, created_at"),
-    @Index(name = "idx_activity_project_created_at", columnList = "project_id, created_at"),
-    @Index(name = "idx_activity_task_created_at", columnList = "task_id, created_at"),
-    @Index(name = "idx_activity_entity_created_at", columnList = "entity_type, entity_id, created_at")
-})
+@Table(
+    name = "activity_events",
+    indexes = {
+      @Index(name = "idx_activity_team_created_at", columnList = "team_id, created_at"),
+      @Index(name = "idx_activity_project_created_at", columnList = "project_id, created_at"),
+      @Index(name = "idx_activity_task_created_at", columnList = "task_id, created_at"),
+      @Index(
+          name = "idx_activity_entity_created_at",
+          columnList = "entity_type, entity_id, created_at")
+    })
 @EntityListeners(AuditingEntityListener.class)
-
 public class ActivityEventEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

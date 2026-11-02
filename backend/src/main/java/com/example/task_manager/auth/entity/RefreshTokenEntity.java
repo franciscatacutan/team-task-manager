@@ -1,10 +1,6 @@
 package com.example.task_manager.auth.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -14,12 +10,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Persisted refresh token session used for rotation and revocation.
- */
+/** Persisted refresh token session used for rotation and revocation. */
 @Getter
 @Setter
 @Entity
@@ -46,14 +42,12 @@ public class RefreshTokenEntity {
   @Column(nullable = false)
   private Instant expiresAt;
 
-  @Column
-  private Instant revokedAt;
+  @Column private Instant revokedAt;
 
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
 
-  @Column
-  private Instant lastUsedAt;
+  @Column private Instant lastUsedAt;
 
   @Column(length = 64)
   private String createdByIp;

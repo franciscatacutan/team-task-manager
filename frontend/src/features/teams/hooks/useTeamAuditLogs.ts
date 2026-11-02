@@ -11,7 +11,13 @@ export const useTeamAuditLogs = (
   },
 ) => {
   return useQuery({
-    queryKey: ["team-audit-logs", teamKey, params.page, params.size, params.sort],
+    queryKey: [
+      "team-audit-logs",
+      teamKey,
+      params.page,
+      params.size,
+      params.sort,
+    ],
     queryFn: () => getTeamAuditLogs(teamKey, params),
     enabled: Boolean(teamKey),
     placeholderData: keepPreviousData,

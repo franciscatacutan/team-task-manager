@@ -1,26 +1,21 @@
 package com.example.task_manager.config.jwt;
 
+import com.example.task_manager.config.security.CustomUserPrincipal;
+import com.example.task_manager.user.entity.UserEntity;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
-
+import javax.crypto.SecretKey;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import com.example.task_manager.config.security.CustomUserPrincipal;
-import com.example.task_manager.user.entity.UserEntity;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-
-/**
- * Service for handling JWT operations.
- */
+/** Service for handling JWT operations. */
 @Service
 public class JwtService implements InitializingBean {
 
@@ -33,20 +28,18 @@ public class JwtService implements InitializingBean {
   @Value("${auth.access-token-expiration-ms}")
   private long accessTokenExpirationMs;
 
-  /**
-   * Generates a JWT token for the given user.
-   */
+  /** Generates a JWT token for the given user. */
   public String generateToken(UserEntity user) {
     Instant now = Instant.now();
 
     return Jwts.builder()
-        .setSubject(user.getEmail())
-        .setId(user.getId().toString())
-        .setIssuer(issuer)
+        .subject(user.getEmail())
+        .id(user.getId().toString())
+        .issuer(issuer)
         .claim("role", user.getRole().name())
         .claim("userId", user.getId())
-        .setIssuedAt(Date.from(now))
-        .setExpiration(Date.from(now.plusMillis(accessTokenExpirationMs)))
+        .issuedAt(Date.from(now))
+        .expiration(Date.from(now.plusMillis(accessTokenExpirationMs)))
         .signWith(getKey())
         .compact();
   }
@@ -55,16 +48,12 @@ public class JwtService implements InitializingBean {
     return accessTokenExpirationMs / 1000;
   }
 
-  /**
-   * Extracts the email from a JWT token.
-   */
+  /** Extracts the email from a JWT token. */
   public String extractEmail(String token) {
     return getClaims(token).getSubject();
   }
 
-  /**
-   * Validates a JWT token.
-   */
+  /** Validates a JWT token. */
   public boolean isTokenValid(String token, UserDetails userDetails) {
     Claims claims = getClaims(token);
     if (isTokenExpired(claims)) {
@@ -91,24 +80,19 @@ public class JwtService implements InitializingBean {
     return claims.getExpiration().before(new Date());
   }
 
-  /**
-   * Extracts claims from a JWT token.
-   */
+  /** Extracts claims from a JWT token. */
   private Claims getClaims(String token) {
-    return Jwts.parserBuilder()
-        .setSigningKey(getKey())
+    return Jwts.parser()
+        .verifyWith(getKey())
         .requireIssuer(issuer)
         .build()
-        .parseClaimsJws(token)
-        .getBody();
+        .parseSignedClaims(token)
+        .getPayload();
   }
 
-  /**
-   * Gets the signing key for JWT operations.
-   */
-  private Key getKey() {
-    return Keys.hmacShaKeyFor(
-        secret.getBytes(StandardCharsets.UTF_8));
+  /** Gets the signing key for JWT operations. */
+  private SecretKey getKey() {
+    return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override

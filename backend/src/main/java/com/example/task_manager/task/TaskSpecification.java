@@ -1,23 +1,18 @@
 package com.example.task_manager.task;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.data.jpa.domain.Specification;
-
 import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
 import com.example.task_manager.task.entity.TaskStatus;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
 
-/**
- * Builds dynamic filtering logic for TaskEntity queries.
- */
+/** Builds dynamic filtering logic for TaskEntity queries. */
 public class TaskSpecification {
 
   public static Specification<TaskEntity> build(
@@ -31,8 +26,7 @@ public class TaskSpecification {
       DeletedFilter deletedFilter,
       boolean canViewDeleted) {
 
-    return Specification
-        .where(belongsToProject(projectId))
+    return Specification.where(belongsToProject(projectId))
         .and(search(search))
         .and(hasStatuses(statuses))
         .and(hasPriorities(priorities))
@@ -49,7 +43,6 @@ public class TaskSpecification {
   private static Specification<TaskEntity> search(String keyword) {
 
     return (root, query, cb) -> {
-
       if (keyword == null || keyword.isBlank()) {
         return cb.conjunction();
       }
@@ -72,7 +65,6 @@ public class TaskSpecification {
   private static Specification<TaskEntity> hasStatuses(List<TaskStatus> statuses) {
 
     return (root, query, cb) -> {
-
       if (statuses == null || statuses.isEmpty()) {
         return cb.conjunction();
       }
@@ -84,7 +76,6 @@ public class TaskSpecification {
   private static Specification<TaskEntity> hasPriorities(List<TaskPriority> priorities) {
 
     return (root, query, cb) -> {
-
       if (priorities == null || priorities.isEmpty()) {
         return cb.conjunction();
       }
@@ -95,22 +86,21 @@ public class TaskSpecification {
 
   private static Specification<TaskEntity> hasAssignee(UUID assigneeId) {
 
-    return (root, query, cb) -> assigneeId == null
-        ? cb.conjunction()
-        : cb.equal(root.get("assignee").get("id"), assigneeId);
+    return (root, query, cb) ->
+        assigneeId == null
+            ? cb.conjunction()
+            : cb.equal(root.get("assignee").get("id"), assigneeId);
   }
 
   private static Specification<TaskEntity> hasSupport(UUID supportId) {
 
-    return (root, query, cb) -> supportId == null
-        ? cb.conjunction()
-        : cb.equal(root.get("support").get("id"), supportId);
+    return (root, query, cb) ->
+        supportId == null ? cb.conjunction() : cb.equal(root.get("support").get("id"), supportId);
   }
 
   private static Specification<TaskEntity> isOverdue(Boolean overdue) {
 
     return (root, query, cb) -> {
-
       if (!Boolean.TRUE.equals(overdue)) {
         return cb.conjunction();
       }
@@ -123,11 +113,9 @@ public class TaskSpecification {
   }
 
   private static Specification<TaskEntity> deletedFilter(
-      DeletedFilter filter,
-      boolean canViewDeleted) {
+      DeletedFilter filter, boolean canViewDeleted) {
 
     return (root, query, cb) -> {
-
       if (!canViewDeleted) {
         return cb.isNull(root.get("deletedAt"));
       }

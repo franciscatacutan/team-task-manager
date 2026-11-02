@@ -4,9 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /*
-* Request payload for changing the current user's login email.
-*/
+ * Request payload for changing the current user's login email.
+ */
 public record UpdateEmailRequest(
-    @NotBlank String currentPassword,
-    @NotBlank @Email String newEmail) {
-}
+    @NotBlank String currentPassword, @NotBlank @Email String newEmail) {}

@@ -1,9 +1,5 @@
 package com.example.task_manager.observability.entity;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,19 +9,24 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * KPI snapshot table for period-based business metrics.
- */
+/** KPI snapshot table for period-based business metrics. */
 @Getter
 @Setter
 @Entity
-@Table(name = "kpi_snapshots", indexes = {
-    @Index(name = "idx_kpi_scope_period", columnList = "scope, scope_id, period_start, period_end"),
-    @Index(name = "idx_kpi_key_period", columnList = "kpi_key, period_start, period_end")
-})
+@Table(
+    name = "kpi_snapshots",
+    indexes = {
+      @Index(
+          name = "idx_kpi_scope_period",
+          columnList = "scope, scope_id, period_start, period_end"),
+      @Index(name = "idx_kpi_key_period", columnList = "kpi_key, period_start, period_end")
+    })
 public class KpiSnapshotEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

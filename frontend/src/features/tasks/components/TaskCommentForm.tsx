@@ -12,7 +12,11 @@ interface Props {
   taskNumber: number;
 }
 
-export default function TaskUCommentForm({ teamKey, projectKey, taskNumber }: Props) {
+export default function TaskUCommentForm({
+  teamKey,
+  projectKey,
+  taskNumber,
+}: Props) {
   const [message, setMessage] = useState("");
 
   const createUpdate = useCreateTaskComment(teamKey, projectKey, taskNumber);

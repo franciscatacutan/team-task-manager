@@ -13,12 +13,7 @@ public record TeamInsightsResponse(
     ActivityMetrics activity,
     HealthMetrics health) {
 
-  public record MembershipMetrics(
-      long total,
-      long owners,
-      long admins,
-      long members) {
-  }
+  public record MembershipMetrics(long total, long owners, long admins, long members) {}
 
   public record TaskMetrics(
       long total,
@@ -30,8 +25,7 @@ public record TeamInsightsResponse(
       long cancelled,
       long overdue,
       long highPriority,
-      long criticalPriority) {
-  }
+      long criticalPriority) {}
 
   public record ProjectMetrics(
       long total,
@@ -39,25 +33,17 @@ public record TeamInsightsResponse(
       long onHold,
       long completed,
       long completedLast7Days,
-      double completionRatePercent) {
-  }
+      double completionRatePercent) {}
 
   public record FlowMetrics(
-      long completedLast7Days,
-      double completionRatePercent,
-      double averageCycleTimeHours) {
-  }
+      long completedLast7Days, double completionRatePercent, double averageCycleTimeHours) {}
 
   public record ActivityMetrics(
-      long activityEventsLast7Days,
-      long auditEventsLast7Days,
-      long systemEventsLast7Days) {
-  }
+      long activityEventsLast7Days, long auditEventsLast7Days, long systemEventsLast7Days) {}
 
   public record HealthMetrics(
       long openTasks,
       long overdueTasks,
       double openTasksPerMember,
-      double activeProjectsPerMember) {
-  }
+      double activeProjectsPerMember) {}
 }

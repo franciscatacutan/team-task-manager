@@ -78,7 +78,9 @@ export const transferTeam = async (
   teamKey: string,
   userId: string,
 ): Promise<TeamMember> => {
-  const response = await apiClient.patch(`/teams/${teamKey}/transfer/${userId}`);
+  const response = await apiClient.patch(
+    `/teams/${teamKey}/transfer/${userId}`,
+  );
   return response.data;
 };
 
@@ -93,9 +95,12 @@ export const getTeamAuditLogs = async (
   teamKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilityAuditLog>> => {
-  const response = await apiClient.get(`/teams/${teamKey}/insights/audit-logs`, {
-    params,
-  });
+  const response = await apiClient.get(
+    `/teams/${teamKey}/insights/audit-logs`,
+    {
+      params,
+    },
+  );
   return response.data;
 };
 

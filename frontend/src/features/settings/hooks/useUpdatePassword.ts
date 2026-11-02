@@ -1,9 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 
-import {
-  updatePassword,
-  type UpdatePasswordPayload,
-} from "../api/settingsApi";
+import { updatePassword, type UpdatePasswordPayload } from "../api/settingsApi";
 
 export const useUpdatePassword = (userId: string) => {
   return useMutation({

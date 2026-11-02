@@ -5,7 +5,7 @@ import {
   type ActivityFeedGroupBy,
 } from "../../../common/components/activity/ActivityFeed";
 import { useTeamActivities } from "../hooks/useTeamActivities";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 export default function TeamActivity() {
   const { teamKey } = useParams<{ teamKey: string }>();

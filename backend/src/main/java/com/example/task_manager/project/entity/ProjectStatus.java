@@ -2,9 +2,7 @@ package com.example.task_manager.project.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-/**
- * Enum representing the status of a project.
- */
+/** Enum representing the status of a project. */
 public enum ProjectStatus {
   ACTIVE,
   ON_HOLD,

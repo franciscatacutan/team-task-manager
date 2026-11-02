@@ -11,7 +11,10 @@ interface Props {
 
 const PAGE_SIZE = 10;
 
-export default function ProjectObservabilityLogs({ teamKey, projectKey }: Props) {
+export default function ProjectObservabilityLogs({
+  teamKey,
+  projectKey,
+}: Props) {
   const [auditPage, setAuditPage] = useState(0);
   const [systemPage, setSystemPage] = useState(0);
   const [sort, setSort] = useState("occurredAt,desc");

@@ -2,25 +2,22 @@ package com.example.task_manager.auth;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.example.task_manager.auth.entity.RefreshTokenEntity;
+import com.example.task_manager.support.PostgresIntegrationTest;
+import com.example.task_manager.support.TestFixtures;
+import com.example.task_manager.support.TestFixtures.Workspace;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import com.example.task_manager.auth.entity.RefreshTokenEntity;
-import com.example.task_manager.support.PostgresIntegrationTest;
-import com.example.task_manager.support.TestFixtures;
-import com.example.task_manager.support.TestFixtures.Workspace;
-
-import jakarta.persistence.EntityManager;
 
 class RefreshTokenIntegrationTest extends PostgresIntegrationTest {
   @Autowired AuthService auth;
@@ -50,10 +47,12 @@ class RefreshTokenIntegrationTest extends PostgresIntegrationTest {
   @Test
   void commitsExpiryRevocationEvenThoughRefreshFails() {
     String original = issue();
-    transactions.executeWithoutResult(status -> {
-      RefreshTokenEntity token = repository.findAllByUser_IdAndRevokedAtIsNull(workspace.owner().getId()).getFirst();
-      token.setExpiresAt(Instant.now().minusSeconds(60));
-    });
+    transactions.executeWithoutResult(
+        status -> {
+          RefreshTokenEntity token =
+              repository.findAllByUser_IdAndRevokedAtIsNull(workspace.owner().getId()).getFirst();
+          token.setExpiresAt(Instant.now().minusSeconds(60));
+        });
     assertThatThrownBy(() -> refresh(original)).isInstanceOf(BadCredentialsException.class);
     assertThat(activeTokens()).isEmpty();
   }
@@ -78,10 +77,14 @@ class RefreshTokenIntegrationTest extends PostgresIntegrationTest {
   @Test
   void unrelatedFailuresStillRollBackRotation() {
     String original = issue();
-    assertThatThrownBy(() -> transactions.executeWithoutResult(status -> {
-      tokens.rotate(original, "127.0.0.1", "JUnit");
-      throw new IllegalStateException("Simulated failure after rotation");
-    })).isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(
+            () ->
+                transactions.executeWithoutResult(
+                    status -> {
+                      tokens.rotate(original, "127.0.0.1", "JUnit");
+                      throw new IllegalStateException("Simulated failure after rotation");
+                    }))
+        .isInstanceOf(IllegalStateException.class);
     assertThat(activeTokens()).hasSize(1);
     assertThat(refresh(original)).isNotBlank();
   }
@@ -123,7 +126,8 @@ class RefreshTokenIntegrationTest extends PostgresIntegrationTest {
   private Callable<Boolean> attempt(String token, CountDownLatch ready, CountDownLatch start) {
     return () -> {
       ready.countDown();
-      if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Refresh race timed out");
+      if (!start.await(10, TimeUnit.SECONDS))
+        throw new IllegalStateException("Refresh race timed out");
       try {
         refresh(token);
         return true;

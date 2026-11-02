@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useParams } from "react-router-dom";
+import { Navigate, Outlet, useParams } from "react-router";
 import Sidebar from "../../features/teams/components/TeamSidebar";
 import { useTeam } from "@/features/teams/hooks/useTeam";
 import WorkspaceSkeleton from "./WorkspaceSkeleton";

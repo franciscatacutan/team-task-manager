@@ -30,9 +30,13 @@ export default function EditableField({
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  const [previousValue, setPreviousValue] = useState(value);
+
+  // Keep a refreshed server value in sync before rendering the editor.
+  if (value !== previousValue) {
+    setPreviousValue(value);
     setDraft(value);
-  }, [value]);
+  }
 
   const save = () => {
     const trimmed = draft.trim();

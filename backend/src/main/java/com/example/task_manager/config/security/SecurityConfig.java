@@ -1,11 +1,13 @@
 package com.example.task_manager.config.security;
 
+import com.example.task_manager.config.jwt.JwtAuthFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,13 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.example.task_manager.config.jwt.JwtAuthFilter;
-
-import lombok.RequiredArgsConstructor;
-
-/**
- * Configuration class for security settings.
- */
+/** Configuration class for security settings. */
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
@@ -31,9 +27,7 @@ public class SecurityConfig {
   private final CustomUserDetailsService userDetailsService;
   private final PasswordEncoder passwordEncoder;
 
-  /**
-   * Configures the security filter chain.
-   */
+  /** Configures the security filter chain. */
   @Bean
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
@@ -46,34 +40,32 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable)
 
         // Enable CORS
-        .cors(cors -> {
-        })
+        .cors(cors -> {})
 
         // Authorize requests and endpoint access rules
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**")
-            .permitAll()
-
-            .requestMatchers("/actuator/health")
-            .permitAll()
-
-            .requestMatchers("/api/dev/**")
-            .hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-            .anyRequest()
-            .authenticated())
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/api/auth/**")
+                    .permitAll()
+                    .requestMatchers("/actuator/health")
+                    .permitAll()
+                    .requestMatchers("/api/dev/**")
+                    .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                    .anyRequest()
+                    .authenticated())
 
         // Force stateless session (no HttpSession)
-        .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
         // Add JWT authentication filter
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
         // Exception handling for both unauthenticated and forbidden requests
-        .exceptionHandling(ex -> ex
-            .authenticationEntryPoint(authenticationEntryPoint)
-            .accessDeniedHandler(deniedHandler));
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(authenticationEntryPoint)
+                    .accessDeniedHandler(deniedHandler));
 
     return http.build();
   }
@@ -94,10 +86,10 @@ public class SecurityConfig {
 
   @Bean
   public RoleHierarchy roleHierarchy() {
-    return RoleHierarchyImpl.fromHierarchy("""
+    return RoleHierarchyImpl.fromHierarchy(
+        """
             ROLE_SUPER_ADMIN > ROLE_ADMIN
             ROLE_ADMIN > ROLE_USER
         """);
   }
-
 }

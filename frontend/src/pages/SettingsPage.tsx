@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { isAxiosError } from "axios";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
@@ -207,17 +207,29 @@ export default function SettingsPage() {
           </Button>
         </header>
 
-        <Tabs defaultValue="account" className="grid gap-5 lg:grid-cols-[14rem_1fr]">
+        <Tabs
+          defaultValue="account"
+          className="grid gap-5 lg:grid-cols-[14rem_1fr]"
+        >
           <TabsList className="h-fit flex-col items-stretch justify-start gap-1 rounded-xl border border-border/60 bg-background p-1 shadow-sm">
-            <TabsTrigger value="account" className="justify-start gap-2 rounded-lg">
+            <TabsTrigger
+              value="account"
+              className="justify-start gap-2 rounded-lg"
+            >
               <Mail className="h-4 w-4" />
               Account
             </TabsTrigger>
-            <TabsTrigger value="security" className="justify-start gap-2 rounded-lg">
+            <TabsTrigger
+              value="security"
+              className="justify-start gap-2 rounded-lg"
+            >
               <ShieldCheck className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="justify-start gap-2 rounded-lg">
+            <TabsTrigger
+              value="preferences"
+              className="justify-start gap-2 rounded-lg"
+            >
               <Palette className="h-4 w-4" />
               Preferences
             </TabsTrigger>
@@ -229,7 +241,9 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Login email</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    This email is used for sign-in and account recovery. Changing it signs you out so you can continue with the new address.
+                    This email is used for sign-in and account recovery.
+                    Changing it signs you out so you can continue with the new
+                    address.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -295,7 +309,8 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Password</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Password changes revoke active sessions and require a fresh login.
+                    Password changes revoke active sessions and require a fresh
+                    login.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -309,21 +324,27 @@ export default function SettingsPage() {
                         label="Current password"
                         autoComplete="current-password"
                         registration={passwordForm.register("currentPassword")}
-                        error={passwordForm.formState.errors.currentPassword?.message}
+                        error={
+                          passwordForm.formState.errors.currentPassword?.message
+                        }
                       />
                       <PasswordField
                         id="settings-new-password"
                         label="New password"
                         autoComplete="new-password"
                         registration={passwordForm.register("newPassword")}
-                        error={passwordForm.formState.errors.newPassword?.message}
+                        error={
+                          passwordForm.formState.errors.newPassword?.message
+                        }
                       />
                       <PasswordField
                         id="settings-confirm-password"
                         label="Confirm password"
                         autoComplete="new-password"
                         registration={passwordForm.register("confirmPassword")}
-                        error={passwordForm.formState.errors.confirmPassword?.message}
+                        error={
+                          passwordForm.formState.errors.confirmPassword?.message
+                        }
                       />
                     </div>
 
@@ -333,7 +354,9 @@ export default function SettingsPage() {
                     </div>
 
                     {passwordError && (
-                      <p className="text-sm text-destructive">{passwordError}</p>
+                      <p className="text-sm text-destructive">
+                        {passwordError}
+                      </p>
                     )}
 
                     <div className="flex justify-end">
@@ -373,7 +396,8 @@ export default function SettingsPage() {
                           onClick={() => handleThemeChange(option.value)}
                           className={cn(
                             "flex min-h-28 flex-col items-start justify-between rounded-xl border border-border/60 bg-background p-4 text-left transition hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                            isSelected && "border-primary bg-primary/5 ring-1 ring-primary/20",
+                            isSelected &&
+                              "border-primary bg-primary/5 ring-1 ring-primary/20",
                           )}
                         >
                           <Icon className="h-5 w-5 text-muted-foreground" />

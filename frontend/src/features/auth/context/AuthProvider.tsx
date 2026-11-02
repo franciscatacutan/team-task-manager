@@ -79,7 +79,14 @@ export const AuthProvider = ({ children }: Props) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isGlobalAdmin, isAuthenticated, isBootstrapping, logout, isLoading }}
+      value={{
+        user,
+        isGlobalAdmin,
+        isAuthenticated,
+        isBootstrapping,
+        logout,
+        isLoading,
+      }}
     >
       {children}
     </AuthContext.Provider>
