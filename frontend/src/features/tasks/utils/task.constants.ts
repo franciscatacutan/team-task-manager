@@ -73,7 +73,7 @@ export const TaskStatusStyles: Record<TaskStatus, string> = {
 
 export const TASK_LIST_SORT_OPTIONS: { label: string; value: SortField }[] = [
   ...BASE_SORT_OPTIONS,
-  { label: "Title", value: "title" },
+  { label: "Name", value: "name" },
   { label: "Priority", value: "priority" },
   { label: "Status", value: "status" },
   { label: "Assignee", value: "assignee" },

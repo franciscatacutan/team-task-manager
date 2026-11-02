@@ -23,7 +23,7 @@ public record ProjectActivityResponse(
 
   public record Task(
       UUID id,
-      String title) {
+      String name) {
   }
 
 }

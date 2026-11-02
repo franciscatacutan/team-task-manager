@@ -1,13 +1,9 @@
 package com.example.task_manager;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.example.task_manager.support.PostgresIntegrationTest;
 
-@SpringBootTest
-class TeamTaskManagerApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
+class TeamTaskManagerApplicationTests extends PostgresIntegrationTest {
+  @Test
+  void contextLoads() {}
 }

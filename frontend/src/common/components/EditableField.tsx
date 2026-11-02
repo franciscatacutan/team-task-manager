@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { cn } from "../../lib/utils";
@@ -44,10 +44,10 @@ export default function EditableField({
     setEditing(false);
   };
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     setDraft(value);
     setEditing(false);
-  };
+  }, [value]);
   useEffect(() => {
     if (!editing) return;
 
@@ -62,7 +62,7 @@ export default function EditableField({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [editing]);
+  }, [editing, cancel]);
 
   useEffect(() => {
     if (!editing) return;
@@ -78,7 +78,7 @@ export default function EditableField({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [editing]);
+  }, [editing, cancel]);
 
   if (!editing) {
     return (

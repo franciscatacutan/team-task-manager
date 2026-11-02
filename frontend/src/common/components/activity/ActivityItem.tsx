@@ -42,12 +42,12 @@ export function ActivityItem({
   const activityVerb = getActivityVerb(item);
   const showTypeBadge = activityTypeLabel !== "Comment";
   const primaryLabel =
-    item.task?.title ??
-    ("project" in item ? item.project?.title : null) ??
+    item.task?.name ??
+    ("project" in item ? item.project?.name : null) ??
     ("details" in item ? item.details?.team?.label : null) ??
     "activity";
   const taskNumber = item.task?.taskNumber;
-  const projectTitle = hasProject ? (item.project?.title ?? null) : null;
+  const projectName = hasProject ? (item.project?.name ?? null) : null;
   const isInteractive =
     interactive && Boolean(onOpenTask) && Boolean(taskNumber);
 
@@ -112,10 +112,10 @@ export function ActivityItem({
 
                 <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                   <span>{formatDateTimeShort(item.createdAt)}</span>
-                  {projectTitle && (
+                  {projectName && (
                     <>
                       <Dot className="h-3 w-3" />
-                      <span>{projectTitle}</span>
+                      <span>{projectName}</span>
                     </>
                   )}
                 </div>

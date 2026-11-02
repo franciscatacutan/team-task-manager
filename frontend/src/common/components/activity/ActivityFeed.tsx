@@ -101,12 +101,12 @@ function groupActivity(items: ActivityRecord[], groupBy: ActivityFeedGroupBy) {
     if (groupBy === "project") {
       key =
         "project" in item
-          ? (item.project?.title ?? "No project")
+          ? (item.project?.name ?? "No project")
           : "Current task";
     }
 
     if (groupBy === "task") {
-      key = item.task?.title ?? "Current task";
+      key = item.task?.name ?? "Current task";
     }
 
     if (groupBy === "person") {
@@ -138,17 +138,17 @@ function filterActivity(items: ActivityRecord[], search: string) {
     const fullName = `${item.user.firstName} ${item.user.lastName}`
       .trim()
       .toLowerCase();
-    const taskTitle = (item.task?.title ?? "").toLowerCase();
-    const projectTitle = (
-      "project" in item ? (item.project?.title ?? "") : ""
+    const taskName = (item.task?.name ?? "").toLowerCase();
+    const projectName = (
+      "project" in item ? (item.project?.name ?? "") : ""
     ).toLowerCase();
     const typeLabel = getActivityTypeLabel(item).toLowerCase();
     const message = item.message.toLowerCase();
 
     return (
       fullName.includes(normalizedSearch) ||
-      taskTitle.includes(normalizedSearch) ||
-      projectTitle.includes(normalizedSearch) ||
+      taskName.includes(normalizedSearch) ||
+      projectName.includes(normalizedSearch) ||
       typeLabel.includes(normalizedSearch) ||
       message.includes(normalizedSearch)
     );

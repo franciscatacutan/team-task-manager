@@ -64,7 +64,7 @@ export const updateTask = async (
   taskNumber: number,
   data: UpdateTaskInput,
 ): Promise<Task> => {
-  const response = await apiClient.patch(
+  const response = await apiClient.patch<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
     data,
   );

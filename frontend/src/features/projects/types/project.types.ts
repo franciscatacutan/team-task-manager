@@ -32,7 +32,7 @@ type User = {
 
 type Task = {
   taskNumber: number;
-  title: string;
+  name: string;
 };
 
 export type ProjectActivity = {

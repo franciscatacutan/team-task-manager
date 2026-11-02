@@ -48,18 +48,18 @@ export default function TaskHeader({
               teamKey={teamKey}
               projectKey={projectKey}
               taskNumber={task.taskNumber}
-              taskTitle={task.title}
+              taskName={task.name}
               onTaskDeleted={onTaskDeleted}
             />
           )}
         </div>
 
         <EditableField
-          value={task.title}
+          value={task.name}
           maxLength={100}
           displayClassName="text-xl font-semibold leading-tight text-foreground sm:text-2xl"
           inputClassName="text-xl font-semibold sm:text-2xl"
-          onSave={(value) => updateTask.mutate({ title: value })}
+          onSave={(value) => updateTask.mutate({ name: value })}
           disabled={!permissions.canEditTaskDetails}
         />
       </div>

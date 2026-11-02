@@ -68,7 +68,7 @@ export default function AppBreadcrumbs() {
     teamName: team?.name,
     projectName: project?.name,
     taskLabel: task
-      ? `#${task.taskNumber} ${task.title}`
+      ? `#${task.taskNumber} ${task.name}`
       : taskNumber
         ? `Task ${taskNumber}`
         : undefined,

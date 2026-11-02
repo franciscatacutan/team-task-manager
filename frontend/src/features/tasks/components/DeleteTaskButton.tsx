@@ -18,7 +18,7 @@ interface Props {
   teamKey: string;
   projectKey: string;
   taskNumber: number;
-  taskTitle: string;
+  taskName: string;
   onTaskDeleted?: () => void;
 }
 
@@ -26,7 +26,7 @@ export default function DeleteTaskButton({
   teamKey,
   projectKey,
   taskNumber,
-  taskTitle,
+  taskName,
   onTaskDeleted,
 }: Props) {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ export default function DeleteTaskButton({
 
             <span className="block">
               You are about to delete{" "}
-              <span className="font-medium text-foreground">"{taskTitle}"</span>
+              <span className="font-medium text-foreground">"{taskName}"</span>
               .
             </span>
           </AlertDialogDescription>

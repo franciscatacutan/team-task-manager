@@ -10,7 +10,7 @@ import com.example.task_manager.task.entity.TaskStatus;
  * DTO for task response.
  */
 public record TaskResponse(
-    String title,
+    String name,
     String description,
     TaskStatus status,
     TaskPriority priority,

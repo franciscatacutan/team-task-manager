@@ -48,7 +48,7 @@ public record TaskActivityResponse(
 
   public record Task(
       UUID id,
-      String title) {
+      String name) {
   }
 }
 
