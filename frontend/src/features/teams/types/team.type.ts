@@ -52,12 +52,12 @@ type User = {
 
 type Project = {
   key: string;
-  title: string;
+  name: string;
 };
 
 type Task = {
   taskNumber: number;
-  title: string;
+  name: string;
 };
 
 export type TeamActivity = {

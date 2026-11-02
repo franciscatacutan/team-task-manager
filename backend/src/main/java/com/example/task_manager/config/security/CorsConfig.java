@@ -1,5 +1,7 @@
 package com.example.task_manager.config.security;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -23,9 +25,10 @@ public class CorsConfig {
     CorsConfiguration config = new CorsConfiguration();
     // Allow requests from the frontend URL
     config.addAllowedOrigin(frontEndApi);
-    config.addAllowedMethod("*");
-    config.addAllowedHeader("*");
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
     config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
 
     // Register CORS configuration for all paths
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

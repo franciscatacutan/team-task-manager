@@ -165,7 +165,7 @@ public class TaskService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    String currentTitle = task.getName();
+    String currentName = task.getName();
     String currentDescription = task.getDescription();
     TaskPriority currentPriority = task.getPriority();
     Instant currentPlannedStart = task.getPlannedStartDate();
@@ -201,7 +201,7 @@ public class TaskService {
     task.setPlannedDueDate(newPlannedDue);
 
     TaskDetailsUpdateMessage updateMessage = buildTaskDetailsUpdateMessage(
-        currentTitle,
+        currentName,
         currentDescription,
         currentPriority == null ? null : currentPriority.name(),
         currentPlannedStart,
@@ -292,8 +292,13 @@ public class TaskService {
         ? Pageable.unpaged()
         : requireSortable(pageable);
 
+    ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
+    if (project.getDeletedAt() != null && !canViewDeleted) {
+      throw new ResourceNotFoundException("Project not found");
+    }
+
     Specification<TaskEntity> spec = TaskSpecification.build(
-        projectKey,
+        project.getId(),
         request.search(),
         request.status(),
         request.priority(),
@@ -774,9 +779,8 @@ public class TaskService {
   }
 
   /**
-   * Ensures:
-   * - Task status cannot be changed to its current value
-   * - Task status cannot be set to todo
+   * Enforces the task workflow, including terminal cancellation, explicit
+   * reopening from DONE, and deletion through the dedicated archive operation.
    */
   private void validateStatusTransition(TaskStatus current, TaskStatus next) {
     if (next == null) {
@@ -787,8 +791,8 @@ public class TaskService {
       throw new ConflictException("Task is already in this status");
     }
 
-    if (next == TaskStatus.TODO && current != TaskStatus.TODO) {
-      throw new BadRequestInputException("Cannot transition back to TODO");
+    if (!current.canTransitionTo(next)) {
+      throw new BadRequestInputException("Cannot transition from " + current + " to " + next);
     }
   }
 
@@ -827,12 +831,12 @@ public class TaskService {
   }
 
   private TaskDetailsUpdateMessage buildTaskDetailsUpdateMessage(
-      String previousTitle,
+      String previousName,
       String previousDescription,
       String previousPriority,
       Instant previousPlannedStart,
       Instant previousPlannedDue,
-      String newTitle,
+      String newName,
       String newDescription,
       String newPriority,
       Instant newPlannedStart,
@@ -841,9 +845,9 @@ public class TaskService {
     List<String> changes = new ArrayList<>();
     List<ActivityEventDetails.ActivityChange> detailedChanges = new ArrayList<>();
 
-    if (!java.util.Objects.equals(previousTitle, newTitle)) {
+    if (!java.util.Objects.equals(previousName, newName)) {
       changes.add("name");
-      detailedChanges.add(activityEventService.change("name", "name", previousTitle, newTitle));
+      detailedChanges.add(activityEventService.change("name", "name", previousName, newName));
     }
 
     if (!java.util.Objects.equals(previousDescription, newDescription)) {

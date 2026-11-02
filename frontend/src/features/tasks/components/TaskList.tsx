@@ -135,7 +135,7 @@ export default function TaskList({
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
-                        {task.title}
+                        {task.name}
                       </div>
                       <div className="mt-1 max-w-96 truncate text-xs text-muted-foreground">
                         {task.description?.trim() || "No description"}

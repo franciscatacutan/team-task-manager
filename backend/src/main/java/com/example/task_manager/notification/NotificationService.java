@@ -25,6 +25,7 @@ import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
+import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
@@ -38,6 +39,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final TeamMemberRepository teamMemberRepository;
+  private final TeamRepository teamRepository;
   private final TaskRepository taskRepository;
   private final ProjectRepository projectRepository;
 
@@ -340,23 +342,22 @@ public class NotificationService {
 
   private String resolveTargetPath(ActivityEventEntity event) {
     if (event.getTaskId() != null) {
-      return "/teams/%s/projects/%s/tasks/%s".formatted(
-          event.getTeamId(),
-          event.getProjectId(),
-          event.getTaskId());
+      return taskRepository.findById(event.getTaskId())
+          .map(task -> "/teams/%s/projects/%s/tasks/%d".formatted(
+              task.getProject().getTeam().getKey(), task.getProject().getKey(), task.getTaskNumber()))
+          .orElse("/teams");
     }
 
     if (event.getProjectId() != null) {
-      return "/teams/%s/projects/%s".formatted(
-          event.getTeamId(),
-          event.getProjectId());
+      return projectRepository.findById(event.getProjectId())
+          .map(project -> "/teams/%s/projects/%s".formatted(project.getTeam().getKey(), project.getKey()))
+          .orElse("/teams");
     }
 
-    if (isMembershipEvent(event.getEventType())) {
-      return "/teams/%s/members".formatted(event.getTeamId());
-    }
-
-    return "/teams/%s".formatted(event.getTeamId());
+    return teamRepository.findById(event.getTeamId())
+        .map(team -> "/teams/%s%s".formatted(team.getKey(),
+            isMembershipEvent(event.getEventType()) ? "/members" : ""))
+        .orElse("/teams");
   }
 
   private boolean isMembershipEvent(ActivityEventType eventType) {
@@ -382,7 +383,7 @@ public class NotificationService {
         entity.getActivityEvent() == null ? null : entity.getActivityEvent().getEventType(),
         entity.getTitle(),
         entity.getBody(),
-        entity.getTargetPath(),
+        entity.getActivityEvent() == null ? entity.getTargetPath() : resolveTargetPath(entity.getActivityEvent()),
         entity.getTeamId(),
         entity.getProjectId(),
         entity.getTaskId(),

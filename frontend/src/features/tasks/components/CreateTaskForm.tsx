@@ -50,10 +50,10 @@ export function CreateTaskForm({
     },
   });
 
-  const MAX_TITLE = 100;
+  const MAX_NAME = 100;
   const MAX_DESC = 2000;
 
-  const title = useWatch({
+  const name = useWatch({
     control: form.control,
     name: "name",
   });
@@ -96,15 +96,15 @@ export function CreateTaskForm({
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <FormField
-          label="Title"
+          label="Name"
           error={form.formState.errors.name?.message}
-          length={title.length}
-          maxLength={MAX_TITLE}
+          length={name.length}
+          maxLength={MAX_NAME}
         >
           <Input
             {...form.register("name")}
-            maxLength={MAX_TITLE}
-            placeholder="Enter task title..."
+            maxLength={MAX_NAME}
+            placeholder="Enter task name..."
             className="
       border-none px-0 py-0
       focus-visible:ring-0

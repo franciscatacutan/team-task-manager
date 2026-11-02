@@ -11,7 +11,6 @@ export type SortField =
   | "plannedDueDate"
   | "actualStartDate"
   | "actualCompletionDate"
-  | "title"
   | "role"
   | "priority"
   | "deletedAt";

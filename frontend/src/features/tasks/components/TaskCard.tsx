@@ -33,7 +33,7 @@ export default function TaskCard({ task, onOpen }: Props) {
 
         <div className="space-y-1.5">
           <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-            {task.title}
+            {task.name}
           </h3>
 
           {task.description && (

@@ -1,6 +1,7 @@
 package com.example.task_manager.auth;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Writes and clears the refresh token cookie.
  */
 @Service
-public class RefreshTokenCookieService {
+public class RefreshTokenCookieService implements InitializingBean {
 
   private final String cookieName;
   private final boolean secureCookie;
@@ -58,5 +59,21 @@ public class RefreshTokenCookieService {
   public String extractRefreshToken(HttpServletRequest request) {
     var cookie = WebUtils.getCookie(request, cookieName);
     return cookie == null ? null : cookie.getValue();
+  }
+
+  @Override
+  public void afterPropertiesSet() {
+    if (cookieName == null || cookieName.isBlank()) {
+      throw new IllegalStateException("Refresh-cookie name must be configured");
+    }
+    if (!"Lax".equals(sameSite) && !"Strict".equals(sameSite) && !"None".equals(sameSite)) {
+      throw new IllegalStateException("Refresh-cookie SameSite must be Lax, Strict, or None");
+    }
+    if ("None".equals(sameSite) && !secureCookie) {
+      throw new IllegalStateException("SameSite=None refresh cookies must be Secure");
+    }
+    if (refreshTokenExpirationMs <= 0) {
+      throw new IllegalStateException("Refresh-token expiration must be positive");
+    }
   }
 }

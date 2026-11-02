@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -133,8 +134,9 @@ public class ObservabilityService {
   }
 
   @Transactional(readOnly = true)
-  public TeamInsightsResponse getTeamInsights(UUID teamId, Authentication authentication) {
-    validateCanReadTeamObservability(teamId, authentication);
+  public TeamInsightsResponse getTeamInsights(String teamKey, Authentication authentication) {
+    TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
+    UUID teamId = team.getId();
 
     Instant now = Instant.now();
     Instant since = now.minus(INSIGHT_WINDOW);
@@ -210,31 +212,26 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<AuditLogResponse> getAuditLogs(
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
-    validateCanReadTeamObservability(teamId, authentication);
+    TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
 
-    Page<AuditLogEntity> page = auditLogRepository.findByTeamId(teamId, pageable);
+    Page<AuditLogEntity> page = auditLogRepository.findByTeamId(team.getId(), pageable);
 
-    return new PageResponse<>(
-        page.map(this::toAuditLogResponse).getContent(),
-        page.getNumber(),
-        page.getSize(),
-        page.getTotalElements(),
-        page.getTotalPages(),
-        page.isFirst(),
-        page.isLast());
+    return toPageResponse(page, this::toAuditLogResponse);
   }
 
   @Transactional(readOnly = true)
   public ProjectInsightsResponse getProjectInsights(
-      UUID teamId,
-      UUID projectId,
+      String teamKey,
+      String projectKey,
       Authentication authentication) {
 
-    ProjectEntity project = validateCanReadProjectObservability(teamId, projectId, authentication);
+    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
+    UUID teamId = project.getTeam().getId();
+    UUID projectId = project.getId();
 
     Instant now = Instant.now();
     Instant since = now.minus(INSIGHT_WINDOW);
@@ -293,64 +290,43 @@ public class ObservabilityService {
 
   @Transactional(readOnly = true)
   public PageResponse<SystemEventResponse> getSystemEvents(
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
-    validateCanReadTeamObservability(teamId, authentication);
+    TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
 
-    Page<SystemEventEntity> page = systemEventRepository.findByTeamId(teamId, pageable);
+    Page<SystemEventEntity> page = systemEventRepository.findByTeamId(team.getId(), pageable);
 
-    return new PageResponse<>(
-        page.map(this::toSystemEventResponse).getContent(),
-        page.getNumber(),
-        page.getSize(),
-        page.getTotalElements(),
-        page.getTotalPages(),
-        page.isFirst(),
-        page.isLast());
+    return toPageResponse(page, this::toSystemEventResponse);
   }
 
   @Transactional(readOnly = true)
   public PageResponse<AuditLogResponse> getProjectAuditLogs(
-      UUID teamId,
-      UUID projectId,
+      String teamKey,
+      String projectKey,
       Pageable pageable,
       Authentication authentication) {
 
-    validateCanReadProjectObservability(teamId, projectId, authentication);
+    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
 
-    Page<AuditLogEntity> page = auditLogRepository.findByProjectId(projectId, pageable);
+    Page<AuditLogEntity> page = auditLogRepository.findByProjectId(project.getId(), pageable);
 
-    return new PageResponse<>(
-        page.map(this::toAuditLogResponse).getContent(),
-        page.getNumber(),
-        page.getSize(),
-        page.getTotalElements(),
-        page.getTotalPages(),
-        page.isFirst(),
-        page.isLast());
+    return toPageResponse(page, this::toAuditLogResponse);
   }
 
   @Transactional(readOnly = true)
   public PageResponse<SystemEventResponse> getProjectSystemEvents(
-      UUID teamId,
-      UUID projectId,
+      String teamKey,
+      String projectKey,
       Pageable pageable,
       Authentication authentication) {
 
-    validateCanReadProjectObservability(teamId, projectId, authentication);
+    ProjectEntity project = validateCanReadProjectObservability(teamKey, projectKey, authentication);
 
-    Page<SystemEventEntity> page = systemEventRepository.findByProjectId(projectId, pageable);
+    Page<SystemEventEntity> page = systemEventRepository.findByProjectId(project.getId(), pageable);
 
-    return new PageResponse<>(
-        page.map(this::toSystemEventResponse).getContent(),
-        page.getNumber(),
-        page.getSize(),
-        page.getTotalElements(),
-        page.getTotalPages(),
-        page.isFirst(),
-        page.isLast());
+    return toPageResponse(page, this::toSystemEventResponse);
   }
 
   private double averageCycleTimeHours(UUID teamId) {
@@ -411,57 +387,69 @@ public class ObservabilityService {
     return Math.round(value * 100.0) / 100.0;
   }
 
-  private void validateCanReadTeamObservability(UUID teamId, Authentication authentication) {
-    UserEntity requester = userRepository.findByEmail(authentication.getName())
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    TeamEntity team = teamRepository.findById(teamId)
+  private TeamEntity validateCanReadTeamObservability(String teamKey, Authentication authentication) {
+    TeamEntity team = teamRepository.findByKey(teamKey)
         .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
 
-    boolean isGlobalAdmin = authentication.getAuthorities().stream()
-        .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
-
-    if (isGlobalAdmin) {
-      return;
+    if (isGlobalAdmin(authentication)) {
+      return team;
     }
 
-    TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
-        .orElseThrow(() -> new ForbiddenException("User is not a team member"));
+    TeamMemberEntity membership = requireMembership(team.getId(), authentication);
 
     if (team.getDeletedAt() != null &&
         membership.getRole() != TeamRole.OWNER &&
         membership.getRole() != TeamRole.ADMIN) {
       throw new ResourceNotFoundException("Team not found");
     }
+
+    return team;
   }
 
   private ProjectEntity validateCanReadProjectObservability(
-      UUID teamId,
-      UUID projectId,
+      String teamKey,
+      String projectKey,
       Authentication authentication) {
 
-    ProjectEntity project = projectRepository.findByIdAndTeamId(projectId, teamId)
+    ProjectEntity project = projectRepository.findByKeyAndTeamKey(projectKey, teamKey)
         .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-    validateCanReadTeamObservability(teamId, authentication);
+    validateCanReadTeamObservability(teamKey, authentication);
 
-    if (project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null) {
-      UserEntity requester = userRepository.findByEmail(authentication.getName())
-          .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-      boolean isGlobalAdmin = authentication.getAuthorities().stream()
-          .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
-
-      if (!isGlobalAdmin) {
-        TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
-            .orElseThrow(() -> new ForbiddenException("User is not a team member"));
-        if (membership.getRole() != TeamRole.OWNER && membership.getRole() != TeamRole.ADMIN) {
-          throw new ResourceNotFoundException("Project not found");
-        }
+    if ((project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null)
+        && !isGlobalAdmin(authentication)) {
+      TeamMemberEntity membership = requireMembership(project.getTeam().getId(), authentication);
+      if (membership.getRole() != TeamRole.OWNER && membership.getRole() != TeamRole.ADMIN) {
+        throw new ResourceNotFoundException("Project not found");
       }
     }
 
     return project;
+  }
+
+  private boolean isGlobalAdmin(Authentication authentication) {
+    return authentication.getAuthorities().stream()
+        .anyMatch(authority -> authority.getAuthority().equals("ROLE_SUPER_ADMIN")
+            || authority.getAuthority().equals("ROLE_ADMIN"));
+  }
+
+  private TeamMemberEntity requireMembership(UUID teamId, Authentication authentication) {
+    UserEntity requester = userRepository.findByEmail(authentication.getName())
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    return teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
+        .orElseThrow(() -> new ForbiddenException("User is not a team member"));
+  }
+
+  private <T, R> PageResponse<R> toPageResponse(Page<T> page, Function<T, R> mapper) {
+    return new PageResponse<>(
+        page.map(mapper).getContent(),
+        page.getNumber(),
+        page.getSize(),
+        page.getTotalElements(),
+        page.getTotalPages(),
+        page.isFirst(),
+        page.isLast());
   }
 
   private void snapshotProjectMetrics(UUID projectId) {

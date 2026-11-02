@@ -3,7 +3,7 @@ import type { TaskStatus } from "../utils/task.constants";
 
 export type Task = {
   taskNumber: number;
-  title: string;
+  name: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
@@ -26,7 +26,7 @@ export interface TaskUser {
 }
 
 export interface UpdateTaskInput {
-  title?: string;
+  name?: string;
   description?: string;
   priority?: string;
   plannedStartDate?: string | null;

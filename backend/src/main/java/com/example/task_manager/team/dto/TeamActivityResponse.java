@@ -24,12 +24,12 @@ public record TeamActivityResponse(
 
   public record Project(
       UUID id,
-      String title) {
+      String name) {
   }
 
   public record Task(
       UUID id,
-      String title) {
+      String name) {
   }
 
 }

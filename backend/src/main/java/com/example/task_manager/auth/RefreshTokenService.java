@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.task_manager.auth.entity.RefreshTokenEntity;
+import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 
 /**
@@ -24,17 +25,21 @@ import com.example.task_manager.user.entity.UserEntity;
 public class RefreshTokenService {
 
   private final RefreshTokenRepository refreshTokenRepository;
+  private final UserRepository userRepository;
   private final long refreshTokenExpirationMs;
 
   public RefreshTokenService(
       RefreshTokenRepository refreshTokenRepository,
+      UserRepository userRepository,
       @Value("${auth.refresh-token-expiration-ms}") long refreshTokenExpirationMs) {
     this.refreshTokenRepository = refreshTokenRepository;
+    this.userRepository = userRepository;
     this.refreshTokenExpirationMs = refreshTokenExpirationMs;
   }
 
   @Transactional
   public RefreshTokenSession createSession(UserEntity user, String ipAddress, String userAgent) {
+    lockUser(user.getId());
     String rawToken = generateRefreshToken();
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
     refreshToken.setUser(user);
@@ -49,9 +54,17 @@ public class RefreshTokenService {
     return new RefreshTokenSession(rawToken, refreshToken.getExpiresAt());
   }
 
-  @Transactional
+  // Rejection must commit reuse/expiry revocations. The outer auth transaction
+  // uses the same rule; unrelated failures still roll back token issuance.
+  @Transactional(noRollbackFor = BadCredentialsException.class)
   public RefreshTokenSession rotate(String rawToken, String ipAddress, String userAgent) {
-    RefreshTokenEntity currentToken = refreshTokenRepository.findByTokenHash(hashToken(rawToken))
+    String tokenHash = hashToken(rawToken);
+    UUID userId = refreshTokenRepository.findUserIdByTokenHash(tokenHash)
+        .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
+    // Serialize the whole user's token family, including ancestor reuse racing
+    // with a descendant rotation. Load token state only after acquiring the lock.
+    lockUser(userId);
+    RefreshTokenEntity currentToken = refreshTokenRepository.findByTokenHash(tokenHash)
         .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
 
     if (currentToken.isRevoked()) {
@@ -92,12 +105,17 @@ public class RefreshTokenService {
       return;
     }
 
-    refreshTokenRepository.findByTokenHash(hashToken(rawToken))
-        .ifPresent(token -> token.setRevokedAt(Instant.now()));
+    String tokenHash = hashToken(rawToken);
+    refreshTokenRepository.findUserIdByTokenHash(tokenHash).ifPresent(userId -> {
+      lockUser(userId);
+      refreshTokenRepository.findByTokenHash(tokenHash)
+          .ifPresent(token -> token.setRevokedAt(Instant.now()));
+    });
   }
 
   @Transactional
   public void revokeAllForUser(UUID userId) {
+    lockUser(userId);
     List<RefreshTokenEntity> tokens = refreshTokenRepository.findAllByUser_IdAndRevokedAtIsNull(userId);
     Instant now = Instant.now();
     tokens.forEach(token -> token.setRevokedAt(now));
@@ -113,6 +131,11 @@ public class RefreshTokenService {
     }
 
     return token.getUser();
+  }
+
+  private void lockUser(UUID userId) {
+    userRepository.findByIdForUpdate(userId)
+        .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
   }
 
   private void revokeFamily(UUID familyId) {
