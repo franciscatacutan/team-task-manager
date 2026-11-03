@@ -8,10 +8,9 @@ import {
 import { useAvailableUsers } from "../hooks/useAvailableUsers";
 import { AddMemberForm } from "./AddMemberForm";
 import { useState } from "react";
-import type { TeamRole } from "../types/team.type";
 
 interface Props {
-  userTeamRole: TeamRole;
+  canAssignAdmin: boolean;
   teamKey: string;
   open: boolean;
   isLoading: boolean;
@@ -19,7 +18,7 @@ interface Props {
 }
 
 export default function AddMembersModal({
-  userTeamRole,
+  canAssignAdmin,
   teamKey,
   open,
   isLoading,
@@ -55,7 +54,7 @@ export default function AddMembersModal({
         </div>
 
         <AddMemberForm
-          userTeamRole={userTeamRole}
+          canAssignAdmin={canAssignAdmin}
           search={search}
           onSearchChange={setSearch}
           teamKey={teamKey}

@@ -7,6 +7,7 @@ import TaskBoard from "../../tasks/components/TaskBoard";
 import TaskModal from "../../tasks/components/TaskModal";
 
 import type { Task } from "../../tasks/types/task.types";
+import { getTaskPermissions } from "../../tasks/utils/taskPermissions";
 import {
   isTaskStatus,
   TASK_LIST_SORT_OPTIONS,
@@ -327,6 +328,16 @@ export default function ProjectDetails() {
                 sort,
                 deletedFilter: effectiveDeletedFilter,
               }}
+              canChangeTaskStatus={(task) =>
+                getTaskPermissions({
+                  globalRole: user?.role,
+                  teamRole: teamMe?.role,
+                  userId: teamMe?.userId,
+                  assigneeId: task.assignedUser?.id,
+                  supportId: task.supportUser?.id,
+                  isReadOnly: isWorkspaceReadOnly,
+                }).canChangeStatus
+              }
               onStatusChange={handleStatusChange}
               onOpenTask={setSelectedTask}
             />

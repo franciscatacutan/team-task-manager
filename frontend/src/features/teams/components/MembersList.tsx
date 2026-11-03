@@ -94,7 +94,8 @@ export default function MembersList({
   const { data: teamMe } = useTeamMe(teamKey || "");
 
   const isOwner = teamMe?.role === "OWNER";
-  const isAdmin = teamMe?.role === "ADMIN";
+  const canShowActions =
+    permissions.canTransferOwnership || permissions.canRemoveMember;
 
   type EditableRole = "ADMIN" | "MEMBER";
 
@@ -157,7 +158,7 @@ export default function MembersList({
               >
                 Joined Date
               </TableHead>
-              {(isOwner || isAdmin) && (
+              {canShowActions && (
                 <TableHead className="px-4 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Actions
                 </TableHead>
@@ -202,7 +203,7 @@ export default function MembersList({
                         onValueChange={(value) =>
                           handleRoleChange(member.id, value as EditableRole)
                         }
-                        disabled={isUpdating}
+                        disabled={isUpdating || member.id === teamMe?.userId}
                       >
                         <SelectTrigger
                           className={`h-9 w-34 rounded-xl border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] shadow-none ${TEAM_ROLE_STYLES[(member.teamRole ?? "MEMBER") as TeamRole]}`}
@@ -262,39 +263,50 @@ export default function MembersList({
                     {formatDate(member.joinedAt)}
                   </TableCell>
 
-                  {(isOwner || isAdmin) && member.teamRole != "OWNER" && (
+                  {canShowActions && (
                     <TableCell className="px-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-full p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-fit">
-                          {permissions.canTransferOwnership && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => onOpenTransfer(member)}
-                                className="text-muted-foreground"
+                      {member.teamRole !== "OWNER" &&
+                        (permissions.canTransferOwnership ||
+                          (permissions.canRemoveMember &&
+                            (isOwner || member.teamRole === "MEMBER"))) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-full p-0"
                               >
-                                Make Owner
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            disabled={!permissions.canRemoveMember}
-                            onClick={() => onOpenRemove(member)}
-                            className="flex items-center justify-between text-destructive focus:text-destructive"
-                          >
-                            <span>Remove Member</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-fit">
+                              {permissions.canTransferOwnership && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => onOpenTransfer(member)}
+                                    className="text-muted-foreground"
+                                  >
+                                    Make Owner
+                                  </DropdownMenuItem>
+                                  {permissions.canRemoveMember &&
+                                    (isOwner ||
+                                      member.teamRole === "MEMBER") && (
+                                      <DropdownMenuSeparator />
+                                    )}
+                                </>
+                              )}
+                              {permissions.canRemoveMember &&
+                                (isOwner || member.teamRole === "MEMBER") && (
+                                  <DropdownMenuItem
+                                    onClick={() => onOpenRemove(member)}
+                                    className="flex items-center justify-between text-destructive focus:text-destructive"
+                                  >
+                                    <span>Remove Member</span>
+                                  </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -322,6 +334,7 @@ export default function MembersList({
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}
+        isCurrentOwner={isOwner}
         preselectedUserId={selectedMember?.id ?? null}
       />
 

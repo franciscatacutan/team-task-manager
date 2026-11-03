@@ -39,17 +39,17 @@ export function getTeamPermissions({
   return {
     canAccessTeam: isSystemAdmin || canManage,
 
-    canCreateTeam: isSuperAdmin,
+    canCreateTeam: isSystemAdmin,
 
-    canEditTeamDetails: canWrite && isSystemAdmin,
+    canEditTeamDetails: canWrite && isOwner,
 
-    canDeleteTeam: canWrite && isSuperAdmin,
+    canDeleteTeam: canWrite && isOwner,
 
     canViewDeleteTeam: isSystemAdmin || canManage,
 
-    canTransferOwnership: canWrite && isOwner && isSystemAdmin,
+    canTransferOwnership: canWrite && (isOwner || isSuperAdmin),
 
-    canChangeRole: canWrite && isOwner,
+    canChangeRole: canWrite && (isOwner || isSuperAdmin),
 
     canAddMember: canWrite && canManage,
 

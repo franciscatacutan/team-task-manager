@@ -38,6 +38,7 @@ import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.UserSpecification;
 import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -145,7 +146,6 @@ public class TeamService {
   }
 
   /** Updates team information. Only Owner can update the team */
-  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
   public TeamResponse updateTeam(String teamKey, UpdateTeamRequest request, String requesterEmail) {
 
@@ -198,7 +198,6 @@ public class TeamService {
    * Soft-deletes a team and cascades soft-delete to all dependent data. Only Owner can soft-delete
    * team
    */
-  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
   public void deleteTeam(String teamKey, String requesterEmail) {
 
@@ -473,7 +472,7 @@ public class TeamService {
     return new RemoveTeamMembersResponse(success, failed);
   }
 
-  /** Change User's Role Only Owner and Admin can change */
+  /** Owners and super admins can grant or revoke team-admin roles. */
   @Transactional
   public TeamMemberResponse changeTeamRole(
       String teamKey, UUID targetUserId, TeamRole newRole, String requesterEmail) {
@@ -482,7 +481,7 @@ public class TeamService {
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
+    validateRoleAdministrator(team.getId(), requester);
 
     TeamMemberEntity targetMember =
         teamAuthorizationService.requireActiveMembership(team.getId(), targetUserId);
@@ -523,8 +522,7 @@ public class TeamService {
     return mapToMemberResponse(targetMember);
   }
 
-  /** Transfers Team Ownership to another Global Admin or Super Admin New Owner must be a member */
-  @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+  /** Owners and super admins can transfer ownership to any current member. */
   @Transactional
   public TeamMemberResponse transferOwnership(
       String teamKey, UUID newOwnerUserId, String requesterEmail) {
@@ -532,16 +530,15 @@ public class TeamService {
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
-    TeamMemberEntity owner = requireOwnerMembership(team.getId(), requester.getId());
+    validateRoleAdministrator(team.getId(), requester);
+    TeamMemberEntity owner = requireOwnerMembership(team.getId(), team.getOwner().getId());
 
-    if (requester.getId().equals(newOwnerUserId)) {
-      throw new ConflictException("You are already the OWNER");
+    if (owner.getUser().getId().equals(newOwnerUserId)) {
+      throw new ConflictException("This user is already the owner");
     }
 
     TeamMemberEntity newOwner =
         teamAuthorizationService.requireActiveMembership(team.getId(), newOwnerUserId);
-
-    globalAuthorizationService.validateGlobalAdmin(newOwner.getUser().getRole());
 
     owner.setRole(TeamRole.ADMIN);
     newOwner.setRole(TeamRole.OWNER);
@@ -704,6 +701,10 @@ public class TeamService {
 
     TeamRole role = request.role() == null ? TeamRole.MEMBER : request.role();
 
+    if (role == TeamRole.ADMIN) {
+      validateRoleAdministrator(team.getId(), requester);
+    }
+
     if (role == TeamRole.OWNER) {
       throw new ConflictException("Cannot assign OWNER role");
     }
@@ -735,6 +736,13 @@ public class TeamService {
   private void validateUniqueTeamName(UUID ownerId, String name) {
     if (teamRepository.existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(ownerId, name)) {
       throw new ConflictException("Team name already exists");
+    }
+  }
+
+  /** A super admin can recover ownership/admin roles without gaining other team edit rights. */
+  private void validateRoleAdministrator(UUID teamId, UserEntity requester) {
+    if (requester.getRole() != UserRole.SUPER_ADMIN) {
+      validateOwnerMembership(teamId, requester.getId());
     }
   }
 

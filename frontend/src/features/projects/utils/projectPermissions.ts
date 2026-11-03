@@ -46,7 +46,7 @@ export function getProjectPermissions({
 
     canCreateTask: canWrite && canManage,
 
-    canChangeProjectStatus: canWrite && (isSystemAdmin || canManage),
+    canChangeProjectStatus: canWrite && canManage,
 
     canViewDeleteTask: isSystemAdmin || canManage,
   };

@@ -18,7 +18,6 @@ import type { User } from "../../users/types/userType";
 import { cn } from "../../../lib/utils";
 import { TEAM_ROLE_STYLES, TEAM_ROLE_LABEL } from "../constants/team.constants";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
-import type { TeamRole } from "../types/team.type";
 
 const schema = z.object({
   members: z
@@ -34,7 +33,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface Props {
-  userTeamRole: TeamRole;
+  canAssignAdmin: boolean;
   teamKey: string;
   users: User[];
   search: string;
@@ -43,7 +42,7 @@ interface Props {
 }
 
 export function AddMemberForm({
-  userTeamRole,
+  canAssignAdmin,
   teamKey,
   users,
   search,
@@ -197,7 +196,7 @@ export function AddMemberForm({
                   <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:hidden">
                     Role
                   </div>
-                  {userTeamRole === "OWNER" ? (
+                  {canAssignAdmin ? (
                     <Select
                       value={role}
                       onValueChange={(value) =>

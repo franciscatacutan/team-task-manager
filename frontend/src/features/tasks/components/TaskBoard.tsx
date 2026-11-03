@@ -47,6 +47,7 @@ interface Props {
   params: Params;
   onStatusChange: (taskNumber: number, status: TaskStatus) => void;
   onOpenTask: (task: Task) => void;
+  canChangeTaskStatus: (task: Task) => boolean;
 }
 
 export default function TaskBoard({
@@ -55,6 +56,7 @@ export default function TaskBoard({
   params,
   onStatusChange,
   onOpenTask,
+  canChangeTaskStatus,
 }: Props) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -81,7 +83,7 @@ export default function TaskBoard({
   function handleDragStart(event: DragStartEvent) {
     const task = event.active.data.current?.task;
 
-    if (task) {
+    if (task && canChangeTaskStatus(task)) {
       setActiveTask(task);
     }
   }
@@ -98,7 +100,7 @@ export default function TaskBoard({
 
     const activeTask = active.data.current?.task as Task | undefined;
 
-    if (!activeTask) return;
+    if (!activeTask || !canChangeTaskStatus(activeTask)) return;
 
     if (isTaskStatus(overId)) {
       const newStatus = overId;
@@ -119,6 +121,7 @@ export default function TaskBoard({
     projectKey,
     params,
     onOpenTask,
+    canChangeTaskStatus,
   };
   const statuses: TaskStatus[] =
     params.status && isTaskStatus(params.status)
@@ -152,12 +155,14 @@ function BoardColumn({
   projectKey,
   params,
   onOpenTask,
+  canChangeTaskStatus,
 }: {
   id: TaskStatus;
   teamKey: string;
   projectKey: string;
   params: Params;
   onOpenTask: (task: Task) => void;
+  canChangeTaskStatus: (task: Task) => boolean;
 }) {
   const { setNodeRef } = useDroppable({ id });
 
@@ -218,6 +223,7 @@ function BoardColumn({
                 key={task.taskNumber}
                 task={task}
                 onOpenTask={onOpenTask}
+                canChangeTaskStatus={canChangeTaskStatus}
               />
             ))}
           </SortableContext>
@@ -242,9 +248,11 @@ function BoardColumn({
 function SortableTask({
   task,
   onOpenTask,
+  canChangeTaskStatus,
 }: {
   task: Task;
   onOpenTask: (task: Task) => void;
+  canChangeTaskStatus: (task: Task) => boolean;
 }) {
   const {
     attributes,
@@ -256,6 +264,7 @@ function SortableTask({
   } = useSortable({
     id: task.taskNumber,
     data: { task },
+    disabled: !canChangeTaskStatus(task),
   });
 
   const style = {

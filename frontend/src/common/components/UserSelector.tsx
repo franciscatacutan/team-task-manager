@@ -27,6 +27,8 @@ interface Props {
   className?: string;
   popoverClassName?: string;
   onChange: (id: string | null) => void;
+  search?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 export default function UserSelector({
@@ -38,6 +40,8 @@ export default function UserSelector({
   className,
   popoverClassName,
   onChange,
+  search,
+  onSearchChange,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -53,6 +57,7 @@ export default function UserSelector({
         <Button
           variant="outline"
           role="combobox"
+          aria-label={placeholder}
           className={cn(
             "h-auto min-h-10 w-full rounded-xl border-border/70 bg-background px-3 py-2 text-left font-normal shadow-none hover:bg-muted/20",
             !value && "text-muted-foreground",
@@ -94,8 +99,12 @@ export default function UserSelector({
           popoverClassName,
         )}
       >
-        <Command>
-          <CommandInput placeholder="Search user..." />
+        <Command shouldFilter={!onSearchChange}>
+          <CommandInput
+            placeholder="Search user..."
+            value={search}
+            onValueChange={onSearchChange}
+          />
 
           <CommandEmpty>No user found.</CommandEmpty>
 

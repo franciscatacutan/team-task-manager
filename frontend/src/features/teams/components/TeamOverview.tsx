@@ -310,7 +310,7 @@ export default function TeamOverview() {
       />
 
       <AddMembersModal
-        userTeamRole={teamMe?.role ?? "MEMBER"}
+        canAssignAdmin={permissions.canChangeRole}
         teamKey={team.key}
         open={openAddMember}
         isLoading={false}

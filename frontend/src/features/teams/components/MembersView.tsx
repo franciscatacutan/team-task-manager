@@ -44,7 +44,6 @@ export default function MembersPage() {
   const { data: teamMe } = useTeamMe(teamKey || "");
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
-  if (!teamMe?.role) return;
 
   const members = membersData?.content ?? [];
   const totalPages = membersData?.totalPages ?? 0;
@@ -106,7 +105,7 @@ export default function MembersPage() {
       />
 
       <RemoveMultiMembersModal
-        userTeamRole={teamMe.role}
+        userTeamRole={teamMe?.role ?? "MEMBER"}
         teamKey={teamKey}
         open={removeMembersOpen}
         isLoading={false}
@@ -114,7 +113,7 @@ export default function MembersPage() {
       />
 
       <AddMembersModal
-        userTeamRole={teamMe.role}
+        canAssignAdmin={permissions.canChangeRole}
         teamKey={teamKey}
         open={addMembersOpen}
         isLoading={false}
@@ -126,6 +125,7 @@ export default function MembersPage() {
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}
+        isCurrentOwner={teamMe?.role === "OWNER"}
       />
     </section>
   );
