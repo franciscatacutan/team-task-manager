@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 import { getProjects } from "../api/projectApi";
 import type { Project } from "../types/project.types";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
@@ -10,9 +12,14 @@ export const useProjects = (
   params: ProjectSearchParams = {},
 ) => {
   return useQuery<PageResponse<Project>>({
-    queryKey: ["projects", teamKey, params],
+    queryKey: queryKeys.projects.list(teamKey, params),
     queryFn: () => getProjects(teamKey, params),
     enabled: Boolean(teamKey),
-    placeholderData: keepPreviousData,
+    placeholderData: (data, previous) =>
+      keepPreviousDataInScope(
+        data,
+        previous,
+        queryKeys.projects.lists(teamKey),
+      ),
   });
 };

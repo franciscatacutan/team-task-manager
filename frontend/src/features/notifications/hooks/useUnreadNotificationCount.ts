@@ -1,10 +1,11 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 
 import { getUnreadNotificationCount } from "../api/notificationApi";
 
 export const useUnreadNotificationCount = () => {
   return useQuery({
-    queryKey: ["notifications", "unread-count"],
+    queryKey: queryKeys.notifications.unreadCount,
     queryFn: getUnreadNotificationCount,
     refetchInterval: 30_000,
     staleTime: 10_000,

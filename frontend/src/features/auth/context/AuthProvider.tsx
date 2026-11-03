@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { AuthSessionChangedError } from "@/api/apiClients";
 import { Button } from "@/components/ui/button";
 import { redirectToLogin } from "../utils/authNavigation";
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }: Props) => {
         ) {
           return;
         }
-        queryClient.setQueryData(["me"], {
+        queryClient.setQueryData(queryKeys.session.current, {
           id: data.user.userId,
           firstName: data.user.firstName,
           lastName: data.user.lastName,
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }: Props) => {
         }
 
         authStorage.clearToken();
-        queryClient.removeQueries({ queryKey: ["me"] });
+        queryClient.removeQueries({ queryKey: queryKeys.session.current });
       } finally {
         if (isMounted) {
           setIsBootstrapping(false);

@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getTeams } from "../api/teamApi";
 import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
@@ -13,15 +14,7 @@ export const useTeams = (params: {
   memberId?: string;
 }) => {
   return useQuery<PageResponse<Team>>({
-    queryKey: [
-      "teams",
-      params.page,
-      params.size,
-      params.search,
-      params.sort,
-      params.deletedFilter,
-      params.memberId,
-    ],
+    queryKey: queryKeys.teams.list(params),
     queryFn: () =>
       getTeams({
         page: params.page,

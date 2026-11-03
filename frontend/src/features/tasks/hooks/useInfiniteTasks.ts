@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
 import type { Task } from "../types/task.types";
@@ -17,16 +18,11 @@ export const useInfiniteTasks = (
   },
 ) => {
   return useInfiniteQuery<PageResponse<Task>>({
-    queryKey: [
-      "tasks",
-      "infinite",
-      teamKey,
-      projectKey,
-      status,
-      params.search,
-      params.sort,
-      params.deletedFilter,
-    ],
+    queryKey: queryKeys.tasks.board(teamKey, projectKey, status, {
+      search: params.search,
+      sort: params.sort,
+      deletedFilter: params.deletedFilter,
+    }),
 
     queryFn: ({ pageParam }) => {
       const page = (pageParam ?? 0) as number;

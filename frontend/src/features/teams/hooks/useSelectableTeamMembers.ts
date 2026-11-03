@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getTeamMembers } from "../api/teamMemberApi";
 
@@ -7,7 +8,7 @@ export function useSelectableTeamMembers(
   enabled: boolean,
 ) {
   return useInfiniteQuery({
-    queryKey: ["teamMembers", teamKey, "selector", search],
+    queryKey: queryKeys.teams.memberSelector(teamKey, search),
     queryFn: ({ pageParam, signal }) =>
       getTeamMembers(
         teamKey,

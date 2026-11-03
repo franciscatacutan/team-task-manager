@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { getUser } from "../api/userApi";
 
@@ -6,7 +7,7 @@ import { getUser } from "../api/userApi";
  */
 export const useUser = (userId: string) => {
   return useQuery({
-    queryKey: ["user", userId],
+    queryKey: queryKeys.users.detail(userId),
 
     queryFn: () => getUser(userId),
 

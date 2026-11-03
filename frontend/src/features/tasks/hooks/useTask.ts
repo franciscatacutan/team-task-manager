@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { getTask } from "../api/taskApi";
 
@@ -7,7 +8,7 @@ export const useTask = (
   taskNumber: number,
 ) => {
   return useQuery({
-    queryKey: ["task", teamKey, projectKey, taskNumber],
+    queryKey: queryKeys.tasks.detail(teamKey, projectKey, taskNumber),
     queryFn: () => getTask(teamKey, projectKey, taskNumber),
   });
 };

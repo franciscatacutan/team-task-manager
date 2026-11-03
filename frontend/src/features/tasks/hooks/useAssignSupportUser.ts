@@ -1,4 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAppMutation } from "@/common/query/useAppMutation";
+import {
+  setConfirmedData,
+  invalidateTaskChange,
+} from "@/common/query/queryCache";
+import { queryKeys, mutationKeys } from "@/common/query/queryKeys";
+import { useQueryClient } from "@tanstack/react-query";
 import { assignSupportUser } from "../api/taskApi";
 
 export const useAssignSupportUser = (
@@ -8,30 +14,19 @@ export const useAssignSupportUser = (
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useAppMutation({
+    mutationKey: mutationKeys.taskSupport(teamKey, projectKey, taskNumber),
     mutationFn: (userId: string | null) =>
       assignSupportUser(teamKey, projectKey, taskNumber, userId),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["task", teamKey, projectKey, taskNumber],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["tasks", teamKey, projectKey],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["tasks", "infinite", teamKey, projectKey],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamKey, projectKey, taskNumber],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["projectActivity", teamKey, projectKey],
-      });
+    onSuccess: async (task) => {
+      await setConfirmedData(
+        queryClient,
+        queryKeys.tasks.detail(teamKey, projectKey, taskNumber),
+        task,
+      );
     },
+    onSettled: () =>
+      invalidateTaskChange(queryClient, teamKey, projectKey, taskNumber),
   });
 };

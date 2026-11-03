@@ -1,10 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutationKeys } from "@/common/query/queryKeys";
+import { useAppMutation } from "@/common/query/useAppMutation";
+import { invalidateMembershipChange } from "@/common/query/queryCache";
+import { useQueryClient } from "@tanstack/react-query";
 import { updateMemberRole } from "../api/teamMemberApi";
 
 export const useUpdateMemberRole = (teamKey: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useAppMutation({
+    mutationKey: mutationKeys.memberRole(teamKey),
     mutationFn: ({
       memberId,
       role,
@@ -13,13 +17,7 @@ export const useUpdateMemberRole = (teamKey: string) => {
       role: "ADMIN" | "MEMBER";
     }) => updateMemberRole(teamKey, memberId, role),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["team-me", teamKey] });
-      queryClient.invalidateQueries({ queryKey: ["allTeamMembers", teamKey] });
-      queryClient.invalidateQueries({ queryKey: ["teamActivity", teamKey] });
-      queryClient.invalidateQueries({
-        queryKey: ["teamMembers", teamKey],
-      });
-    },
+    onSettled: (_member, _error, { memberId }) =>
+      invalidateMembershipChange(queryClient, teamKey, [memberId]),
   });
 };

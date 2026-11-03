@@ -1,4 +1,6 @@
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { TaskActivity } from "../types/task.types";
@@ -19,15 +21,11 @@ export const useTaskActivities = (
   const { page = 0, size = 10, sort } = params;
 
   return useQuery<PageResponse<TaskActivity>>({
-    queryKey: [
-      "taskActivities",
-      teamKey,
-      projectKey,
-      taskNumber,
+    queryKey: queryKeys.tasks.activity(teamKey, projectKey, taskNumber, {
       page,
       size,
       sort,
-    ],
+    }),
 
     queryFn: () =>
       getTaskActivities(teamKey, projectKey, taskNumber, {
@@ -36,6 +34,11 @@ export const useTaskActivities = (
         sort,
       }),
 
-    placeholderData: keepPreviousData,
+    placeholderData: (data, previous) =>
+      keepPreviousDataInScope(
+        data,
+        previous,
+        queryKeys.tasks.activities(teamKey, projectKey, taskNumber),
+      ),
   });
 };

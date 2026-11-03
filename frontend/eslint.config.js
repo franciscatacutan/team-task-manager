@@ -21,5 +21,25 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Property[key.name='queryKey'][value.type='ArrayExpression']",
+          message:
+            "Use the shared queryKeys builders for query identities and prefixes.",
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name=/^(setQueryData|getQueryData|getQueryState|setQueriesData|getQueriesData)$/][arguments.0.type='ArrayExpression']",
+          message: "Use the shared queryKeys builders for direct cache access.",
+        },
+      ],
+    },
+  },
   prettier,
 ]);

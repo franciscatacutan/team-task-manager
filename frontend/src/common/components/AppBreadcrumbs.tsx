@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { Link, useLocation, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Home } from "lucide-react";
@@ -35,25 +36,33 @@ export default function AppBreadcrumbs() {
   const section = isWorkspaceRoute ? segments[2] : undefined;
 
   const { data: team, isLoading: teamLoading } = useQuery({
-    queryKey: ["team", teamKey],
+    queryKey: queryKeys.teams.detail(teamKey ?? ""),
     queryFn: () => getTeam(teamKey!),
     enabled: !!teamKey,
   });
 
   const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ["project", teamKey, projectKey],
+    queryKey: queryKeys.projects.detail(teamKey ?? "", projectKey ?? ""),
     queryFn: () => getProject(teamKey!, projectKey!),
     enabled: !!teamKey && !!projectKey,
   });
 
   const { data: task, isLoading: taskLoading } = useQuery({
-    queryKey: ["task", teamKey, projectKey, taskNumber],
+    queryKey: queryKeys.tasks.detail(
+      teamKey ?? "",
+      projectKey ?? "",
+      Number(taskNumber),
+    ),
     queryFn: () => getTask(teamKey!, projectKey!, Number(taskNumber)),
-    enabled: !!teamKey && !!projectKey && !!taskNumber,
+    enabled:
+      !!teamKey &&
+      !!projectKey &&
+      Number.isSafeInteger(Number(taskNumber)) &&
+      Number(taskNumber) > 0,
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ["user", userId],
+    queryKey: queryKeys.users.detail(userId ?? ""),
     queryFn: () => getUser(userId!),
     enabled: !!userId && segments[0] === "users",
   });

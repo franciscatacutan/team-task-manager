@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import { getTeamMembers } from "../api/teamMemberApi";
 import type { TeamMember, TeamRole } from "../types/team.type";
@@ -13,15 +15,7 @@ interface Params {
 
 export const useTeamMembers = (teamKey: string, params?: Params) => {
   return useQuery<PageResponse<TeamMember>>({
-    queryKey: [
-      "teamMembers",
-      teamKey,
-      params?.page,
-      params?.size,
-      params?.search,
-      params?.sort,
-      params?.roles,
-    ],
+    queryKey: queryKeys.teams.memberList(teamKey, params ?? {}),
     queryFn: () =>
       getTeamMembers(teamKey, {
         page: params?.page,
@@ -31,6 +25,7 @@ export const useTeamMembers = (teamKey: string, params?: Params) => {
         roles: params?.roles,
       }),
     enabled: Boolean(teamKey),
-    placeholderData: keepPreviousData,
+    placeholderData: (data, previous) =>
+      keepPreviousDataInScope(data, previous, queryKeys.teams.members(teamKey)),
   });
 };

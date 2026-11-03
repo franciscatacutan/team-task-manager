@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 import { getTeamActivities } from "../api/teamApi";
 
 export const useTeamActivities = (
@@ -11,14 +13,7 @@ export const useTeamActivities = (
   },
 ) => {
   return useQuery({
-    queryKey: [
-      "teamActivity",
-      teamKey,
-      params.page,
-      params.size,
-      params.search,
-      params.sort,
-    ],
+    queryKey: queryKeys.teams.activity(teamKey, params),
     queryFn: async () =>
       getTeamActivities(teamKey, {
         page: params.page,
@@ -27,6 +22,11 @@ export const useTeamActivities = (
         sort: params.sort,
       }),
 
-    placeholderData: keepPreviousData,
+    placeholderData: (data, previous) =>
+      keepPreviousDataInScope(
+        data,
+        previous,
+        queryKeys.teams.activities(teamKey),
+      ),
   });
 };

@@ -1,24 +1,17 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutationKeys } from "@/common/query/queryKeys";
+import { useAppMutation } from "@/common/query/useAppMutation";
+import { invalidateMembershipChange } from "@/common/query/queryCache";
+import { useQueryClient } from "@tanstack/react-query";
 import { transferTeam } from "../api/teamApi";
 
 export function useTransferOwnership(teamKey: string) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useAppMutation({
+    mutationKey: mutationKeys.ownership(teamKey),
     mutationFn: (userId: string) => transferTeam(teamKey, userId),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
-      queryClient.invalidateQueries({ queryKey: ["team-me", teamKey] });
-      queryClient.invalidateQueries({ queryKey: ["allTeamMembers", teamKey] });
-      queryClient.invalidateQueries({ queryKey: ["teamActivity", teamKey] });
-      queryClient.invalidateQueries({
-        queryKey: ["teamMembers", teamKey],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["team", teamKey],
-      });
-    },
+    onSettled: (_member, _error, userId) =>
+      invalidateMembershipChange(queryClient, teamKey, [userId]),
   });
 }

@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api/auth.api";
 import { authStorage } from "../utils/authStorage";
@@ -7,9 +8,14 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: api.login,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       authStorage.setToken(data.token);
-      queryClient.setQueryData(["me"], {
+      const revision = authStorage.getRevision();
+      await queryClient.cancelQueries();
+      if (revision !== authStorage.getRevision() || authStorage.isLoggingOut())
+        return;
+      queryClient.clear();
+      queryClient.setQueryData(queryKeys.session.current, {
         id: data.user.userId,
         firstName: data.user.firstName,
         lastName: data.user.lastName,

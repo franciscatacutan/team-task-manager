@@ -1,4 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutationKeys } from "@/common/query/queryKeys";
+import { useAppMutation } from "@/common/query/useAppMutation";
+import { invalidateTaskChange } from "@/common/query/queryCache";
+import { useQueryClient } from "@tanstack/react-query";
 import { createTaskComment } from "../api/taskApi";
 
 export const useCreateTaskComment = (
@@ -8,18 +11,12 @@ export const useCreateTaskComment = (
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useAppMutation({
+    mutationKey: mutationKeys.taskComment(teamKey, projectKey, taskNumber),
     mutationFn: (message: string) =>
       createTaskComment(teamKey, projectKey, taskNumber, message),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["taskActivities", teamKey, projectKey, taskNumber],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["projectActivities", teamKey, projectKey],
-      });
-    },
+    onSettled: () =>
+      invalidateTaskChange(queryClient, teamKey, projectKey, taskNumber),
   });
 };

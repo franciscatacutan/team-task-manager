@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getUsers } from "../api/userApi";
 import type { User } from "../types/userType";
@@ -15,14 +16,7 @@ export const useUsers = (params: {
   sort?: string;
 }) => {
   return useQuery<PageResponse<User>>({
-    queryKey: [
-      "users",
-      params?.page,
-      params?.size,
-      params?.search,
-      params?.sort,
-      params?.roles,
-    ],
+    queryKey: queryKeys.users.list(params),
     queryFn: () =>
       getUsers({
         page: params.page,

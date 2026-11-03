@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { User } from "../../users/types/userType";
@@ -9,7 +10,7 @@ interface Params {
 
 export const useAvailableUsers = (teamKey: string, params: Params) => {
   return useQuery<PageResponse<User>>({
-    queryKey: ["availableUsers", teamKey, params?.search],
+    queryKey: queryKeys.teams.availableUserList(teamKey, params?.search),
     queryFn: async () =>
       getAvailableUsers(teamKey, {
         search: params?.search,
