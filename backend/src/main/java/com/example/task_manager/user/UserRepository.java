@@ -16,6 +16,10 @@ public interface UserRepository
   @Query("select u from UserEntity u where u.id = :id")
   Optional<UserEntity> findByIdForUpdate(UUID id);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select u from UserEntity u where lower(u.email) = lower(:email)")
+  Optional<UserEntity> findByEmailForUpdate(String email);
+
   Optional<UserEntity> findByEmail(String email);
 
   boolean existsByEmail(String email);

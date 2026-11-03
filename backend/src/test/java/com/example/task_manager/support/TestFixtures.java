@@ -1,5 +1,7 @@
 package com.example.task_manager.support;
 
+import com.example.task_manager.auth.RefreshTokenService;
+import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
@@ -14,6 +16,13 @@ import java.util.UUID;
 
 public final class TestFixtures {
   private TestFixtures() {}
+
+  /** Authenticated HTTP tests use real persisted sessions, just like application logins. */
+  public static String authorization(
+      JwtService jwt, RefreshTokenService sessions, UserEntity user) {
+    var session = sessions.createSession(user, "127.0.0.1", "JUnit");
+    return "Bearer " + jwt.generateToken(user, session.familyId());
+  }
 
   public static Workspace workspace(EntityManager em) {
     String suffix = UUID.randomUUID().toString();

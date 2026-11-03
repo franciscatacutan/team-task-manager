@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.example.task_manager.auth.dto.AuthResponse;
@@ -66,12 +67,13 @@ class AuthServiceTest {
               return savedUser;
             });
 
-    when(jwtService.generateToken(any(UserEntity.class))).thenReturn("fake-jwt-token");
+    when(jwtService.generateToken(any(UserEntity.class), any(UUID.class)))
+        .thenReturn("fake-jwt-token");
     when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(900L);
     when(refreshTokenService.createSession(any(UserEntity.class), any(), any()))
         .thenReturn(
             new RefreshTokenService.RefreshTokenSession(
-                "refresh-token", java.time.Instant.now().plusSeconds(3600)));
+                "refresh-token", java.time.Instant.now().plusSeconds(3600), UUID.randomUUID()));
 
     AuthService.AuthSession session = authService.register(request, "127.0.0.1", "JUnit");
     AuthResponse response = session.response();
@@ -104,6 +106,22 @@ class AuthServiceTest {
   }
 
   @Test
+  void unknownAccountsStillUseAuthenticationManagerAndCannotCreateSessions() {
+    when(userRepository.findByEmailForUpdate("missing@example.test")).thenReturn(Optional.empty());
+    when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+        .thenThrow(
+            new org.springframework.security.authentication.BadCredentialsException(
+                "Invalid credentials"));
+    assertThrows(
+        com.example.task_manager.exception.api.AuthException.class,
+        () ->
+            authService.login(
+                new LoginRequest("missing@example.test", "Password123!"), "127.0.0.1", "JUnit"));
+    verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    verifyNoInteractions(refreshTokenService);
+  }
+
+  @Test
   void shouldLoginUsingAuthenticationManager() {
 
     UserEntity user = new UserEntity();
@@ -122,19 +140,19 @@ class AuthServiceTest {
         .thenReturn(
             UsernamePasswordAuthenticationToken.authenticated(
                 principal, null, principal.getAuthorities()));
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(jwtService.generateToken(user)).thenReturn("jwt-token");
+    when(userRepository.findByEmailForUpdate("jane@test.com")).thenReturn(Optional.of(user));
+    when(jwtService.generateToken(eq(user), any(UUID.class))).thenReturn("jwt-token");
     when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(900L);
     when(refreshTokenService.createSession(any(UserEntity.class), any(), any()))
         .thenReturn(
             new RefreshTokenService.RefreshTokenSession(
-                "refresh-token", java.time.Instant.now().plusSeconds(3600)));
+                "refresh-token", java.time.Instant.now().plusSeconds(3600), UUID.randomUUID()));
 
     AuthService.AuthSession session = authService.login(request, "127.0.0.1", "JUnit");
     AuthResponse response = session.response();
 
     verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-    verify(userRepository).findById(eq(userId));
+    verify(userRepository).findByEmailForUpdate("jane@test.com");
     assertThat(response.token()).isEqualTo("jwt-token");
     assertThat(response.user().email()).isEqualTo("jane@test.com");
   }

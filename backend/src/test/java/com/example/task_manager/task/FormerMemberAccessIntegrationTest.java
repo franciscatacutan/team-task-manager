@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.example.task_manager.auth.RefreshTokenService;
 import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.support.PostgresIntegrationTest;
@@ -37,6 +38,7 @@ class FormerMemberAccessIntegrationTest extends PostgresIntegrationTest {
   @Autowired TransactionTemplate transactions;
   @Autowired EntityManager em;
   @Autowired JwtService jwt;
+  @Autowired RefreshTokenService authSessions;
   private MockMvc mvc;
   private Workspace workspace;
   private UserEntity member;
@@ -47,8 +49,8 @@ class FormerMemberAccessIntegrationTest extends PostgresIntegrationTest {
   void setUp() {
     workspace = transactions.execute(status -> TestFixtures.workspace(em));
     member = transactions.execute(status -> addMember(workspace));
-    ownerAuthorization = "Bearer " + jwt.generateToken(workspace.owner());
-    memberAuthorization = "Bearer " + jwt.generateToken(member);
+    ownerAuthorization = TestFixtures.authorization(jwt, authSessions, workspace.owner());
+    memberAuthorization = TestFixtures.authorization(jwt, authSessions, member);
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
   }
 

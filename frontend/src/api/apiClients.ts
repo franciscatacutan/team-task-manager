@@ -15,8 +15,12 @@ export const apiClient = axios.create({
   },
 });
 
+// Track the login that sent each request so an old 401 cannot replay work as a new user.
+const requestRevisions = new WeakMap<object, number>();
+
 // Attach token on every request
 apiClient.interceptors.request.use((config) => {
+  requestRevisions.set(config, authStorage.getRevision());
   const token = authStorage.getToken();
   const isAuthEndpoint = config.url?.includes("/auth/");
 
@@ -27,35 +31,60 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-let refreshPromise: Promise<string | null> | null = null;
+export class AuthSessionChangedError extends Error {
+  constructor() {
+    super("The authentication session changed during refresh");
+  }
+}
+
+let refreshFlight: { revision: number; promise: Promise<AuthResponse> } | null =
+  null;
+
+// Bootstrap and 401 retries share one refresh within this tab. Session changes fence late responses.
+export const refreshAuthSession = (): Promise<AuthResponse> => {
+  if (authStorage.isLoggingOut())
+    return Promise.reject(new AuthSessionChangedError());
+  const revision = authStorage.getRevision();
+  if (refreshFlight?.revision === revision) return refreshFlight.promise;
+  const promise = apiClient
+    .post<AuthResponse>("/auth/refresh")
+    .then(({ data }) => {
+      if (!authStorage.replaceToken(data.token, revision))
+        throw new AuthSessionChangedError();
+      return data;
+    })
+    .catch((error: unknown) => {
+      if (authStorage.getRevision() !== revision || authStorage.isLoggingOut())
+        throw new AuthSessionChangedError();
+      throw error;
+    })
+    .finally(() => {
+      if (refreshFlight?.promise === promise) refreshFlight = null;
+    });
+  refreshFlight = { revision, promise };
+  return promise;
+};
 
 const refreshAccessToken = async (): Promise<string | null> => {
-  if (!refreshPromise) {
-    refreshPromise = apiClient
-      .post<AuthResponse>("/auth/refresh")
-      .then(({ data }) => {
-        authStorage.setToken(data.token);
-        return data.token;
-      })
-      .catch(() => {
-        authStorage.clearToken();
-        authStorage.notifyUnauthorized();
-        return null;
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
+  const revision = authStorage.getRevision();
+  try {
+    return (await refreshAuthSession()).token;
+  } catch (error) {
+    if (
+      !(error instanceof AuthSessionChangedError) &&
+      authStorage.getRevision() === revision
+    ) {
+      authStorage.clearToken();
+      authStorage.notifyUnauthorized();
+    }
+    return null;
   }
-
-  return refreshPromise;
 };
 
 // Add a response interceptor to handle errors globally
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.error("API Error:", error);
-
     const originalRequest = error.config;
     const requestPath = originalRequest?.url ?? "";
     const isAuthRequest =
@@ -69,12 +98,18 @@ apiClient.interceptors.response.use(
       originalRequest &&
       !originalRequest._retry &&
       !isAuthRequest &&
-      authStorage.hasToken()
+      authStorage.hasToken() &&
+      !authStorage.isLoggingOut() &&
+      requestRevisions.get(originalRequest) === authStorage.getRevision()
     ) {
       originalRequest._retry = true;
 
       const refreshedToken = await refreshAccessToken();
-      if (refreshedToken) {
+      if (
+        refreshedToken &&
+        !authStorage.isLoggingOut() &&
+        requestRevisions.get(originalRequest) === authStorage.getRevision()
+      ) {
         originalRequest.headers.Authorization = `Bearer ${refreshedToken}`;
         return apiClient(originalRequest);
       }

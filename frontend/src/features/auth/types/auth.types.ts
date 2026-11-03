@@ -17,6 +17,7 @@ export type AuthContextType = {
   isGlobalAdmin: boolean;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
+  isLoggingOut: boolean;
   isLoading: boolean;
 };

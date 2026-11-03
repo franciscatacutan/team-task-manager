@@ -130,13 +130,13 @@ public class UserService {
 
   /*
    * Update the current user's login email.
-   * This requires the current password and revokes refresh sessions because JWT
+   * This requires the current password and revokes all sessions because JWT
    * subjects are email-based.
    */
   @Transactional
   public void updateOwnEmail(UpdateEmailRequest request, String requesterEmail) {
 
-    UserEntity user = getUserByEmail(requesterEmail);
+    UserEntity user = getUserByEmailForUpdate(requesterEmail);
 
     if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
       throw new BadRequestInputException("Current password incorrect");
@@ -162,10 +162,10 @@ public class UserService {
   @Transactional
   public void updatePassword(UUID userId, UpdatePasswordRequest request, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = getUserByEmailForUpdate(requesterEmail);
     UserEntity target =
         userRepository
-            .findById(userId)
+            .findByIdForUpdate(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (!requester.getId().equals(target.getId())) {
@@ -192,7 +192,7 @@ public class UserService {
     UserEntity requester = getUserByEmail(requesterEmail);
     UserEntity target =
         userRepository
-            .findById(targetUserId)
+            .findByIdForUpdate(targetUserId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
@@ -217,7 +217,7 @@ public class UserService {
     UserEntity requester = getUserByEmail(requesterEmail);
     UserEntity target =
         userRepository
-            .findById(targetUserId)
+            .findByIdForUpdate(targetUserId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
@@ -245,6 +245,12 @@ public class UserService {
     UserEntity user = getUserByEmail(email);
 
     return mapToResponse(user);
+  }
+
+  private UserEntity getUserByEmailForUpdate(String email) {
+    return userRepository
+        .findByEmailForUpdate(normalizeEmail(email))
+        .orElseThrow(UserNotFoundException::new);
   }
 
   private UserEntity getUserByEmail(String email) {

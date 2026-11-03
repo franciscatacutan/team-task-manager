@@ -13,7 +13,8 @@ function authState(isAuthenticated: boolean, isBootstrapping = false) {
     isBootstrapping,
     user: undefined,
     isGlobalAdmin: false,
-    logout: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
+    isLoggingOut: false,
     isLoading: false,
   });
 }

@@ -5,14 +5,15 @@ import com.example.task_manager.auth.dto.AuthResponse.User;
 import com.example.task_manager.auth.dto.LoginRequest;
 import com.example.task_manager.auth.dto.RegisterRequest;
 import com.example.task_manager.config.jwt.JwtService;
-import com.example.task_manager.config.security.CustomUserPrincipal;
 import com.example.task_manager.exception.api.AuthException;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.EmailAlreadyInUseException;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
+import io.jsonwebtoken.JwtException;
 import java.util.Locale;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -61,7 +62,8 @@ public class AuthService {
 
     RefreshTokenService.RefreshTokenSession refreshTokenSession =
         refreshTokenService.createSession(user, ipAddress, userAgent);
-    return new AuthSession(buildAuthResponse(user), refreshTokenSession.token());
+    return new AuthSession(
+        buildAuthResponse(user, refreshTokenSession.familyId()), refreshTokenSession.token());
   }
 
   @Transactional
@@ -69,17 +71,17 @@ public class AuthService {
     String normalizedEmail = normalizeEmail(request.email());
 
     try {
-      var authentication =
-          authenticationManager.authenticate(
-              UsernamePasswordAuthenticationToken.unauthenticated(
-                  normalizedEmail, request.password()));
-
-      CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
-      UserEntity user = userRepository.findById(principal.getId()).orElseThrow(AuthException::new);
+      // Acquire the same user lock used by reset, refresh and revocation before checking
+      // credentials.
+      var lockedUser = userRepository.findByEmailForUpdate(normalizedEmail);
+      authenticationManager.authenticate(
+          UsernamePasswordAuthenticationToken.unauthenticated(normalizedEmail, request.password()));
+      UserEntity user = lockedUser.orElseThrow(AuthException::new);
 
       RefreshTokenService.RefreshTokenSession refreshTokenSession =
           refreshTokenService.createSession(user, ipAddress, userAgent);
-      return new AuthSession(buildAuthResponse(user), refreshTokenSession.token());
+      return new AuthSession(
+          buildAuthResponse(user, refreshTokenSession.familyId()), refreshTokenSession.token());
     } catch (AuthenticationException ex) {
       throw new AuthException();
     }
@@ -90,12 +92,25 @@ public class AuthService {
     RefreshTokenService.RefreshTokenSession refreshTokenSession =
         refreshTokenService.rotate(rawRefreshToken, ipAddress, userAgent);
     UserEntity user = refreshTokenService.getUserForRefreshToken(refreshTokenSession.token());
-    return new AuthSession(buildAuthResponse(user), refreshTokenSession.token());
+    return new AuthSession(
+        buildAuthResponse(user, refreshTokenSession.familyId()), refreshTokenSession.token());
   }
 
   @Transactional
-  public void logout(String rawRefreshToken) {
-    refreshTokenService.revoke(rawRefreshToken);
+  public void logout(String rawRefreshToken, String accessToken) {
+    JwtService.AccessTokenClaims claims = null;
+    if (accessToken != null && !accessToken.isBlank()) {
+      try {
+        claims = jwtService.parseAccessToken(accessToken);
+      } catch (JwtException | IllegalArgumentException ex) {
+        // An expired/invalid bearer must not block logout using a valid refresh cookie.
+      }
+    }
+    if (claims != null) {
+      refreshTokenService.revokeSession(claims.sessionId(), claims.userId());
+    } else {
+      refreshTokenService.revoke(rawRefreshToken);
+    }
   }
 
   private User buildUserDetails(UserEntity user) {
@@ -103,9 +118,9 @@ public class AuthService {
         user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
   }
 
-  private AuthResponse buildAuthResponse(UserEntity user) {
+  private AuthResponse buildAuthResponse(UserEntity user, UUID sessionId) {
     return new AuthResponse(
-        jwtService.generateToken(user),
+        jwtService.generateToken(user, sessionId),
         jwtService.getAccessTokenExpirationSeconds(),
         buildUserDetails(user));
   }

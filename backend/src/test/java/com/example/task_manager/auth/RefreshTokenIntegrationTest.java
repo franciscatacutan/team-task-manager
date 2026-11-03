@@ -92,7 +92,7 @@ class RefreshTokenIntegrationTest extends PostgresIntegrationTest {
   @Test
   void logoutRevokesTheSession() {
     String original = issue();
-    auth.logout(original);
+    auth.logout(original, null);
     assertThatThrownBy(() -> refresh(original)).isInstanceOf(BadCredentialsException.class);
     assertThat(activeTokens()).isEmpty();
   }

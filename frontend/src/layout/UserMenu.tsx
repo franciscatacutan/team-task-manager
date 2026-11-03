@@ -12,10 +12,11 @@ import { Button } from "../components/ui/button";
 import { useCurrentUser } from "../features/auth/hooks/useCurrentUser";
 
 interface Props {
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
+  isLoggingOut: boolean;
 }
 
-export default function UserMenu({ onLogout }: Props) {
+export default function UserMenu({ onLogout, isLoggingOut }: Props) {
   const navigate = useNavigate();
   const { data: user, isLoading } = useCurrentUser();
   if (isLoading || !user) return null;
@@ -66,11 +67,12 @@ export default function UserMenu({ onLogout }: Props) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onClick={onLogout}
+          disabled={isLoggingOut}
+          onClick={() => void onLogout()}
           className="text-destructive focus:text-destructive"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {isLoggingOut ? "Signing out..." : "Logout"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

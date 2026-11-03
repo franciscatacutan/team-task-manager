@@ -1,5 +1,6 @@
 package com.example.task_manager.config.jwt;
 
+import com.example.task_manager.auth.RefreshTokenService;
 import com.example.task_manager.config.security.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,13 +23,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
   private final JwtService jwtService;
+  private final RefreshTokenService refreshTokenService;
   private final CustomUserDetailsService userDetailsService;
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
   /**
-   * Authentication endpoints use the refresh-token cookie or credentials, never the bearer token.
-   * Skipping them prevents an expired access token from blocking a valid refresh request before it
-   * reaches the controller.
+   * Credential/refresh endpoints validate their own credentials. Logout also handles its optional
+   * bearer directly for idempotent revocation. An expired access token must not prevent refresh or
+   * logout from reaching that validation.
    */
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -58,12 +60,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     try {
-      String email = jwtService.extractEmail(token);
+      var claims = jwtService.parseAccessToken(token);
+      String email = claims.email();
 
       if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-        if (jwtService.isTokenValid(token, userDetails)) {
+        if (claims.matches(userDetails)
+            && refreshTokenService.isSessionActive(claims.sessionId(), claims.userId())) {
           UsernamePasswordAuthenticationToken authToken =
               new UsernamePasswordAuthenticationToken(
                   userDetails, null, userDetails.getAuthorities());
@@ -73,10 +77,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
       }
 
-      filterChain.doFilter(request, response);
     } catch (AuthenticationException ex) {
       SecurityContextHolder.clearContext();
       authenticationEntryPoint.commence(request, response, ex);
+      return;
     } catch (RuntimeException ex) {
       SecurityContextHolder.clearContext();
       authenticationEntryPoint.commence(
@@ -84,6 +88,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
           response,
           new org.springframework.security.authentication.BadCredentialsException(
               "Invalid or expired bearer token", ex));
+      return;
     }
+    filterChain.doFilter(request, response);
   }
 }

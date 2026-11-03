@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.example.task_manager.auth.RefreshTokenService;
 import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.support.PostgresIntegrationTest;
 import com.example.task_manager.support.TestFixtures;
@@ -33,6 +34,7 @@ class TeamPermissionIntegrationTest extends PostgresIntegrationTest {
   @Autowired TransactionTemplate transactions;
   @Autowired EntityManager em;
   @Autowired JwtService jwt;
+  @Autowired RefreshTokenService authSessions;
   private MockMvc mvc;
   private Workspace workspace;
 
@@ -439,7 +441,7 @@ class TeamPermissionIntegrationTest extends PostgresIntegrationTest {
   }
 
   private String authorization(UserEntity user) {
-    return "Bearer " + jwt.generateToken(user);
+    return TestFixtures.authorization(jwt, authSessions, user);
   }
 
   private String teamPath() {

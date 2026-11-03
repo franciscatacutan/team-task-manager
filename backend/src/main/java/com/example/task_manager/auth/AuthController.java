@@ -75,7 +75,10 @@ public class AuthController {
   public ResponseEntity<Void> logout(
       HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
     requireTrustedRefreshOrigin(httpRequest);
-    authService.logout(refreshTokenCookieService.extractRefreshToken(httpRequest));
+    String header = httpRequest.getHeader(HttpHeaders.AUTHORIZATION);
+    String accessToken =
+        header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
+    authService.logout(refreshTokenCookieService.extractRefreshToken(httpRequest), accessToken);
     refreshTokenCookieService.clearRefreshTokenCookie(httpResponse);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }

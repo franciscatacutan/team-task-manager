@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.example.task_manager.auth.RefreshTokenService;
 import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.support.PostgresIntegrationTest;
@@ -34,6 +35,7 @@ class FormerMemberNotificationIntegrationTest extends PostgresIntegrationTest {
   @Autowired TransactionTemplate transactions;
   @Autowired EntityManager em;
   @Autowired JwtService jwt;
+  @Autowired RefreshTokenService authSessions;
   private MockMvc mvc;
   private Workspace workspace;
   private UserEntity member;
@@ -47,9 +49,9 @@ class FormerMemberNotificationIntegrationTest extends PostgresIntegrationTest {
     workspace = transactions.execute(status -> TestFixtures.workspace(em));
     member = transactions.execute(status -> addMember());
     activeMember = transactions.execute(status -> addMember());
-    ownerAuthorization = "Bearer " + jwt.generateToken(workspace.owner());
-    memberAuthorization = "Bearer " + jwt.generateToken(member);
-    activeAuthorization = "Bearer " + jwt.generateToken(activeMember);
+    ownerAuthorization = TestFixtures.authorization(jwt, authSessions, workspace.owner());
+    memberAuthorization = TestFixtures.authorization(jwt, authSessions, member);
+    activeAuthorization = TestFixtures.authorization(jwt, authSessions, activeMember);
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
   }
 

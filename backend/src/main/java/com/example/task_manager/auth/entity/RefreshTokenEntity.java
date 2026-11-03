@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,7 +20,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "refresh_tokens")
+@Table(
+    name = "refresh_tokens",
+    indexes = {
+      @Index(
+          name = "idx_refresh_session_active",
+          columnList = "family_id,user_id,revoked_at,expires_at")
+    })
 public class RefreshTokenEntity {
 
   @Id

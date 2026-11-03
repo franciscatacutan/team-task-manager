@@ -1,4 +1,5 @@
-import { apiClient } from "../../../api/apiClients";
+import { authStorage } from "../utils/authStorage";
+import { apiClient, refreshAuthSession } from "../../../api/apiClients";
 import type { AuthResponse } from "../types/auth.types";
 
 export const login = async (payload: { email: string; password: string }) => {
@@ -19,11 +20,11 @@ export const register = async (payload: {
   return data;
 };
 
-export const refresh = async () => {
-  const { data } = await apiClient.post<AuthResponse>("/auth/refresh");
-  return data;
-};
+export const refresh = refreshAuthSession;
 
 export const logout = async () => {
-  await apiClient.post("/auth/logout");
+  const token = authStorage.getToken();
+  await apiClient.post("/auth/logout", undefined, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
 };

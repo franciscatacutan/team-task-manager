@@ -20,7 +20,7 @@ import AppBreadcrumbs from "../common/components/AppBreadcrumbs";
 import NotificationCenter from "../features/notifications/components/NotificationCenter";
 
 export default function TopBar() {
-  const { logout } = useAuth();
+  const { logout, isLoggingOut } = useAuth();
   const {
     teamKey,
     projectKey,
@@ -86,7 +86,7 @@ export default function TopBar() {
 
           <NotificationCenter />
 
-          <UserMenu onLogout={logout} />
+          <UserMenu onLogout={logout} isLoggingOut={isLoggingOut} />
         </div>
       </div>
 
