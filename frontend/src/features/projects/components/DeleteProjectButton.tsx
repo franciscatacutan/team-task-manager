@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
   AlertDialog,
@@ -45,22 +45,26 @@ export function DeleteProjectButton({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
+          aria-label="Archive project"
           variant="ghost"
           className=" hover:text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="h-4 w-4" />
+          <Archive className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Project</AlertDialogTitle>
+          <AlertDialogTitle>Archive project</AlertDialogTitle>
 
           <AlertDialogDescription className="space-y-2">
-            <span>This action cannot be undone.</span>
+            <span>
+              The project and its active tasks will become read-only. Workflow
+              status and history will be preserved.
+            </span>
 
             <span className="block">
-              You are about to delete
+              You are about to archive
               <span className="font-medium text-foreground">
                 "{projectName}"
               </span>
@@ -81,7 +85,7 @@ export function DeleteProjectButton({
             variant="destructive"
             size="sm"
           >
-            {deleteProjectMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteProjectMutation.isPending ? "Archiving..." : "Archive"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

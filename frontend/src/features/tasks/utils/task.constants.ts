@@ -2,12 +2,19 @@ import { BASE_SORT_OPTIONS } from "@/common/constants/sort.constants";
 import type { SortField } from "@/common/types/sort.types";
 
 export type TaskStatus =
-  "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "ON_HOLD" | "DONE" | "CANCELLED";
+  | "TODO"
+  | "IN_PROGRESS"
+  | "IN_REVIEW"
+  | "ON_HOLD"
+  | "DONE"
+  | "CANCELLED"
+  | "DELETED";
 
 /*
  Transition rule:
- - Tasks can move between any statuses
  - Once a task leaves TODO, it cannot go back to TODO
+ - DONE can reopen to IN_REVIEW or ON_HOLD; CANCELLED is terminal
+ - DELETED is accepted for old records only and is never a transition target
 */
 
 export const allowedTransitions: Record<TaskStatus, TaskStatus[]> = {
@@ -22,6 +29,7 @@ export const allowedTransitions: Record<TaskStatus, TaskStatus[]> = {
   DONE: ["IN_REVIEW", "ON_HOLD"],
 
   CANCELLED: [],
+  DELETED: [],
 };
 
 export function canTransition(current: TaskStatus, next: TaskStatus) {
@@ -36,6 +44,7 @@ export function isTaskStatus(value: string): value is TaskStatus {
     "ON_HOLD",
     "DONE",
     "CANCELLED",
+    "DELETED",
   ].includes(value);
 }
 
@@ -46,9 +55,12 @@ export const TaskStatusLabel: Record<TaskStatus, string> = {
   ON_HOLD: "On Hold",
   DONE: "Done",
   CANCELLED: "Cancelled",
+  DELETED: "Previous status unavailable",
 };
 
 export const TaskStatusStyles: Record<TaskStatus, string> = {
+  DELETED:
+    "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold bg-muted text-muted-foreground",
   TODO: "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] bg-slate-100 text-slate-700 border-slate-200",
 
   IN_PROGRESS:

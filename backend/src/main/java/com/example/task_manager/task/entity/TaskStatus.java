@@ -10,6 +10,7 @@ public enum TaskStatus {
   ON_HOLD,
   DONE,
   CANCELLED,
+  // Legacy persisted value only. New archives use deletedAt and preserve workflow status.
   DELETED;
 
   /** Allowed user transitions; deletion uses the dedicated archive operation. */

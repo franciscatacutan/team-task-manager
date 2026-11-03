@@ -75,14 +75,17 @@ public final class ProjectSpecification {
       DeletedFilter filter, boolean canViewDeleted) {
 
     return (root, query, cb) -> {
+      var archived =
+          cb.or(
+              cb.isNotNull(root.get("deletedAt")), cb.isNotNull(root.get("team").get("deletedAt")));
       if (!canViewDeleted) {
-        return cb.isNull(root.get("deletedAt"));
+        return cb.not(archived);
       }
 
       return switch (filter == null ? DeletedFilter.ACTIVE : filter) {
-        case DELETED -> cb.isNotNull(root.get("deletedAt"));
+        case DELETED -> archived;
         case ALL -> cb.conjunction();
-        case ACTIVE -> cb.isNull(root.get("deletedAt"));
+        case ACTIVE -> cb.not(archived);
       };
     };
   }

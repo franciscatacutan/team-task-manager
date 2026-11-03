@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import PriorityBadge from "../../../common/components/PriorityBadge";
 import { formatDate } from "../../../common/utils/dateFormatter";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
@@ -26,7 +27,8 @@ export default function TaskCard({ task, onOpen }: Props) {
             </span>
           </div>
 
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            <ArchiveBadge archived={Boolean(task.deletedAt || task.readOnly)} />
             <PriorityBadge priority={task.priority ?? "LOW"} />
           </div>
         </div>

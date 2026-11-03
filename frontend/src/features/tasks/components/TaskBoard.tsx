@@ -128,6 +128,9 @@ export default function TaskBoard({
       ? [params.status]
       : ["TODO", "IN_PROGRESS", "IN_REVIEW", "ON_HOLD", "DONE", "CANCELLED"];
 
+  if (!params.status && params.deletedFilter !== "ACTIVE")
+    statuses.push("DELETED");
+
   return (
     <div className="flex h-full min-h-0 gap-4 overflow-x-auto pb-2">
       <DndContext
@@ -164,7 +167,7 @@ function BoardColumn({
   onOpenTask: (task: Task) => void;
   canChangeTaskStatus: (task: Task) => boolean;
 }) {
-  const { setNodeRef } = useDroppable({ id });
+  const { setNodeRef } = useDroppable({ id, disabled: id === "DELETED" });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteTasks(teamKey, projectKey, id, params);

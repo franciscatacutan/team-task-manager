@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { Users, ArrowUpRight, CalendarDays } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/card";
 import type { Team } from "../types/team.type";
@@ -27,6 +28,7 @@ export default function TeamCard({ team, onClick }: Props) {
               </p>
               <h3 className="truncate text-base font-semibold text-foreground">
                 {team.name}
+                <ArchiveBadge archived={Boolean(team.deletedAt)} />
               </h3>
             </div>
           </div>

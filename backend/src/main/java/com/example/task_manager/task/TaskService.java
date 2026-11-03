@@ -233,8 +233,6 @@ public class TaskService {
 
     Instant now = Instant.now();
 
-    task.setStatus(TaskStatus.DELETED);
-    task.setStatusChangedAt(now);
     task.setDeletedAt(now);
     task.setDeletedBy(requester);
 
@@ -294,10 +292,9 @@ public class TaskService {
 
     boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireTeam(teamKey);
 
-    ProjectEntity project =
-        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+    ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
 
     TaskEntity task = requireTask(taskNumber, project.getId(), team.getId());
 
@@ -340,10 +337,9 @@ public class TaskService {
 
     boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireTeam(teamKey);
 
-    ProjectEntity project =
-        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+    ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
 
     TaskEntity task = requireTask(taskNumber, project.getId(), team.getId());
 
@@ -683,7 +679,18 @@ public class TaskService {
         task.getActualCompletionDate(),
         task.getCreatedAt(),
         task.getUpdatedAt(),
-        task.getLastActivityAt());
+        task.getLastActivityAt(),
+        task.getDeletedAt(),
+        task.getDeletedBy() == null
+            ? null
+            : new TaskResponse.TaskUserSummary(
+                task.getDeletedBy().getId(),
+                task.getDeletedBy().getFirstName(),
+                task.getDeletedBy().getLastName(),
+                task.getDeletedBy().getEmail()),
+        task.getDeletedAt() != null
+            || task.getProject().getDeletedAt() != null
+            || task.getProject().getTeam().getDeletedAt() != null);
   }
 
   /** Ensures task exists Returns active task */
@@ -777,7 +784,10 @@ public class TaskService {
             .findByTeamIdAndUserId(teamId, requesterId)
             .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-    boolean deleted = task.getDeletedAt() != null || task.getProject().getDeletedAt() != null;
+    boolean deleted =
+        task.getDeletedAt() != null
+            || task.getProject().getDeletedAt() != null
+            || task.getProject().getTeam().getDeletedAt() != null;
     if (deleted && !teamAuthorizationService.canManageTeam(membership)) {
       throw new ResourceNotFoundException("Task not found");
     }

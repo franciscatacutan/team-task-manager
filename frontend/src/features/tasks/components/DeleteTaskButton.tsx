@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import { useDeleteTask } from "../hooks/useDeleteTask";
 import { useNavigate } from "react-router";
 import {
@@ -47,22 +47,26 @@ export default function DeleteTaskButton({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
+          aria-label="Archive task"
           variant="ghost"
           className=" hover:text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="h-4 w-4" />
+          <Archive className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete task</AlertDialogTitle>
+          <AlertDialogTitle>Archive task</AlertDialogTitle>
 
           <AlertDialogDescription className="space-y-2">
-            <span>This action cannot be undone.</span>
+            <span>
+              The task will become read-only. Its workflow status and history
+              will be preserved.
+            </span>
 
             <span className="block">
-              You are about to delete{" "}
+              You are about to archive{" "}
               <span className="font-medium text-foreground">"{taskName}"</span>.
             </span>
           </AlertDialogDescription>
@@ -80,7 +84,7 @@ export default function DeleteTaskButton({
             variant="destructive"
             size="sm"
           >
-            {deleteTaskMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteTaskMutation.isPending ? "Archiving..." : "Archive"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

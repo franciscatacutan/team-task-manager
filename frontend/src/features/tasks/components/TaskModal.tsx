@@ -36,7 +36,9 @@ export default function TaskModal({
   const user = getUserFromToken();
   const { data: teamMe } = useTeamMe(teamKey);
   const { team } = useOutletContext<WorkspaceOutletContext>();
-  const isWorkspaceReadOnly = Boolean(team.deletedAt);
+  const isTaskReadOnly = Boolean(
+    team.deletedAt || task?.deletedAt || task?.readOnly,
+  );
 
   const permissions = getTaskPermissions({
     globalRole: user?.role,
@@ -44,12 +46,8 @@ export default function TaskModal({
     userId: teamMe?.userId,
     assigneeId: task?.assignedUser?.id,
     supportId: task?.supportUser?.id,
-    isReadOnly: isWorkspaceReadOnly,
+    isReadOnly: isTaskReadOnly,
   });
-
-  if (isLoading || !task) {
-    return <div className="p-6">Loading task...</div>;
-  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -57,52 +55,65 @@ export default function TaskModal({
         className="flex h-[min(92vh,860px)] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-[1.75rem] border border-border/60 bg-background p-0 shadow-2xl sm:max-w-5xl"
         aria-describedby={undefined}
       >
-        <DialogTitle>
-          <TaskHeader
-            task={task}
-            teamKey={teamKey}
-            projectKey={projectKey}
-            permissions={permissions}
-            onTaskDeleted={onTaskDeleted}
-          />
-        </DialogTitle>
-
-        <div className="flex-1 min-h-0 bg-muted/10">
-          <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4 xl:overflow-hidden">
-            <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
-              <TaskDescription
-                teamKey={teamKey}
-                projectKey={projectKey}
-                task={task}
-                permissions={permissions}
-              />
-
-              {permissions.canComment && (
-                <TaskCommentForm
-                  teamKey={teamKey}
-                  projectKey={projectKey}
-                  taskNumber={task.taskNumber}
-                />
-              )}
-
-              <TaskActivity
-                teamKey={teamKey}
-                projectKey={projectKey}
-                taskNumber={task.taskNumber}
-                className="min-h-[22rem] xl:min-h-0 xl:flex-1"
-              />
-            </div>
-
-            <aside className="order-1 xl:order-2 xl:min-h-0 xl:overflow-y-auto">
-              <TaskMetadata
-                permissions={permissions}
-                teamKey={teamKey}
-                projectKey={projectKey}
-                task={task}
-              />
-            </aside>
+        {isLoading || !task ? (
+          <div className="p-6">
+            <DialogTitle>
+              {isLoading ? "Loading task..." : "Task unavailable"}
+            </DialogTitle>
+            {!isLoading && (
+              <p role="alert">It may not exist or you may not have access.</p>
+            )}
           </div>
-        </div>
+        ) : (
+          <>
+            <DialogTitle>
+              <TaskHeader
+                task={task}
+                teamKey={teamKey}
+                projectKey={projectKey}
+                permissions={permissions}
+                onTaskDeleted={onTaskDeleted}
+              />
+            </DialogTitle>
+
+            <div className="flex-1 min-h-0 bg-muted/10">
+              <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4 xl:overflow-hidden">
+                <div className="order-2 flex min-h-0 flex-col gap-4 xl:order-1">
+                  <TaskDescription
+                    teamKey={teamKey}
+                    projectKey={projectKey}
+                    task={task}
+                    permissions={permissions}
+                  />
+
+                  {permissions.canComment && (
+                    <TaskCommentForm
+                      teamKey={teamKey}
+                      projectKey={projectKey}
+                      taskNumber={task.taskNumber}
+                    />
+                  )}
+
+                  <TaskActivity
+                    teamKey={teamKey}
+                    projectKey={projectKey}
+                    taskNumber={task.taskNumber}
+                    className="min-h-[22rem] xl:min-h-0 xl:flex-1"
+                  />
+                </div>
+
+                <aside className="order-1 xl:order-2 xl:min-h-0 xl:overflow-y-auto">
+                  <TaskMetadata
+                    permissions={permissions}
+                    teamKey={teamKey}
+                    projectKey={projectKey}
+                    task={task}
+                  />
+                </aside>
+              </div>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

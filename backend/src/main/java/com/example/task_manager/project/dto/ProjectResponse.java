@@ -24,7 +24,8 @@ public record ProjectResponse(
     Instant lastActivityAt,
     Instant statusChangedAt,
     Instant deletedAt,
-    boolean deleted) {
+    boolean deleted,
+    boolean readOnly) {
 
   /** DTO for project owner information. */
   public record ProjectUserSummary(UUID id, String firstName, String lastName, String email) {}

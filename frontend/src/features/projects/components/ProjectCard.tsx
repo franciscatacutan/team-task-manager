@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { ArrowUpRight, CalendarDays, FolderKanban } from "lucide-react";
 
 import { formatDateTimeShort } from "../../../common/utils/dateFormatter";
@@ -36,6 +37,9 @@ export default function ProjectCard({ project, onClick }: Props) {
               </p>
               <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
                 {project.name}
+                <ArchiveBadge
+                  archived={Boolean(project.deletedAt || project.readOnly)}
+                />
               </h3>
             </div>
           </div>

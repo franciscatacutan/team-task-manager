@@ -13,7 +13,7 @@ public class ActivityEventMessageBuilder {
     return switch (eventType) {
       case TEAM_CREATED -> "Created team " + quotedLabel(details.team());
       case TEAM_UPDATED -> buildUpdated("team", details);
-      case TEAM_DELETED -> "Deleted team " + quotedLabel(details.team());
+      case TEAM_DELETED -> "Archived team " + quotedLabel(details.team());
       case TEAM_MEMBER_ADDED -> "Added " + plainLabel(details.subjectUser()) + " to the team";
       case TEAM_MEMBER_REMOVED -> "Removed " + plainLabel(details.subjectUser()) + " from the team";
       case TEAM_MEMBER_ROLE_CHANGED ->
@@ -27,12 +27,12 @@ public class ActivityEventMessageBuilder {
           "Transferred team ownership from " + details.from() + " to " + details.to();
       case PROJECT_CREATED -> "Created project " + quotedLabel(details.project());
       case PROJECT_UPDATED -> buildUpdated("project", details);
-      case PROJECT_DELETED -> "Deleted project " + quotedLabel(details.project());
+      case PROJECT_DELETED -> "Archived project " + quotedLabel(details.project());
       case PROJECT_STATUS_CHANGED ->
           "Changed project status from " + details.from() + " to " + details.to();
       case TASK_CREATED -> "Created task " + quotedLabel(details.task());
       case TASK_UPDATED -> buildUpdated("task", details);
-      case TASK_DELETED -> "Deleted task " + quotedLabel(details.task());
+      case TASK_DELETED -> "Archived task " + quotedLabel(details.task());
       case TASK_STATUS_CHANGED -> "Status changed from " + details.from() + " to " + details.to();
       case TASK_ASSIGNEE_CHANGED ->
           "Assignee changed from " + details.from() + " to " + details.to();

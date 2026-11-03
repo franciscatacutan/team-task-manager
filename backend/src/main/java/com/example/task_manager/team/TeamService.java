@@ -218,6 +218,7 @@ public class TeamService {
 
     for (TaskEntity task : activeTasks) {
       task.setDeletedAt(now);
+      task.setDeletedBy(requester);
       activityEventService.recordTaskEvent(
           task,
           requester,
@@ -228,6 +229,7 @@ public class TeamService {
 
     for (ProjectEntity project : activeProjects) {
       project.setDeletedAt(now);
+      project.setDeletedBy(requester);
       activityEventService.recordProjectEvent(
           project,
           requester,

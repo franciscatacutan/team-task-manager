@@ -46,7 +46,7 @@ export default function TeamOverview() {
 
   const { data: projectsData } = useProjects(teamKey || "", {
     sort: "updatedAt,desc",
-    deletedFilter: "ACTIVE",
+    deletedFilter: team.deletedAt ? "ALL" : "ACTIVE",
   });
 
   const projects = projectsData?.content ?? [];

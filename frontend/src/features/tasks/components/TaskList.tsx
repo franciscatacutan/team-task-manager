@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { useNavigate } from "react-router";
 import { ArrowUpDown, Plus } from "lucide-react";
 
@@ -136,6 +137,9 @@ export default function TaskList({
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
                         {task.name}
+                        <ArchiveBadge
+                          archived={Boolean(task.deletedAt || task.readOnly)}
+                        />
                       </div>
                       <div className="mt-1 max-w-96 truncate text-xs text-muted-foreground">
                         {task.description?.trim() || "No description"}

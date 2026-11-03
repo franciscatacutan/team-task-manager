@@ -96,8 +96,10 @@ export default function ProjectDetails() {
   } = useProject(teamKey || "", projectKey || "");
 
   const { team } = useOutletContext<WorkspaceOutletContext>();
-  const isWorkspaceReadOnly = Boolean(team.deletedAt);
-  const effectiveDeletedFilter: DeletedFilter = isWorkspaceReadOnly
+  const isProjectReadOnly = Boolean(
+    team.deletedAt || project?.deletedAt || project?.readOnly,
+  );
+  const effectiveDeletedFilter: DeletedFilter = isProjectReadOnly
     ? "ALL"
     : deletedFilter;
   const filterValues = {
@@ -203,7 +205,7 @@ export default function ProjectDetails() {
   const permissions = getProjectPermissions({
     globalRole: user?.role,
     teamRole: teamMe?.role,
-    isReadOnly: isWorkspaceReadOnly,
+    isReadOnly: isProjectReadOnly,
   });
 
   // ------------------ FILTERS ------------------
@@ -253,7 +255,7 @@ export default function ProjectDetails() {
       <CreateTaskModal
         teamKey={teamKey}
         projectKey={projectKey}
-        open={open}
+        open={open && !isProjectReadOnly}
         onOpenChange={setOpen}
       />
       {(view == "board" || view == "list") && (
@@ -335,7 +337,9 @@ export default function ProjectDetails() {
                   userId: teamMe?.userId,
                   assigneeId: task.assignedUser?.id,
                   supportId: task.supportUser?.id,
-                  isReadOnly: isWorkspaceReadOnly,
+                  isReadOnly:
+                    isProjectReadOnly ||
+                    Boolean(task.deletedAt || task.readOnly),
                 }).canChangeStatus
               }
               onStatusChange={handleStatusChange}

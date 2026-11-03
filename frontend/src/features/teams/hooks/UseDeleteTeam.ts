@@ -11,6 +11,21 @@ export function useDeleteTeam() {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
 
       queryClient.invalidateQueries({ queryKey: ["team", teamKey] });
+      for (const key of [
+        "projects",
+        "project",
+        "tasks",
+        "task",
+        "taskActivities",
+        "teamActivity",
+        "projectActivity",
+        "project-insights",
+        "team-insights",
+        "team-audit-logs",
+        "project-audit-logs",
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 }

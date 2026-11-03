@@ -20,6 +20,7 @@ export type Project = {
   statusChangedAt?: string;
   deletedAt?: string | null;
   deleted?: boolean;
+  readOnly?: boolean;
 };
 
 type User = {

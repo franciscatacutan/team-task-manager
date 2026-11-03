@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { ArrowUpDown, Plus } from "lucide-react";
 import type { Team } from "../types/team.type";
 import type { SortField } from "@/common/types/sort.types";
@@ -109,6 +110,7 @@ export default function TeamsList({
                     <TableCell className="px-4 py-3">
                       <div className="font-medium truncate group-hover:text-primary transition-colors">
                         {team.name}
+                        <ArchiveBadge archived={Boolean(team.deletedAt)} />
                       </div>
                     </TableCell>
 

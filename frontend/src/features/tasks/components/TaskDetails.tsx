@@ -28,7 +28,9 @@ export default function TaskDetailsPage() {
   const user = getUserFromToken();
   const { data: teamMe } = useTeamMe(teamKey || "");
   const { team } = useOutletContext<WorkspaceOutletContext>();
-  const isWorkspaceReadOnly = Boolean(team.deletedAt);
+  const isTaskReadOnly = Boolean(
+    team.deletedAt || task?.deletedAt || task?.readOnly,
+  );
 
   if (
     !teamKey ||
@@ -40,8 +42,16 @@ export default function TaskDetailsPage() {
     return <div className="p-6">Invalid task</div>;
   }
 
-  if (isLoading || !task) {
+  if (isLoading) {
     return <div className="p-6">Loading task...</div>;
+  }
+
+  if (!task) {
+    return (
+      <div className="p-6" role="alert">
+        Task unavailable. It may not exist or you may not have access.
+      </div>
+    );
   }
 
   const permissions = getTaskPermissions({
@@ -50,7 +60,7 @@ export default function TaskDetailsPage() {
     userId: teamMe?.userId,
     assigneeId: task?.assignedUser?.id,
     supportId: task?.supportUser?.id,
-    isReadOnly: isWorkspaceReadOnly,
+    isReadOnly: isTaskReadOnly,
   });
 
   return (

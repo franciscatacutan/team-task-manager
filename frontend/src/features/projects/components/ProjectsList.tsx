@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { ArrowUpDown, Plus } from "lucide-react";
 import type { SortField } from "@/common/types/sort.types";
 
@@ -114,6 +115,11 @@ export default function ProjectsList({
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
                         {project.name}
+                        <ArchiveBadge
+                          archived={Boolean(
+                            project.deletedAt || project.readOnly,
+                          )}
+                        />
                       </div>
                       <div className="mt-1 max-w-96 truncate text-xs text-muted-foreground">
                         {project.description?.trim() || "No description"}

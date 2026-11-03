@@ -20,7 +20,10 @@ public record TaskResponse(
     Instant actualCompletionDate,
     Instant createdAt,
     Instant updatedAt,
-    Instant lastActivityAt) {
+    Instant lastActivityAt,
+    Instant deletedAt,
+    TaskUserSummary deletedBy,
+    boolean readOnly) {
 
   /** DTO for user assigned to task. */
   public record TaskUserSummary(UUID id, String firstName, String lastName, String email) {}

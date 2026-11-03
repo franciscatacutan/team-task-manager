@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
   AlertDialog,
@@ -39,22 +39,26 @@ export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
+          aria-label="Archive team"
           variant="ghost"
           className=" hover:text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="h-4 w-4" />
+          <Archive className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Team</AlertDialogTitle>
+          <AlertDialogTitle>Archive team</AlertDialogTitle>
 
           <AlertDialogDescription className="space-y-2">
-            <span>This action cannot be undone.</span>
+            <span>
+              The team and its active projects and tasks will become read-only.
+              Workflow status and history will be preserved.
+            </span>
 
             <span className="block">
-              You are about to delete
+              You are about to archive
               <span className="font-medium text-foreground">"{teamName}"</span>.
             </span>
           </AlertDialogDescription>
@@ -72,7 +76,7 @@ export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
             variant="destructive"
             size="sm"
           >
-            {deleteTeamMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteTeamMutation.isPending ? "Archiving..." : "Archive"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

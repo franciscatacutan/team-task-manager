@@ -1,4 +1,4 @@
-import { Clock3, Trash2, Users } from "lucide-react";
+import { Clock3, Archive, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDate } from "@/common/utils/dateFormatter";
@@ -56,8 +56,8 @@ export default function TeamHeader({
 
               {isDeleted ? (
                 <span className="inline-flex items-center rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700">
-                  <Trash2 className="mr-1 h-3 w-3" />
-                  Deleted
+                  <Archive className="mr-1 h-3 w-3" />
+                  Archived
                 </span>
               ) : (
                 <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-green-700">
@@ -143,10 +143,10 @@ export default function TeamHeader({
             />*/}
             {isDeleted ? (
               <HeaderDetail
-                label="Deleted"
+                label="Archived"
                 value={displayDate(team.deletedAt, "No date")}
                 helper={deletedByName ? `by ${deletedByName}` : "Archived"}
-                icon={Trash2}
+                icon={Archive}
               />
             ) : null}
           </div>

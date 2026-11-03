@@ -16,6 +16,9 @@ export type Task = {
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;
+  deletedAt?: string | null;
+  deletedBy?: TaskUser | null;
+  readOnly?: boolean;
 };
 
 export interface TaskUser {

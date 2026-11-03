@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock3, FolderKanban, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
 
 import EditableField from "../../../common/components/EditableField";
 import { Button } from "../../../components/ui/button";
@@ -38,7 +38,7 @@ export default function ProjectHeader({
   const createdByName = formatUserName(project.createdBy);
   const completedByName = formatUserName(project.completedBy);
   const deletedByName = formatUserName(project.deletedBy);
-  const isDeleted = Boolean(project.deletedAt);
+  const isDeleted = Boolean(project.deletedAt || project.readOnly);
 
   function handleStatusChange(projectKey: string, status: ProjectStatus) {
     updateProjectStatus.mutate({
@@ -74,8 +74,8 @@ export default function ProjectHeader({
 
                 {isDeleted ? (
                   <span className="inline-flex items-center rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700">
-                    <Trash2 className="mr-1 h-3 w-3" />
-                    Deleted
+                    <Archive className="mr-1 h-3 w-3" />
+                    Archived
                   </span>
                 ) : null}
               </div>
@@ -193,10 +193,10 @@ export default function ProjectHeader({
             ) : null}
             {isDeleted ? (
               <HeaderDetail
-                label="Deleted"
+                label="Archived"
                 value={displayDate(project.deletedAt, "No date")}
                 helper={deletedByName ? `by ${deletedByName}` : "Archived"}
-                icon={Trash2}
+                icon={Archive}
               />
             ) : null}
           </div>

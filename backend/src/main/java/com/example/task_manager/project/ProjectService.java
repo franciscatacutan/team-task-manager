@@ -235,13 +235,12 @@ public class ProjectService {
     List<TaskEntity> activeTasks =
         taskRepository.findAllByProjectIdAndDeletedAtIsNull(project.getId());
 
-    project.setStatus(ProjectStatus.DELETED);
-    project.setStatusChangedAt(Instant.now());
     project.setDeletedAt(now);
     project.setDeletedBy(requester);
 
     for (TaskEntity task : activeTasks) {
       task.setDeletedAt(now);
+      task.setDeletedBy(requester);
       activityEventService.recordTaskEvent(
           task,
           requester,
@@ -449,7 +448,8 @@ public class ProjectService {
         project.getLastActivityAt(),
         project.getStatusChangedAt(),
         project.getDeletedAt(),
-        isDeleted);
+        isDeleted,
+        isDeleted || project.getTeam().getDeletedAt() != null);
   }
 
   /*
