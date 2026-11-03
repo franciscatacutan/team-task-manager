@@ -33,6 +33,7 @@ public class TeamMemberOperations {
   private final GlobalAuthorizationService globalAuthorization;
   private final TeamAuthorizationService teamAuthorization;
   private final ActivityEventService activity;
+  private final TeamMemberMapper memberMapper;
 
   @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
   public void validateAccess(String teamKey, String email) {
@@ -63,7 +64,7 @@ public class TeamMemberOperations {
     members.saveAndFlush(member);
     context.team().setMembershipChangedAt(Instant.now());
     record(context, member, true);
-    return TeamMemberMapper.toResponse(member);
+    return memberMapper.toResponse(member, context.requester());
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

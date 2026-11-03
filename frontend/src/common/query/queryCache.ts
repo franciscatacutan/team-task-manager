@@ -158,3 +158,11 @@ export function keepPreviousDataInScope<T>(
     ? data
     : undefined;
 }
+
+/** A complete edit response can update the matching identity without replacing another account. */
+export async function setConfirmedUserData(client: QueryClient, user: User) {
+  const writes = [setConfirmedData(client, keys.users.detail(user.id), user)];
+  if (client.getQueryData<User>(keys.session.current)?.id === user.id)
+    writes.push(setConfirmedData(client, keys.session.current, user));
+  await Promise.all(writes);
+}

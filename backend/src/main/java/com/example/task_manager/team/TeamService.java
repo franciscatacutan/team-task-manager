@@ -30,6 +30,7 @@ import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.UserSpecification;
+import com.example.task_manager.user.UserVisibilityPolicy;
 import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
@@ -70,6 +71,8 @@ public class TeamService {
           "role");
 
   private final TeamRepository teamRepository;
+  private final TeamMemberMapper memberMapper;
+  private final UserVisibilityPolicy userVisibility;
   private final TeamMemberRepository teamMemberRepository;
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
@@ -293,7 +296,7 @@ public class TeamService {
 
     Page<TeamMemberEntity> page = teamMemberRepository.findAll(spec, pageable);
 
-    return toPageResponse(page, TeamMemberMapper::toResponse);
+    return toPageResponse(page, member -> memberMapper.toResponse(member, requester));
   }
 
   /** Returns all the user that's not part of the team . */
@@ -309,13 +312,18 @@ public class TeamService {
       requireManagerMembership(team.getId(), requester.getId());
     }
 
+    if (!globalAuthorizationService.isGlobalAdmin(requester)
+        && pageable.getSort().getOrderFor("role") != null) {
+      throw new BadRequestInputException("Global account role sorting is not available.");
+    }
+
     Specification<UserEntity> spec = UserSpecification.availableUsers(teamKey, search);
 
     pageable = requireSortable(pageable);
 
     Page<UserEntity> page = userRepository.findAll(spec, pageable);
 
-    return toPageResponse(page, this::mapToNonMemberResponse);
+    return toPageResponse(page, user -> userVisibility.toResponse(user, requester));
   }
 
   /** Returns user's team role. */
@@ -385,7 +393,7 @@ public class TeamService {
 
     TeamRole previousRole = targetMember.getRole();
     if (previousRole == newRole) {
-      return TeamMemberMapper.toResponse(targetMember);
+      return memberMapper.toResponse(targetMember, requester);
     }
 
     targetMember.setRole(newRole);
@@ -404,7 +412,7 @@ public class TeamService {
             targetMember.getUser()),
         null);
 
-    return TeamMemberMapper.toResponse(targetMember);
+    return memberMapper.toResponse(targetMember, requester);
   }
 
   /** Owners and super admins can transfer ownership to any current member. */
@@ -449,7 +457,7 @@ public class TeamService {
             newOwner.getUser()),
         null);
 
-    return TeamMemberMapper.toResponse(newOwner);
+    return memberMapper.toResponse(newOwner, requester);
   }
 
   // ********************
@@ -509,11 +517,6 @@ public class TeamService {
         team.getMembershipChangedAt(),
         team.getDeletedAt(),
         isDeleted);
-  }
-
-  private UserResponse mapToNonMemberResponse(UserEntity user) {
-    return new UserResponse(
-        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
   }
 
   /**

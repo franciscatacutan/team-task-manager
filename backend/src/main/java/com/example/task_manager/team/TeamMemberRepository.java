@@ -56,6 +56,15 @@ public interface TeamMemberRepository
   List<TeamMemberEntity> findVisibleTeamSummariesForUser(
       UUID targetUserId, UUID requesterUserId, boolean canViewAllTeams);
 
+  @Query(
+      """
+      SELECT (COUNT(subject) > 0) FROM TeamMemberEntity subject
+      WHERE subject.user.id = :subjectId AND subject.team.deletedAt IS NULL
+      AND EXISTS (SELECT viewer.id FROM TeamMemberEntity viewer
+                  WHERE viewer.team.id = subject.team.id AND viewer.user.id = :viewerId)
+      """)
+  boolean sharesActiveTeam(UUID viewerId, UUID subjectId);
+
   long countByTeamId(UUID teamId);
 
   long countByTeamIdAndRole(UUID teamId, TeamRole role);

@@ -2,7 +2,12 @@
 import { apiClient } from "../../../api/apiClients";
 import { authStorage } from "../../auth/utils/authStorage";
 import type { UserRole } from "../types/userRole";
-import type { User } from "../types/userType";
+import type {
+  User,
+  UserProfile,
+  UpdateUserProfileInput,
+  AdminUpdateUserInput,
+} from "../types/userType";
 import { jwtDecode } from "jwt-decode";
 import type { PageResponse } from "@/common/types/pageResponse.types";
 
@@ -28,40 +33,32 @@ export const getUsers = async (params: {
   return response.data;
 };
 
-export const getUser = async (userId: string): Promise<User> => {
-  const { data } = await apiClient.get<User>(`/users/${userId}`);
+export const getUser = async (userId: string): Promise<UserProfile> => {
+  const { data } = await apiClient.get<UserProfile>(`/users/${userId}`);
   return data;
 };
 
+/** Self/profile-only operation; email and role never trigger hidden follow-up requests. */
 export const updateUserProfile = async (
   userId: string,
-  payload: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-  },
+  payload: UpdateUserProfileInput,
 ): Promise<User> => {
-  const profilePayload = {
+  const { data } = await apiClient.patch<User>(`/users/${userId}`, {
     firstName: payload.firstName,
     lastName: payload.lastName,
-  };
+  });
+  return data;
+};
 
-  const { data: updatedProfile } = await apiClient.patch<User>(
-    `/users/${userId}`,
-    profilePayload,
+export const updateUserByAdmin = async (
+  userId: string,
+  payload: AdminUpdateUserInput,
+): Promise<User> => {
+  const { data } = await apiClient.patch<User>(
+    `/admin/users/${userId}`,
+    payload,
   );
-
-  if (payload.email && payload.email !== updatedProfile.email) {
-    const { data } = await apiClient.patch<User>(
-      `/admin/users/${userId}/email`,
-      {
-        email: payload.email,
-      },
-    );
-    return data;
-  }
-
-  return updatedProfile;
+  return data;
 };
 
 export const updateUserRole = async (

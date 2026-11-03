@@ -42,8 +42,9 @@ public class UserController {
    * Get Active User
    */
   @GetMapping("/{userId}")
-  public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
-    return ResponseEntity.ok(userService.getUser(userId));
+  public ResponseEntity<UserResponse> getUser(
+      @PathVariable UUID userId, Authentication authentication) {
+    return ResponseEntity.ok(userService.getUser(userId, authentication.getName()));
   }
 
   /*

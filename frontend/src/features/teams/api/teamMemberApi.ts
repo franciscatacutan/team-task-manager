@@ -1,7 +1,7 @@
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
-import type { User } from "../../users/types/userType";
+import type { UserIdentity } from "../../users/types/userType";
 import type {
   AddMembersInput,
   AddMembersResult,
@@ -38,7 +38,7 @@ export const getTeamMembers = async (
 export const getAvailableUsers = async (
   teamKey: string,
   params: Pick<BaseQueryParams, "search" | "size">,
-): Promise<PageResponse<User>> => {
+): Promise<PageResponse<UserIdentity>> => {
   const response = await apiClient.get(`/teams/${teamKey}/available-users`, {
     params,
   });

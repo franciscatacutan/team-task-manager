@@ -18,7 +18,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { useAddMembers } from "../hooks/useAddMembers";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { User } from "../../users/types/userType";
+import type { UserIdentity } from "../../users/types/userType";
 import { cn } from "../../../lib/utils";
 import { TEAM_ROLE_STYLES, TEAM_ROLE_LABEL } from "../constants/team.constants";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
@@ -39,7 +39,7 @@ type FormValues = z.infer<typeof schema>;
 interface Props {
   canAssignAdmin: boolean;
   teamKey: string;
-  users: User[];
+  users: UserIdentity[];
   search: string;
   onSearchChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
@@ -55,7 +55,9 @@ export function AddMemberForm({
 }: Props) {
   const [result, setResult] = useState<AddMembersResult | null>(null);
   const [requestError, setRequestError] = useState("");
-  const [knownUsers, setKnownUsers] = useState<Record<string, User>>({});
+  const [knownUsers, setKnownUsers] = useState<Record<string, UserIdentity>>(
+    {},
+  );
   const labels = Object.fromEntries(
     [...Object.values(knownUsers), ...users].map((user) => [
       user.id,
@@ -117,7 +119,7 @@ export function AddMemberForm({
             id,
             users.find((user) => user.id === id) ?? current[id],
           ])
-          .filter((entry): entry is [string, User] => !!entry[1]),
+          .filter((entry): entry is [string, UserIdentity] => !!entry[1]),
       ),
     );
     const currentMembers = form.getValues("members");
@@ -167,8 +169,11 @@ export function AddMemberForm({
     .filter(
       (
         entry,
-      ): entry is { userId: string; role: "ADMIN" | "MEMBER"; user: User } =>
-        !!entry,
+      ): entry is {
+        userId: string;
+        role: "ADMIN" | "MEMBER";
+        user: UserIdentity;
+      } => !!entry,
     );
 
   return (
@@ -209,7 +214,7 @@ export function AddMemberForm({
         <div className="space-y-3">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="text-xs font-medium text-muted-foreground">
-              Roles Per User
+              Roles Per UserIdentity
             </label>
 
             <span className="text-xs text-muted-foreground sm:text-right">

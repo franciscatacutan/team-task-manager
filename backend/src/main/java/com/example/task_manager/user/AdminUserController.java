@@ -2,6 +2,7 @@ package com.example.task_manager.user;
 
 import com.example.task_manager.user.dto.AdminResetPasswordRequest;
 import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
+import com.example.task_manager.user.dto.AdminUpdateUserRequest;
 import com.example.task_manager.user.dto.UpdateUserRoleRequest;
 import com.example.task_manager.user.dto.UserResponse;
 import jakarta.validation.Valid;
@@ -37,6 +38,14 @@ public class AdminUserController {
     userService.updateUserRole(id, request, authentication.getName());
 
     return ResponseEntity.noContent().build();
+  }
+
+  @PatchMapping("/{id}")
+  public ResponseEntity<UserResponse> updateUser(
+      @PathVariable UUID id,
+      @Valid @RequestBody AdminUpdateUserRequest request,
+      Authentication authentication) {
+    return ResponseEntity.ok(userService.updateUserByAdmin(id, request, authentication.getName()));
   }
 
   @PatchMapping("/{id}/password")

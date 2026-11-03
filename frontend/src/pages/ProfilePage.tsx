@@ -16,7 +16,7 @@ import {
 import type { SortField, SortOrder } from "@/common/types/sort.types";
 import { useDebounce } from "@/common/hooks/useDebounce";
 import { TEAM_LIST_SORT_OPTIONS } from "@/features/teams/constants/team.constants";
-import { getUserFromToken } from "@/features/users/api/userApi";
+import { canEditUser } from "@/features/users/utils/userPermissions";
 import TeamsList from "@/features/teams/components/TeamsList";
 import { Pagination } from "@/common/components/pagination/Pagination";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -62,8 +62,13 @@ export default function ProfilePage() {
 
   const profileUserId = userId ?? currentUser?.id ?? "";
 
-  const { data: profileUser, isLoading: profileUserLoading } =
-    useUser(profileUserId);
+  const {
+    data: profileData,
+    isLoading: profileUserLoading,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useUser(profileUserId);
+  const profileUser = profileError ? undefined : profileData;
 
   const isLoading = currentUserLoading || profileUserLoading;
 
@@ -74,14 +79,17 @@ export default function ProfilePage() {
     isError,
     isLoading: teamLoading,
     refetch,
-  } = useTeams({
-    page,
-    size,
-    search: debouncedSearch,
-    sort,
-    deletedFilter,
-    memberId: profileUserId,
-  });
+  } = useTeams(
+    {
+      page,
+      size,
+      search: debouncedSearch,
+      sort,
+      deletedFilter,
+      memberId: profileUserId,
+    },
+    Boolean(profileUser),
+  );
 
   const teams = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
@@ -135,11 +143,10 @@ export default function ProfilePage() {
 
   // ---------------- PERMISSIONS ----------------
 
-  const user = getUserFromToken();
-
-  const permissions = getBasePermissions(user?.role);
-
-  const canEditProfile = isSelf || permissions.canManageUsers;
+  const permissions = getBasePermissions(currentUser?.role);
+  const canEditProfile = Boolean(
+    currentUser && profileUser && canEditUser(currentUser, profileUser),
+  );
 
   // ------------------ FILTERS ------------------
   const filters = permissions.canManageTeams
@@ -152,6 +159,20 @@ export default function ProfilePage() {
       }
     : undefined;
 
+  if (profileError)
+    return (
+      <section role="alert" className="m-6 rounded-2xl border p-6 space-y-3">
+        <h1 className="text-xl font-semibold">Profile unavailable</h1>
+        <p>
+          This profile could not be loaded. It may not exist, or you may no
+          longer have access.
+        </p>
+        <Button variant="outline" onClick={() => void refetchProfile()}>
+          Retry profile
+        </Button>
+      </section>
+    );
+
   return (
     <div className="min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
@@ -161,17 +182,22 @@ export default function ProfilePage() {
           isSelf={isSelf}
           canEditProfile={canEditProfile}
           teamCount={totalElements}
-          editUser={(user) => setEditingUser(user || null)}
+          editUser={(user) => {
+            if (user && currentUser && canEditUser(currentUser, user))
+              setEditingUser(user);
+          }}
           onEditUser={() => setEditOpen(true)}
         />
 
-        <EditUserDialog
-          currentUser={currentUser!}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          user={editingUser}
-          allowEmailEdit={!isSelf && permissions.canManageUsers}
-        />
+        {currentUser && (
+          <EditUserDialog
+            currentUser={currentUser}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            user={editingUser}
+            allowEmailEdit={!isSelf && permissions.canManageUsers}
+          />
+        )}
 
         <Toolbar
           search={{

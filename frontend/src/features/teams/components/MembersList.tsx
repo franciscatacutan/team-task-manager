@@ -182,9 +182,11 @@ export default function MembersList({
                         <div className="truncate font-medium text-foreground">
                           {member.firstName} {member.lastName}
                         </div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {member.globalRole}
-                        </div>
+                        {member.globalRole && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {member.globalRole}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TableCell>

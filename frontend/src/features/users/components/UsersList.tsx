@@ -1,3 +1,4 @@
+import { canEditUser } from "../utils/userPermissions";
 import {
   ArrowUpDown,
   KeyRound,
@@ -126,11 +127,8 @@ export default function UsersList({
               <TableBody>
                 {users.map((user) => {
                   const canManageUser =
-                    currentUser.role === "SUPER_ADMIN"
-                      ? user.id !== currentUser.id
-                      : currentUser.role === "ADMIN"
-                        ? user.role === "USER"
-                        : false;
+                    user.id !== currentUser.id &&
+                    canEditUser(currentUser, user);
 
                   return (
                     <TableRow

@@ -246,11 +246,11 @@ describe("profile cache consistency", () => {
       true,
     );
   });
-  it("refetches committed profile state after a later request in the existing edit sequence fails", async () => {
+  it("refetches committed profile state after a write response is lost", async () => {
     const { client, wrapper } = setup();
     client.setQueryData(keys.users.detail(original.id), original);
     vi.mocked(users.updateUserProfile).mockRejectedValue(
-      new Error("Email conflict after name save"),
+      new Error("Response lost after name save"),
     );
     vi.mocked(users.getUser).mockResolvedValue(updated);
     const { result } = renderHook(
@@ -264,9 +264,8 @@ describe("profile cache consistency", () => {
       await expect(
         result.current.save.mutateAsync({
           firstName: "Server",
-          email: "taken@example.test",
         }),
-      ).rejects.toThrow("Email conflict");
+      ).rejects.toThrow("Response lost");
     });
     await waitFor(() => expect(result.current.profile.data).toEqual(updated));
     expect(result.current.save.isError).toBe(true);

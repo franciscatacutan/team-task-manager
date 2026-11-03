@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { getTeam } from "@/features/teams/api/teamApi";
 import { getProject } from "@/features/projects/api/projectApi";
 import { getTask } from "@/features/tasks/api/taskApi";
-import { getUser } from "@/features/users/api/userApi";
+import { useUser } from "@/features/users/hooks/useUser";
 
 type BreadcrumbItem = {
   label: string;
@@ -61,11 +61,11 @@ export default function AppBreadcrumbs() {
       Number(taskNumber) > 0,
   });
 
-  const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: queryKeys.users.detail(userId ?? ""),
-    queryFn: () => getUser(userId!),
-    enabled: !!userId && segments[0] === "users",
-  });
+  const {
+    data: user,
+    isLoading: userLoading,
+    isError: userError,
+  } = useUser(userId ?? "", segments[0] === "users");
 
   const items = buildBreadcrumbItems({
     pathname,
@@ -81,7 +81,8 @@ export default function AppBreadcrumbs() {
       : taskNumber
         ? `Task ${taskNumber}`
         : undefined,
-    userName: user ? `${user.firstName} ${user.lastName}` : undefined,
+    userName:
+      user && !userError ? `${user.firstName} ${user.lastName}` : undefined,
     loading: {
       team: teamLoading,
       project: projectLoading,

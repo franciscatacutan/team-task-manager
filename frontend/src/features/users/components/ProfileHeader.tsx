@@ -1,18 +1,17 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, UserRound, UsersRound } from "lucide-react";
-import type { UserRole } from "../types/userRole";
-import type { User } from "../types/userType";
+import type { UserProfile } from "../types/userType";
 import { USER_ROLE_LABEL, USER_ROLE_STYLES } from "../constants/user.constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
-  user?: User;
+  user?: UserProfile;
   isLoading: boolean;
   isSelf: boolean;
   canEditProfile: boolean;
   teamCount: number;
-  editUser: (user?: User) => void;
+  editUser: (user?: UserProfile) => void;
   onEditUser: () => void;
 }
 
@@ -81,16 +80,20 @@ export default function ProfileHeader({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${USER_ROLE_STYLES[user?.role as UserRole]}`}
-                  >
-                    {USER_ROLE_LABEL[user?.role as UserRole]}
-                  </Badge>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
-                    <Shield className="h-3.5 w-3.5" />
-                    Global Access
-                  </div>
+                  {user.role && (
+                    <>
+                      <Badge
+                        variant="outline"
+                        className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${USER_ROLE_STYLES[user.role]}`}
+                      >
+                        {USER_ROLE_LABEL[user.role]}
+                      </Badge>
+                      <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
+                        <Shield className="h-3.5 w-3.5" />
+                        Global Access
+                      </div>
+                    </>
+                  )}
 
                   <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
                     <UsersRound className="h-3.5 w-3.5" />

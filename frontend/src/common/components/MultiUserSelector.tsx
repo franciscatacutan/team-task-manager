@@ -17,13 +17,12 @@ import {
   PopoverTrigger,
 } from "../../components/ui/popover";
 import { cn } from "../../lib/utils";
-import type { TeamMember } from "../../features/teams/types/team.type";
-import type { User } from "../../features/users/types/userType";
+import type { UserIdentity } from "../../features/users/types/userType";
 
 interface Props {
-  users: User[] | TeamMember[];
+  users: UserIdentity[];
   value?: string[];
-  selectedUsers?: (User | TeamMember)[];
+  selectedUsers?: UserIdentity[];
   disabled?: boolean;
   search: string;
   onSearchChange: (value: string) => void;

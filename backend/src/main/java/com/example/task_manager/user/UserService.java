@@ -9,6 +9,7 @@ import com.example.task_manager.exception.api.ResourceNotFoundException;
 import com.example.task_manager.exception.api.UserNotFoundException;
 import com.example.task_manager.user.dto.AdminResetPasswordRequest;
 import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
+import com.example.task_manager.user.dto.AdminUpdateUserRequest;
 import com.example.task_manager.user.dto.UpdateEmailRequest;
 import com.example.task_manager.user.dto.UpdatePasswordRequest;
 import com.example.task_manager.user.dto.UpdateUserProfileRequest;
@@ -22,6 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
   private final UserRepository userRepository;
+  private final UserVisibilityPolicy visibility;
   private final PasswordEncoder passwordEncoder;
   private final RefreshTokenService refreshTokenService;
 
@@ -69,12 +72,67 @@ public class UserService {
    * Fetch one user.
    */
   @Transactional(readOnly = true)
-  public UserResponse getUser(UUID userId) {
-
+  public UserResponse getUser(UUID userId, String requesterEmail) {
+    UserEntity requester = getUserByEmail(requesterEmail);
     UserEntity user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+    visibility.requireProfileAccess(requester, user);
+    return visibility.toResponse(user, requester);
+  }
 
-    return new UserResponse(
-        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
+  /** One admin transaction for profile, optional login email and optional global role. */
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+  @Transactional
+  public UserResponse updateUserByAdmin(
+      UUID userId, AdminUpdateUserRequest request, String requesterEmail) {
+    UserEntity target =
+        userRepository.findByIdForUpdate(userId).orElseThrow(UserNotFoundException::new);
+    UserEntity requester = getUserByEmail(requesterEmail);
+    assertCanManageTargetUser(requester, target);
+
+    // Validate every requested operation before changing any managed state.
+    String firstName =
+        request.firstName() == null
+            ? target.getFirstName()
+            : cleanRequiredName(request.firstName(), "First name");
+    String lastName =
+        request.lastName() == null
+            ? target.getLastName()
+            : cleanRequiredName(request.lastName(), "Last name");
+    String email = target.getEmail();
+    if (request.email() != null) {
+      if (requester.getId().equals(userId))
+        throw new ForbiddenException("Use the regular email change flow for your own account.");
+      if (request.email().isBlank()) throw new BadRequestInputException("Email cannot be blank");
+      email = normalizeEmail(request.email());
+      if (!email.equalsIgnoreCase(target.getEmail())
+          && userRepository.existsByEmailIgnoreCase(email)) {
+        throw new ConflictException("Email already exists");
+      }
+    }
+    if (request.role() != null) {
+      if (requester.getRole() != UserRole.SUPER_ADMIN)
+        throw new ForbiddenException("Only SUPER_ADMIN can update global roles.");
+      if (requester.getId().equals(userId) && request.role() != UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
+      }
+    }
+
+    boolean emailChanged = !email.equalsIgnoreCase(target.getEmail());
+    try {
+      target.setFirstName(firstName);
+      target.setLastName(lastName);
+      if (request.role() != null) target.setRole(request.role());
+      if (emailChanged) {
+        target.setEmail(email);
+        // This call can auto-flush the changed email before querying sessions.
+        refreshTokenService.revokeAllForUser(userId);
+      }
+      userRepository.flush();
+    } catch (DataIntegrityViolationException conflict) {
+      throw new ConflictException(
+          "The user could not be saved because an account value is already in use.");
+    }
+    return mapToResponse(target);
   }
 
   /*
@@ -91,7 +149,7 @@ public class UserService {
             .orElseThrow(UserNotFoundException::new);
 
     UserEntity targetUser =
-        userRepository.findById(targetUserId).orElseThrow(UserNotFoundException::new);
+        userRepository.findByIdForUpdate(targetUserId).orElseThrow(UserNotFoundException::new);
 
     if (currentUser.getId().equals(targetUserId) && request.role() != UserRole.SUPER_ADMIN) {
       throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
@@ -112,7 +170,7 @@ public class UserService {
     UserEntity requester = getUserByEmail(requesterEmail);
     UserEntity user =
         userRepository
-            .findById(userId)
+            .findByIdForUpdate(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     assertCanManageTargetUser(requester, user);

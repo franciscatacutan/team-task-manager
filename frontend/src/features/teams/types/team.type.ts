@@ -53,7 +53,7 @@ export interface TeamMember {
   lastName: string;
   email: string;
   teamRole: NullableTeamRole;
-  globalRole: UserRole;
+  globalRole?: UserRole;
   joinedAt: string;
 }
 

@@ -8,7 +8,10 @@ export const queryKeys = {
   },
   teams: {
     lists: ["teams"] as const,
-    list: (params: object) => ["teams", params] as const,
+    listScope: (memberId?: string) =>
+      ["teams", "list", memberId ?? null] as const,
+    list: <T extends object>(params: T & { memberId?: string }) =>
+      ["teams", "list", params.memberId ?? null, params] as const,
     all: ["teams", "all"] as const,
     details: ["team"] as const,
     detail: (teamKey: string) => ["team", teamKey] as const,
@@ -142,6 +145,7 @@ export const mutationKeys = {
     ["task-comment", team, project, task] as const,
   taskArchive: (team: string, project: string) =>
     ["task-archive", team, project] as const,
+  userAdminUpdate: (user: string) => ["user-admin-update", user] as const,
   userProfile: (user: string) => ["user-profile", user] as const,
   userRole: (user: string) => ["user-role", user] as const,
   notificationRead: ["notification-read"] as const,
