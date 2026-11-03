@@ -17,15 +17,9 @@ import com.example.task_manager.project.ProjectRepository;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
-import com.example.task_manager.team.dto.AddTeamMembersRequest;
-import com.example.task_manager.team.dto.AddTeamMembersResponse;
 import com.example.task_manager.team.dto.CreateTeamRequest;
-import com.example.task_manager.team.dto.FailedMember;
-import com.example.task_manager.team.dto.RemoveTeamMembersRequest;
-import com.example.task_manager.team.dto.RemoveTeamMembersResponse;
 import com.example.task_manager.team.dto.TeamActivityResponse;
 import com.example.task_manager.team.dto.TeamMeResponse;
-import com.example.task_manager.team.dto.TeamMemberRequest;
 import com.example.task_manager.team.dto.TeamMemberResponse;
 import com.example.task_manager.team.dto.TeamMemberSearchRequest;
 import com.example.task_manager.team.dto.TeamResponse;
@@ -38,7 +32,6 @@ import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.UserSpecification;
 import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -300,7 +293,7 @@ public class TeamService {
 
     Page<TeamMemberEntity> page = teamMemberRepository.findAll(spec, pageable);
 
-    return toPageResponse(page, this::mapToMemberResponse);
+    return toPageResponse(page, TeamMemberMapper::toResponse);
   }
 
   /** Returns all the user that's not part of the team . */
@@ -364,116 +357,6 @@ public class TeamService {
     return toPageResponse(page, activityEventService::toTeamActivitiesResponse);
   }
 
-  /** Adds members in a team User must be unique for the team */
-  @Transactional
-  public AddTeamMembersResponse addMembers(
-      String teamKey, AddTeamMembersRequest request, String requesterEmail) {
-
-    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
-
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
-
-    teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
-
-    List<TeamMemberResponse> success = new ArrayList<>();
-    List<FailedMember> failed = new ArrayList<>();
-
-    for (TeamMemberRequest user : request.members()) {
-
-      try {
-        TeamMemberEntity member = addTeamMember(team, user, requester);
-
-        teamMemberRepository.flush();
-
-        success.add(mapToMemberResponse(member));
-
-        activityEventService.recordTeamEvent(
-            team,
-            requester,
-            ActivityEventType.TEAM_MEMBER_ADDED,
-            buildTeamActivityDetails(
-                List.of("member", "role"),
-                null,
-                member.getRole().name(),
-                member.getUser().getFullName(),
-                List.of(
-                    activityEventService.change(
-                        "member", "member", null, member.getUser().getFullName()),
-                    activityEventService.change("role", "role", null, member.getRole())),
-                member.getUser()),
-            null);
-        team.setMembershipChangedAt(Instant.now());
-      } catch (Exception ex) {
-        failed.add(new FailedMember(user.userId(), ex.getMessage()));
-      }
-    }
-
-    return new AddTeamMembersResponse(success, failed);
-  }
-
-  /**
-   * Removes a member in a team Only Team Admin and Owner can remove member Only Owner can remove an
-   * Admin and can't remove themselves
-   */
-  @Transactional
-  public RemoveTeamMembersResponse removeMembers(
-      String teamKey, RemoveTeamMembersRequest request, String requesterEmail) {
-
-    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
-
-    TeamMemberEntity requesterMembership =
-        requireManagerMembership(team.getId(), requester.getId());
-
-    List<UUID> success = new ArrayList<>();
-    List<FailedMember> failed = new ArrayList<>();
-
-    for (UUID userId : request.userIds()) {
-
-      try {
-        TeamMemberEntity memberToRemove =
-            teamAuthorizationService.requireActiveMembership(team.getId(), userId);
-
-        if (memberToRemove.getRole() == TeamRole.OWNER) {
-          throw new IllegalStateException("Transfer ownership before removing OWNER");
-        }
-
-        if (requesterMembership.getRole() == TeamRole.ADMIN
-            && memberToRemove.getRole() != TeamRole.MEMBER) {
-          throw new IllegalStateException("ADMIN can only remove MEMBER");
-        }
-
-        teamMemberRepository.delete(memberToRemove);
-
-        teamMemberRepository.flush();
-        team.setMembershipChangedAt(Instant.now());
-
-        activityEventService.recordTeamEvent(
-            team,
-            requester,
-            ActivityEventType.TEAM_MEMBER_REMOVED,
-            buildTeamActivityDetails(
-                List.of("member", "role"),
-                memberToRemove.getRole().name(),
-                null,
-                memberToRemove.getUser().getFullName(),
-                List.of(
-                    activityEventService.change(
-                        "member", "member", memberToRemove.getUser().getFullName(), null),
-                    activityEventService.change("role", "role", memberToRemove.getRole(), null)),
-                memberToRemove.getUser()),
-            null);
-
-        success.add(userId);
-
-      } catch (Exception ex) {
-        failed.add(new FailedMember(userId, ex.getMessage()));
-      }
-    }
-
-    return new RemoveTeamMembersResponse(success, failed);
-  }
-
   /** Owners and super admins can grant or revoke team-admin roles. */
   @Transactional
   public TeamMemberResponse changeTeamRole(
@@ -483,7 +366,7 @@ public class TeamService {
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
 
     TeamMemberEntity targetMember =
         teamAuthorizationService.requireActiveMembership(team.getId(), targetUserId);
@@ -502,7 +385,7 @@ public class TeamService {
 
     TeamRole previousRole = targetMember.getRole();
     if (previousRole == newRole) {
-      return mapToMemberResponse(targetMember);
+      return TeamMemberMapper.toResponse(targetMember);
     }
 
     targetMember.setRole(newRole);
@@ -521,7 +404,7 @@ public class TeamService {
             targetMember.getUser()),
         null);
 
-    return mapToMemberResponse(targetMember);
+    return TeamMemberMapper.toResponse(targetMember);
   }
 
   /** Owners and super admins can transfer ownership to any current member. */
@@ -532,7 +415,7 @@ public class TeamService {
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
-    validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
     TeamMemberEntity owner = requireOwnerMembership(team.getId(), team.getOwner().getId());
 
     if (owner.getUser().getId().equals(newOwnerUserId)) {
@@ -566,7 +449,7 @@ public class TeamService {
             newOwner.getUser()),
         null);
 
-    return mapToMemberResponse(newOwner);
+    return TeamMemberMapper.toResponse(newOwner);
   }
 
   // ********************
@@ -628,35 +511,9 @@ public class TeamService {
         isDeleted);
   }
 
-  private TeamMemberResponse mapToMemberResponse(TeamMemberEntity member) {
-
-    TeamMemberResponse.User user =
-        new TeamMemberResponse.User(
-            member.getAddedBy().getId(),
-            member.getAddedBy().getFirstName(),
-            member.getAddedBy().getLastName(),
-            member.getAddedBy().getEmail());
-
-    return new TeamMemberResponse(
-        member.getUser().getId(),
-        member.getUser().getFirstName(),
-        member.getUser().getLastName(),
-        member.getUser().getEmail(),
-        member.getRole(),
-        member.getUser().getRole(),
-        member.getJoinedAt(),
-        user);
-  }
-
   private UserResponse mapToNonMemberResponse(UserEntity user) {
     return new UserResponse(
         user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
-  }
-
-  private UserEntity getUserById(UUID id) {
-    return userRepository
-        .findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
   /**
@@ -687,39 +544,6 @@ public class TeamService {
     return membership;
   }
 
-  /**
-   * Ensures: - Team exist and active - User is not Team member - Adds user to the team
-   *
-   * <p>Returns membership entity
-   */
-  private TeamMemberEntity addTeamMember(
-      TeamEntity team, TeamMemberRequest request, UserEntity requester) {
-
-    UserEntity user = getUserById(request.userId());
-
-    if (teamAuthorizationService.hasActiveMembership(team.getId(), request.userId())) {
-      throw new ConflictException("User is already a member of the team");
-    }
-
-    TeamRole role = request.role() == null ? TeamRole.MEMBER : request.role();
-
-    if (role == TeamRole.ADMIN) {
-      validateRoleAdministrator(team.getId(), requester);
-    }
-
-    if (role == TeamRole.OWNER) {
-      throw new ConflictException("Cannot assign OWNER role");
-    }
-
-    TeamMemberEntity member = new TeamMemberEntity();
-    member.setTeam(team);
-    member.setUser(user);
-    member.setRole(role);
-    member.setAddedBy(requester);
-
-    return teamMemberRepository.save(member);
-  }
-
   /*
    * Check sort request
    */
@@ -738,13 +562,6 @@ public class TeamService {
   private void validateUniqueTeamName(UUID ownerId, String name) {
     if (teamRepository.existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(ownerId, name)) {
       throw new ConflictException("Team name already exists");
-    }
-  }
-
-  /** A super admin can recover ownership/admin roles without gaining other team edit rights. */
-  private void validateRoleAdministrator(UUID teamId, UserEntity requester) {
-    if (requester.getRole() != UserRole.SUPER_ADMIN) {
-      validateOwnerMembership(teamId, requester.getId());
     }
   }
 

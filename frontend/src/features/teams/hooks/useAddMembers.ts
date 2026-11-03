@@ -1,30 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addMembers } from "../api/teamMemberApi";
+import type { AddMembersInput } from "../types/team.type";
+import { invalidateMembership } from "../utils/invalidateMembership";
 
 export const useAddMembers = (teamKey: string) => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (data: {
-      members: { userId: string; role: "ADMIN" | "MEMBER" }[];
-    }) => addMembers(teamKey, data),
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["teamMembers", teamKey],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["allTeamMembers", teamKey],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["availableUsers", teamKey],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["team", teamKey],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["teams"],
-      });
+    mutationFn: (data: AddMembersInput) => addMembers(teamKey, data),
+    onSettled: (_result, _error, data) => {
+      invalidateMembership(
+        queryClient,
+        teamKey,
+        data.members.map((member) => member.userId),
+      );
     },
   });
 };

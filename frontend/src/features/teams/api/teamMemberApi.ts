@@ -4,6 +4,8 @@ import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { User } from "../../users/types/userType";
 import type {
   AddMembersInput,
+  AddMembersResult,
+  RemoveMembersResult,
   RemoveMembersInput,
   TeamMember,
   TeamRole,
@@ -40,8 +42,11 @@ export const getAvailableUsers = async (
 export const addMembers = async (
   teamKey: string,
   data: AddMembersInput,
-): Promise<TeamMember> => {
-  const res = await apiClient.post(`/teams/${teamKey}/members`, data);
+): Promise<AddMembersResult> => {
+  const res = await apiClient.post<AddMembersResult>(
+    `/teams/${teamKey}/members`,
+    data,
+  );
 
   return res.data;
 };
@@ -49,8 +54,12 @@ export const addMembers = async (
 export const removeMembers = async (
   teamKey: string,
   data: RemoveMembersInput,
-): Promise<void> => {
-  await apiClient.delete(`/teams/${teamKey}/members`, { data });
+): Promise<RemoveMembersResult> => {
+  const response = await apiClient.delete<RemoveMembersResult>(
+    `/teams/${teamKey}/members`,
+    { data },
+  );
+  return response.data;
 };
 
 export const updateMemberRole = async (

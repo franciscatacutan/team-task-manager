@@ -1,11 +1,13 @@
 package com.example.task_manager.team;
 
 import com.example.task_manager.team.entity.TeamEntity;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
@@ -15,6 +17,10 @@ public interface TeamRepository
   boolean existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(UUID teamId, String name);
 
   Optional<TeamEntity> findByKey(String teamKey);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select t from TeamEntity t where t.key = :teamKey")
+  Optional<TeamEntity> findByKeyForUpdate(String teamKey);
 
   boolean existsByKey(String teamKey);
 

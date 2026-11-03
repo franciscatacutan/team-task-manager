@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/common/hooks/useDebounce";
 import {
   Dialog,
@@ -27,7 +28,11 @@ export default function AddMembersModal({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data: availableUsersData } = useAvailableUsers(teamKey || "", {
+  const {
+    data: availableUsersData,
+    isError,
+    refetch,
+  } = useAvailableUsers(teamKey || "", {
     search: debouncedSearch,
   });
 
@@ -53,14 +58,24 @@ export default function AddMembersModal({
           </p>
         </div>
 
-        <AddMemberForm
-          canAssignAdmin={canAssignAdmin}
-          search={search}
-          onSearchChange={setSearch}
-          teamKey={teamKey}
-          users={users}
-          onOpenChange={onOpenChange}
-        />
+        {isError && (
+          <div role="alert" className="px-6 pt-3 text-sm text-destructive">
+            Unable to load available users.{" "}
+            <Button variant="outline" onClick={() => void refetch()}>
+              Retry loading
+            </Button>
+          </div>
+        )}
+        {open && (
+          <AddMemberForm
+            canAssignAdmin={canAssignAdmin}
+            search={search}
+            onSearchChange={setSearch}
+            teamKey={teamKey}
+            users={users}
+            onOpenChange={onOpenChange}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

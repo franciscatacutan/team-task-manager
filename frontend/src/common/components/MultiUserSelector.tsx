@@ -23,6 +23,8 @@ import type { User } from "../../features/users/types/userType";
 interface Props {
   users: User[] | TeamMember[];
   value?: string[];
+  selectedUsers?: (User | TeamMember)[];
+  disabled?: boolean;
   search: string;
   onSearchChange: (value: string) => void;
   placeholder?: string;
@@ -35,6 +37,8 @@ interface Props {
 export default function MultiUserSelector({
   users,
   value = [],
+  selectedUsers: selectedUserRecords,
+  disabled = false,
   search,
   onSearchChange,
   placeholder = "Select users",
@@ -46,10 +50,13 @@ export default function MultiUserSelector({
   const [open, setOpen] = useState(false);
 
   const selectedIds = useMemo(() => new Set(value), [value]);
-  const selectedUsers = users.filter((user) => selectedIds.has(user.id));
+  const selectedUsers = (selectedUserRecords ?? users).filter((user) =>
+    selectedIds.has(user.id),
+  );
   const hiddenCount = Math.max(selectedUsers.length - maxVisibleBadges, 0);
 
   function toggleUser(userId: string) {
+    if (disabled) return;
     if (selectedIds.has(userId)) {
       onChange(value.filter((id) => id !== userId));
       return;
@@ -67,12 +74,19 @@ export default function MultiUserSelector({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (!disabled) setOpen(next);
+      }}
+      modal={true}
+    >
       <PopoverTrigger asChild>
         <div
           role="combobox"
           aria-expanded={open}
-          tabIndex={0}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
           className={cn(
             "h-auto min-h-11 w-full cursor-pointer justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-left font-normal shadow-none hover:bg-muted/20 flex items-center",
             value.length === 0 && "text-muted-foreground",
@@ -105,6 +119,7 @@ export default function MultiUserSelector({
 
                     <button
                       type="button"
+                      disabled={disabled}
                       aria-label={`Remove ${user.firstName} ${user.lastName}`}
                       className="rounded-full p-0.5 text-muted-foreground transition hover:bg-background hover:text-foreground"
                       onClick={(event) => {
@@ -146,6 +161,7 @@ export default function MultiUserSelector({
         <Command className="min-h-0">
           <div className="border-b border-border/60 px-1 pb-1 pt-1">
             <CommandInput
+              disabled={disabled}
               value={search}
               onValueChange={onSearchChange}
               placeholder="Search users..."
@@ -163,6 +179,7 @@ export default function MultiUserSelector({
               <button
                 type="button"
                 className="text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                disabled={disabled}
                 onClick={clearAll}
               >
                 Clear all
@@ -180,6 +197,7 @@ export default function MultiUserSelector({
 
                 return (
                   <CommandItem
+                    disabled={disabled}
                     key={user.id}
                     value={`${label} ${user.email}`}
                     className={cn(

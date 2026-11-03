@@ -42,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeamController {
 
   private final TeamService teamService;
+  private final TeamMembershipService teamMembershipService;
 
   @PostMapping
   public ResponseEntity<TeamResponse> create(
@@ -125,7 +126,7 @@ public class TeamController {
       @Valid @RequestBody AddTeamMembersRequest request,
       Authentication authentication) {
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(teamService.addMembers(teamKey, request, authentication.getName()));
+        .body(teamMembershipService.addMembers(teamKey, request, authentication.getName()));
   }
 
   @DeleteMapping("/{teamKey}/members")
@@ -133,7 +134,8 @@ public class TeamController {
       @PathVariable String teamKey,
       @Valid @RequestBody RemoveTeamMembersRequest request,
       Authentication authentication) {
-    return ResponseEntity.ok(teamService.removeMembers(teamKey, request, authentication.getName()));
+    return ResponseEntity.ok(
+        teamMembershipService.removeMembers(teamKey, request, authentication.getName()));
   }
 
   @PatchMapping("/{teamKey}/members/{userId}/role")

@@ -20,6 +20,20 @@ export interface Team {
   isDeleted?: boolean;
 }
 
+export interface FailedMember {
+  userId: string;
+  reason: string;
+  code: string;
+}
+
+export interface MemberBatchResult<T> {
+  success: T[];
+  failed: FailedMember[];
+}
+
+export type AddMembersResult = MemberBatchResult<TeamMember>;
+export type RemoveMembersResult = MemberBatchResult<string>;
+
 export interface AddMembersInput {
   members: { userId: string; role: "ADMIN" | "MEMBER" }[];
 }

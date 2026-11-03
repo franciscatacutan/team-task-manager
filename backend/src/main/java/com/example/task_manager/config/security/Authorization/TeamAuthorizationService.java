@@ -8,6 +8,8 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
+import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +65,14 @@ public class TeamAuthorizationService {
 
     if (!canManageTeam(member)) {
       throw new ForbiddenException("Insufficient permissions");
+    }
+  }
+
+  /** Ownership/admin-role recovery does not grant unrelated team-management rights. */
+  public void validateRoleAdministrator(UUID teamId, UserEntity requester) {
+    if (requester.getRole() == UserRole.SUPER_ADMIN) return;
+    if (requireActiveMembership(teamId, requester.getId()).getRole() != TeamRole.OWNER) {
+      throw new ForbiddenException("User is not the owner of this team");
     }
   }
 

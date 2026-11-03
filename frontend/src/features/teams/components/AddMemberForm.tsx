@@ -1,3 +1,7 @@
+import { useState } from "react";
+import type { AddMembersResult } from "../types/team.type";
+import MemberBatchFeedback from "./MemberBatchFeedback";
+import { memberBatchError } from "../utils/memberBatchError";
 import { Button } from "../../../components/ui/button";
 
 import {
@@ -49,6 +53,15 @@ export function AddMemberForm({
   onSearchChange,
   onOpenChange,
 }: Props) {
+  const [result, setResult] = useState<AddMembersResult | null>(null);
+  const [requestError, setRequestError] = useState("");
+  const [knownUsers, setKnownUsers] = useState<Record<string, User>>({});
+  const labels = Object.fromEntries(
+    [...Object.values(knownUsers), ...users].map((user) => [
+      user.id,
+      `${user.firstName} ${user.lastName}`,
+    ]),
+  );
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
@@ -66,15 +79,47 @@ export function AddMemberForm({
   const addMember = useAddMembers(teamKey);
 
   const onSubmit = (data: FormValues) => {
+    setResult(null);
+    setRequestError("");
     addMember.mutate(data, {
-      onSuccess: () => {
-        form.reset();
-        onOpenChange(false);
+      onSuccess: (response) => {
+        if (
+          response.failed.length === 0 &&
+          response.success.length === data.members.length
+        ) {
+          form.reset();
+          onOpenChange(false);
+          return;
+        }
+        const succeeded = new Set(response.success.map((member) => member.id));
+        form.setValue(
+          "members",
+          data.members.filter((member) => !succeeded.has(member.userId)),
+        );
+        setResult(response);
+        if (
+          response.success.length + response.failed.length !==
+          data.members.length
+        )
+          setRequestError(
+            "Some changes could not be confirmed. Refresh the member list before retrying.",
+          );
       },
+      onError: (error) => setRequestError(memberBatchError(error)),
     });
   };
 
   function handleSelectedUsersChange(userIds: string[]) {
+    setKnownUsers((current) =>
+      Object.fromEntries(
+        userIds
+          .map((id) => [
+            id,
+            users.find((user) => user.id === id) ?? current[id],
+          ])
+          .filter((entry): entry is [string, User] => !!entry[1]),
+      ),
+    );
     const currentMembers = form.getValues("members");
     const membersByUserId = new Map(
       currentMembers.map((member) => [member.userId, member]),
@@ -108,7 +153,9 @@ export function AddMemberForm({
   const selectedUserIds = selectedMembers.map((member) => member.userId);
   const selectedUsers = selectedMembers
     .map((member) => {
-      const user = users.find((candidate) => candidate.id === member.userId);
+      const user =
+        users.find((candidate) => candidate.id === member.userId) ??
+        knownUsers[member.userId];
 
       if (!user) return null;
 
@@ -142,6 +189,8 @@ export function AddMemberForm({
               search={search}
               onSearchChange={onSearchChange}
               users={users}
+              selectedUsers={selectedUsers.map((entry) => entry.user)}
+              disabled={addMember.isPending}
               value={selectedUserIds}
               placeholder="Search and select users..."
               onChange={handleSelectedUsersChange}
@@ -198,6 +247,7 @@ export function AddMemberForm({
                   </div>
                   {canAssignAdmin ? (
                     <Select
+                      disabled={addMember.isPending}
                       value={role}
                       onValueChange={(value) =>
                         handleRoleChange(userId, value as "ADMIN" | "MEMBER")
@@ -247,12 +297,19 @@ export function AddMemberForm({
           </div>
         </div>
       )}
+      <MemberBatchFeedback
+        result={result}
+        labels={labels}
+        error={requestError}
+        verb="Added"
+      />
       <Separator />
 
       <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="ghost"
+          disabled={addMember.isPending}
           onClick={() => onOpenChange(false)}
           className="h-9"
         >
