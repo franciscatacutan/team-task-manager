@@ -21,6 +21,8 @@ public interface TeamMemberRepository
 
   Optional<TeamMemberEntity> findByTeamIdAndUserId(UUID teamId, UUID userId);
 
+  boolean existsByTeamIdAndUserId(UUID teamId, UUID userId);
+
   @Query(
       """
       SELECT targetMember

@@ -48,6 +48,7 @@ public class NotificationService {
         .filter(
             recipient ->
                 event.getUser() == null || !recipient.getId().equals(event.getUser().getId()))
+        .filter(recipient -> canReceiveActivity(event, recipient))
         .map(recipient -> buildNotification(event, recipient))
         .forEach(notificationRepository::save);
   }
@@ -90,6 +91,18 @@ public class NotificationService {
     UserEntity recipient = getUserByEmail(recipientEmail);
     notificationRepository.markAllRead(recipient.getId(), Instant.now());
     return getUnreadCount(recipientEmail);
+  }
+
+  private boolean canReceiveActivity(ActivityEventEntity event, UserEntity recipient) {
+    // The removal notice must reach its subject after the membership is deleted.
+    if (event.getEventType() == ActivityEventType.TEAM_MEMBER_REMOVED
+        && isSubjectRecipient(event.getDetails(), recipient)) {
+      return true;
+    }
+
+    // Keep archive notices for current members, even when the team is now archived.
+    // Stale assignment/ownership references alone must not grant notification access.
+    return teamMemberRepository.existsByTeamIdAndUserId(event.getTeamId(), recipient.getId());
   }
 
   private Map<UUID, UserEntity> resolveRecipients(ActivityEventEntity event) {

@@ -50,6 +50,7 @@ class NotificationServiceTest {
     task.setAssignee(recipient);
     ActivityEventEntity event = event(ActivityEventType.TASK_COMMENTED, team, project, task);
     when(tasks.findById(task.getId())).thenReturn(Optional.of(task));
+    when(members.existsByTeamIdAndUserId(team.getId(), recipient.getId())).thenReturn(true);
     service.createFromActivity(event);
     var saved = ArgumentCaptor.forClass(NotificationEntity.class);
     verify(notifications).save(saved.capture());

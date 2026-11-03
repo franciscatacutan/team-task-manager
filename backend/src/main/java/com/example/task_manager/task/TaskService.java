@@ -306,27 +306,24 @@ public class TaskService {
     return mapToResponse(task);
   }
 
-  /** Returns all user's task. Assignee and Support */
+  /** Returns the requester's assigned or supported tasks in an active project they belong to. */
   @Transactional(readOnly = true)
-  public PageResponse<TaskResponse> getMyTasks(String requesterEmail, Pageable pageable) {
+  public PageResponse<TaskResponse> getMyTasks(
+      String teamKey, String projectKey, String requesterEmail, Pageable pageable) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+    ProjectEntity project =
+        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
-    Page<TaskEntity> page = taskRepository.findMyTasks(requester.getId(), pageable);
-
-    return toPageResponse(page, this::mapToResponse);
-  }
-
-  /** Returns all user's task by project. Assignee and Support */
-  @Transactional(readOnly = true)
-  public PageResponse<TaskResponse> getMyTasksByProject(
-      String projectKey, String requesterEmail, Pageable pageable) {
-
-    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
+    // Assignment history does not grant access after team membership is removed.
+    if (!teamMemberRepository.existsByTeamIdAndUserId(team.getId(), requester.getId())) {
+      throw new ResourceNotFoundException("Project not found");
+    }
 
     Page<TaskEntity> page =
-        taskRepository.findMyTasksByProject(projectKey, requester.getId(), pageable);
-
+        taskRepository.findMyTasksByProject(
+            project.getId(), requester.getId(), requireSortable(pageable));
     return toPageResponse(page, this::mapToResponse);
   }
 

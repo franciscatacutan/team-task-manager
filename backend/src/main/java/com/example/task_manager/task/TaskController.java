@@ -93,29 +93,17 @@ public class TaskController {
         taskService.getTaskById(teamKey, projectKey, taskNumber, authentication));
   }
 
-  @GetMapping("/my-task")
+  // Both existing aliases inherit the team/project scope of this controller.
+  @GetMapping({"/my-task", "/project-task"})
   public ResponseEntity<PageResponse<TaskResponse>> getMyTasks(
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
-          Pageable pageable,
-      Authentication authentication) {
-
-    PageResponse<TaskResponse> response =
-        taskService.getMyTasks(authentication.getName(), pageable);
-
-    return ResponseEntity.ok(response);
-  }
-
-  @GetMapping("/project-task")
-  public ResponseEntity<PageResponse<TaskResponse>> getMyTasksByProject(
+      @PathVariable String teamKey,
       @PathVariable String projectKey,
       @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
           Pageable pageable,
       Authentication authentication) {
 
-    PageResponse<TaskResponse> response =
-        taskService.getMyTasksByProject(projectKey, authentication.getName(), pageable);
-
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(
+        taskService.getMyTasks(teamKey, projectKey, authentication.getName(), pageable));
   }
 
   @GetMapping("/{taskNumber}/activities")

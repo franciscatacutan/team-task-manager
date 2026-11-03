@@ -53,26 +53,18 @@ public interface TaskRepository
 
   @Query(
       """
-          SELECT t FROM TaskEntity t
-          WHERE t.deletedAt IS NULL
-          AND (
-              t.assignee.id = :userId
-              OR t.support.id = :userId
-          )
+      SELECT t FROM TaskEntity t
+      WHERE t.project.id = :projectId
+        AND t.deletedAt IS NULL
+        AND t.project.deletedAt IS NULL
+        AND t.project.team.deletedAt IS NULL
+        AND (t.assignee.id = :userId OR t.support.id = :userId)
+        AND EXISTS (
+          SELECT m.id FROM TeamMemberEntity m
+          WHERE m.team.id = t.project.team.id AND m.user.id = :userId
+        )
       """)
-  Page<TaskEntity> findMyTasks(UUID userId, Pageable pageable);
-
-  @Query(
-      """
-          SELECT t FROM TaskEntity t
-          WHERE t.deletedAt IS NULL
-          AND t.project.key = :projectKey
-          AND (
-              t.assignee.id = :userId
-              OR t.support.id = :userId
-          )
-      """)
-  Page<TaskEntity> findMyTasksByProject(String projectKey, UUID userId, Pageable pageable);
+  Page<TaskEntity> findMyTasksByProject(UUID projectId, UUID userId, Pageable pageable);
 
   List<TaskEntity> findAllByProjectTeamIdAndDeletedAtIsNull(UUID teamId);
 
