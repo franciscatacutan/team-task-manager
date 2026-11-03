@@ -1,3 +1,4 @@
+import { taskMutationError } from "../../tasks/utils/taskMutationError";
 import { useNavigate, useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 
@@ -124,6 +125,7 @@ export default function ProjectDetails() {
       status: statusFilter,
       deletedFilter: effectiveDeletedFilter,
     },
+    view === "list",
   );
 
   const tasks = tasksData?.content ?? [];
@@ -276,6 +278,16 @@ export default function ProjectDetails() {
         />
       )}
 
+      {updateStatus.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {taskMutationError(updateStatus.error)}
+        </p>
+      )}
+      {updateStatus.isPending && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Updating task status...
+        </p>
+      )}
       <Tabs
         value={view}
         onValueChange={handleViewChange}
@@ -326,11 +338,12 @@ export default function ProjectDetails() {
               projectKey={projectKey}
               params={{
                 search: debouncedSearch,
-                status: statusFilter[0],
+                status: statusFilter,
                 sort,
                 deletedFilter: effectiveDeletedFilter,
               }}
               canChangeTaskStatus={(task) =>
+                !updateStatus.isPending &&
                 getTaskPermissions({
                   globalRole: user?.role,
                   teamRole: teamMe?.role,
@@ -391,7 +404,7 @@ export default function ProjectDetails() {
           </TabsContent>
         </div>
       </Tabs>
-      {(view == "board" || view == "list") && totalPages > 1 && (
+      {view === "list" && totalPages > 1 && (
         <Pagination
           page={page}
           size={size}

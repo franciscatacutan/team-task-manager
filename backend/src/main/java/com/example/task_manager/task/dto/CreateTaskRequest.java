@@ -15,4 +15,8 @@ public record CreateTaskRequest(
     @NotNull Instant plannedStartDate,
     @NotNull Instant plannedDueDate,
     @NotNull UUID assigneeId,
-    UUID supportId) {}
+    UUID supportId) {
+  public CreateTaskRequest {
+    name = name == null ? null : name.trim();
+  }
+}

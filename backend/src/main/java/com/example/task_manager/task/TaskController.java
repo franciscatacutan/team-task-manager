@@ -158,6 +158,17 @@ public class TaskController {
             teamKey, projectKey, taskNumber, userId, authentication.getName()));
   }
 
+  /** Removes the optional support relationship without overloading UUID path values. */
+  @DeleteMapping("/{taskNumber}/support")
+  public ResponseEntity<TaskResponse> removeSupport(
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
+      Authentication authentication) {
+    return ResponseEntity.ok(
+        taskService.changeSupport(teamKey, projectKey, taskNumber, null, authentication.getName()));
+  }
+
   @PostMapping("/{taskNumber}/activities")
   public ResponseEntity<TaskActivityResponse> addTaskComment(
       @PathVariable String teamKey,

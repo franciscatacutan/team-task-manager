@@ -1,9 +1,10 @@
+import { taskMutationError } from "../utils/taskMutationError";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useCreateTask } from "../hooks/useCreateTask";
 
-import UserSelector from "../../../common/components/UserSelector";
+import TeamMemberSelector from "../../teams/components/TeamMemberSelector";
 import PrioritySelect from "../../../common/components/PrioritySelector";
 
 import {
@@ -15,10 +16,8 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Separator } from "../../../components/ui/separator";
 import DatePicker from "../../../common/components/DatePicker";
-import type { TaskPriority } from "../utils/taskPriority";
 import AutoResizeTextareaBase from "../../../common/components/AutoResizeTextareaBase";
 import FormField from "../../../common/components/FormFieldWrapper";
-import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 
 interface Props {
   teamKey: string;
@@ -34,8 +33,6 @@ export function CreateTaskForm({
   onCancel,
 }: Props) {
   const createTaskMutation = useCreateTask(teamKey, projectKey);
-  const { data } = useTeamMembers(teamKey);
-  const members = data?.content ?? [];
 
   const form = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
@@ -143,19 +140,24 @@ export function CreateTaskForm({
           <PrioritySelect
             value={priority}
             onChange={(value) =>
-              form.setValue("priority", value as TaskPriority, {
+              form.setValue("priority", value, {
                 shouldValidate: true,
                 shouldDirty: true,
               })
             }
           />
+          {form.formState.errors.priority && (
+            <p role="alert" className="text-xs text-destructive">
+              {form.formState.errors.priority.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Assignee</Label>
 
-          <UserSelector
-            users={members}
+          <TeamMemberSelector
+            teamKey={teamKey}
             value={assigneeId}
             excludedUserIds={supportId ? [supportId] : []}
             onChange={(id) =>
@@ -164,21 +166,36 @@ export function CreateTaskForm({
                 shouldDirty: true,
               })
             }
-            placeholder="Select User"
+            placeholder="Select assignee"
           />
+          {form.formState.errors.assigneeId && (
+            <p role="alert" className="text-xs text-destructive">
+              {form.formState.errors.assigneeId.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Support</Label>
 
-          <UserSelector
-            users={members}
+          <TeamMemberSelector
+            teamKey={teamKey}
             allowClear
             value={supportId}
             excludedUserIds={assigneeId ? [assigneeId] : []}
-            onChange={(id) => form.setValue("supportId", id ?? undefined)}
-            placeholder="Optional"
+            onChange={(id) =>
+              form.setValue("supportId", id ?? undefined, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+            placeholder="Select support"
           />
+          {form.formState.errors.supportId && (
+            <p role="alert" className="text-xs text-destructive">
+              {form.formState.errors.supportId.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -228,6 +245,11 @@ export function CreateTaskForm({
           />
         </div>
       </div>
+      {createTaskMutation.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {taskMutationError(createTaskMutation.error)}
+        </p>
+      )}
       <Separator />
 
       <div className="flex justify-end gap-2 pt-4">

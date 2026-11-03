@@ -11,7 +11,7 @@ export const useInfiniteTasks = (
   status: TaskStatus,
   params: {
     search?: string;
-    status?: TaskStatus;
+    status?: TaskStatus[];
     sort?: string;
     deletedFilter: DeletedFilter;
   },

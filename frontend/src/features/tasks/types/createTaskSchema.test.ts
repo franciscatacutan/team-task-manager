@@ -1,40 +1,88 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { describe, expect, it } from "vitest";
-import { createTaskSchema, type CreateTaskInput } from "./createTaskSchema";
+import { createTaskSchema } from "./createTaskSchema";
+import { TASK_PRIORITIES } from "../constants/task.constants";
 
-const validTask: CreateTaskInput = {
-  name: "Release preparation",
-  priority: "HIGH",
-  assigneeId: "user-1",
-  plannedStartDate: "2026-11-10T09:00:00Z",
-  plannedDueDate: "2026-11-11T09:00:00Z",
+const input = {
+  name: "Task",
+  priority: "LOW",
+  assigneeId: "00000000-0000-4000-8000-000000000001",
+  plannedStartDate: "2026-11-01T00:00:00Z",
+  plannedDueDate: "2026-11-02T00:00:00Z",
 };
-const resolve = zodResolver(createTaskSchema);
-const options = { fields: {}, shouldUseNativeValidation: false };
-
-describe("task form resolver compatibility", () => {
-  it("returns the task name contract for a valid submission", async () => {
-    const result = await resolve(validTask, undefined, options);
-    expect(result.errors).toEqual({});
-    expect(result.values).toEqual(validTask);
+describe("task creation contract", () => {
+  it.each(TASK_PRIORITIES)("accepts %s priority", (priority) => {
+    expect(createTaskSchema.parse({ ...input, priority }).priority).toBe(
+      priority,
+    );
   });
-  it("preserves field errors and the cross-field date constraint", async () => {
-    const result = await resolve(
+  it.each(["X", "x".repeat(100)])(
+    "accepts and trims names within the approved range",
+    (name) => {
+      expect(
+        createTaskSchema.parse({ ...input, name: `  ${name}  ` }).name,
+      ).toBe(name);
+    },
+  );
+  it.each(["   ", "x".repeat(101)])(
+    "rejects blank or oversized names",
+    (name) => {
+      expect(createTaskSchema.safeParse({ ...input, name }).success).toBe(
+        false,
+      );
+    },
+  );
+  it("rejects an invalid priority, invalid members and the same assignee/support", () => {
+    for (const changes of [
+      { priority: "URGENT" },
+      { assigneeId: "bad" },
+      { supportId: input.assigneeId },
+    ]) {
+      expect(createTaskSchema.safeParse({ ...input, ...changes }).success).toBe(
+        false,
+      );
+    }
+  });
+  it("rejects malformed or reversed dates", () => {
+    expect(
+      createTaskSchema.safeParse({ ...input, plannedStartDate: "invalid" })
+        .success,
+    ).toBe(false);
+    expect(
+      createTaskSchema.safeParse({
+        ...input,
+        plannedDueDate: "2026-10-01T00:00:00Z",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("React Hook Form resolver compatibility", () => {
+  it("returns the normalized name and validates multiple fields", async () => {
+    const resolve = zodResolver(createTaskSchema);
+    const options = { fields: {}, shouldUseNativeValidation: false };
+    const valid = await resolve(
+      { ...input, name: " X ", priority: "CRITICAL" },
+      undefined,
+      options,
+    );
+    expect(valid.errors).toEqual({});
+    expect(valid.values).toEqual({ ...input, name: "X", priority: "CRITICAL" });
+    const invalid = await resolve(
       {
-        ...validTask,
-        name: "a",
+        ...input,
+        name: " ",
+        priority: "HIGH",
         assigneeId: "",
-        plannedDueDate: "2026-11-09T09:00:00Z",
+        plannedDueDate: "2026-10-01T00:00:00Z",
       },
       undefined,
       options,
     );
-    expect(result.values).toEqual({});
-    expect(result.errors.name?.message).toBe(
-      "Name must be at least 3 characters",
-    );
-    expect(result.errors.assigneeId?.message).toBe("Assignee is required");
-    expect(result.errors.plannedDueDate?.message).toBe(
+    expect(invalid.values).toEqual({});
+    expect(invalid.errors.name?.message).toBe("Name is required");
+    expect(invalid.errors.assigneeId?.message).toBe("Select a valid assignee");
+    expect(invalid.errors.plannedDueDate?.message).toBe(
       "Due date must be after start date",
     );
   });

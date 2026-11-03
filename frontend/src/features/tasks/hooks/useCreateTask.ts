@@ -11,7 +11,7 @@ export function useCreateTask(teamKey: string, projectKey: string) {
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["tasks", projectKey],
+        queryKey: ["tasks", teamKey, projectKey],
       });
 
       queryClient.invalidateQueries({

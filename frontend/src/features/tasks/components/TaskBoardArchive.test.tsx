@@ -73,7 +73,7 @@ describe("archived task board", () => {
       <TaskBoard
         teamKey="TEAM"
         projectKey="PROJECT"
-        params={{ deletedFilter: "DELETED", status: "DELETED" }}
+        params={{ deletedFilter: "DELETED", status: ["DELETED"] }}
         canChangeTaskStatus={() => false}
         onOpenTask={vi.fn()}
         onStatusChange={vi.fn()}

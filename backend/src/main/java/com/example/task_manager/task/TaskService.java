@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -259,7 +260,8 @@ public class TaskService {
     boolean canViewDeleted =
         globalAuthorizationService.canViewDeleted(team, requester.getId(), isGlobalAdmin);
 
-    pageable = request.all() ? Pageable.unpaged() : requireSortable(pageable);
+    pageable = requireSortable(pageable);
+    if (request.all()) pageable = Pageable.unpaged(pageable.getSort());
 
     ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
     if (project.getDeletedAt() != null && !canViewDeleted) {
@@ -719,7 +721,19 @@ public class TaskService {
       }
     }
 
-    return pageable;
+    // Translate only the approved public field; never expose the internal formula as an API sort.
+    Sort sort =
+        Sort.by(
+            pageable.getSort().stream()
+                .map(
+                    order ->
+                        "priority".equals(order.getProperty())
+                            ? order.withProperty("priorityRank")
+                            : order)
+                .toList());
+    return pageable.isUnpaged()
+        ? Pageable.unpaged(sort)
+        : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
   }
 
   /** Checks if Start Date < Due Date */

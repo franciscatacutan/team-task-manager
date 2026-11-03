@@ -55,6 +55,7 @@ Team Task Manager enables organizations and teams to manage projects, organize t
 - LOW
 - MEDIUM
 - HIGH
+- CRITICAL
 
 ### Collaboration
 
@@ -249,7 +250,7 @@ On Linux/macOS, use `bash ./mvnw -B -ntp verify`. Set `JAVA_HOME` to your JDK if
 
 Integration tests use a Spring-managed, disposable PostgreSQL 17 container and the `test` profile. They do not use the development database, local `.env`, or real bootstrap credentials. Docker must be available; integration tests fail rather than silently skip when it is missing.
 
-CI runs backend verification, frontend tests, strict lint, production compilation, and Docker image builds. See [Phase 1 notes](docs/phase-1.md), [Phase 2A notes](docs/phase-2a.md), [Phase 2B access fixes](docs/phase-2b-membership-access.md), [Phase 2C permissions](docs/phase-2c-permissions.md), [Phase 2D archiving](docs/phase-2d-archiving.md), [Phase 2E sessions](docs/phase-2e-sessions.md), and [Phase 2F membership batches](docs/phase-2f-membership-batches.md) for scope and remaining work. See the [production readiness roadmap](docs/production-readiness-roadmap.md) for the estimated remaining phases.
+CI runs backend verification, frontend tests, strict lint, production compilation, and Docker image builds. See [Phase 1 notes](docs/phase-1.md), [Phase 2A notes](docs/phase-2a.md), [Phase 2B access fixes](docs/phase-2b-membership-access.md), [Phase 2C permissions](docs/phase-2c-permissions.md), [Phase 2D archiving](docs/phase-2d-archiving.md), [Phase 2E sessions](docs/phase-2e-sessions.md), [Phase 2F membership batches](docs/phase-2f-membership-batches.md), and [Phase 2G task flows](docs/phase-2g-task-flows.md) for scope and remaining work. See the [production readiness roadmap](docs/production-readiness-roadmap.md) for the estimated remaining phases.
 
 ---
 

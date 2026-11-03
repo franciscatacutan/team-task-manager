@@ -9,7 +9,7 @@ export const useAssignSupportUser = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) =>
+    mutationFn: (userId: string | null) =>
       assignSupportUser(teamKey, projectKey, taskNumber, userId),
 
     onSuccess: () => {

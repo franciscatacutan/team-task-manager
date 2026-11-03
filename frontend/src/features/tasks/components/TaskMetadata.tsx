@@ -1,7 +1,9 @@
-import type { Task } from "../types/task.types";
-import UserSelector from "../../../common/components/UserSelector";
+import type { Task, UpdateTaskInput } from "../types/task.types";
+import TeamMemberSelector from "../../teams/components/TeamMemberSelector";
+import { useState } from "react";
+import type { TaskPriority } from "../constants/task.constants";
+import { taskMutationError } from "../utils/taskMutationError";
 
-import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 import { useAssignUser } from "../hooks/useAssignUser";
 import { useAssignSupportUser } from "../hooks/useAssignSupportUser";
 import PrioritySelect from "../../../common/components/PrioritySelector";
@@ -48,8 +50,10 @@ export default function TaskMetadata({
   projectKey,
   task,
 }: Props) {
-  const { data } = useTeamMembers(teamKey);
-  const members = data?.content ?? [];
+  const [mutationError, setMutationError] = useState("");
+  const mutationCallbacks = {
+    onError: (error: unknown) => setMutationError(taskMutationError(error)),
+  };
   const currentAssigneeId = task.assignedUser?.id;
   const currentSupportId = task.supportUser?.id;
 
@@ -71,24 +75,31 @@ export default function TaskMetadata({
     task.taskNumber,
   );
 
+  function saveDetails(input: UpdateTaskInput) {
+    setMutationError("");
+    updateTaskMutation.mutate(input, mutationCallbacks);
+  }
+
   function handleAssignUser(userId: string | null) {
     if (!userId || userId === currentAssigneeId) return;
-    assignUserMutation.mutate(userId);
+    setMutationError("");
+    assignUserMutation.mutate(userId, mutationCallbacks);
   }
 
   function handleAssignSupport(userId: string | null) {
-    if (!userId) {
+    if (
+      (!userId && !currentSupportId) ||
+      userId === currentSupportId ||
+      userId === currentAssigneeId
+    )
       return;
-    }
-
-    if (userId === currentSupportId || userId === currentAssigneeId) return;
-
-    assignSupportUserMutation.mutate(userId);
+    setMutationError("");
+    assignSupportUserMutation.mutate(userId, mutationCallbacks);
   }
 
-  function handleUpdatePriority(priority: string | null) {
+  function handleUpdatePriority(priority: TaskPriority) {
     if (!priority || priority === task.priority) return;
-    updateTaskMutation.mutate({
+    saveDetails({
       priority,
     });
   }
@@ -99,21 +110,21 @@ export default function TaskMetadata({
       task.plannedDueDate &&
       new Date(plannedStartDate) > new Date(task.plannedDueDate)
     ) {
-      updateTaskMutation.mutate({
+      saveDetails({
         plannedStartDate,
         plannedDueDate: plannedStartDate,
       });
       return;
     }
 
-    updateTaskMutation.mutate({
+    saveDetails({
       plannedStartDate,
     });
   }
 
   function handleUpdatePlannedDueDate(plannedDueDate: string | null) {
     if (!plannedDueDate || plannedDueDate === task.plannedDueDate) return;
-    updateTaskMutation.mutate({
+    saveDetails({
       plannedDueDate,
     });
   }
@@ -121,11 +132,8 @@ export default function TaskMetadata({
   const updateStatus = useUpdateTaskStatus(teamKey, projectKey);
 
   function handleStatusChange(taskNumber: number, status: TaskStatus) {
-    console.log("TEST1");
-    updateStatus.mutate({
-      taskNumber,
-      status,
-    });
+    setMutationError("");
+    updateStatus.mutate({ taskNumber, status }, mutationCallbacks);
   }
 
   return (
@@ -134,6 +142,11 @@ export default function TaskMetadata({
         <h2 className="text-sm font-semibold text-foreground">Details</h2>
       </div>
 
+      {mutationError && (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {mutationError}
+        </p>
+      )}
       <div className="mt-2">
         <Row
           label="Status"
@@ -161,10 +174,12 @@ export default function TaskMetadata({
           label="Assignee"
           value={
             permissions.canAssign ? (
-              <UserSelector
+              <TeamMemberSelector
                 key={"assignee"}
-                users={members}
+                teamKey={teamKey}
                 value={currentAssigneeId}
+                selectedUser={task.assignedUser}
+                disabled={assignUserMutation.isPending}
                 placeholder="Select assignee"
                 excludedUserIds={currentSupportId ? [currentSupportId] : []}
                 onChange={handleAssignUser}
@@ -210,10 +225,12 @@ export default function TaskMetadata({
           label="Support"
           value={
             permissions.canAssign ? (
-              <UserSelector
+              <TeamMemberSelector
                 key={"support"}
-                users={members}
+                teamKey={teamKey}
                 value={currentSupportId}
+                selectedUser={task.supportUser}
+                disabled={assignSupportUserMutation.isPending}
                 placeholder="Select support"
                 allowClear
                 excludedUserIds={currentAssigneeId ? [currentAssigneeId] : []}

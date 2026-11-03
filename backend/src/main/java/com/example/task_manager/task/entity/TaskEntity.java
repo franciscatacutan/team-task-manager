@@ -5,8 +5,10 @@ import com.example.task_manager.user.entity.UserEntity;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -46,6 +48,12 @@ public class TaskEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private TaskPriority priority;
+
+  // Query-only severity order; priority remains the stored/public source of truth.
+  @Formula(
+      "case priority when 'LOW' then 0 when 'MEDIUM' then 1 when 'HIGH' then 2 when 'CRITICAL' then 3 end")
+  @Setter(AccessLevel.NONE)
+  private Integer priorityRank;
 
   @Column(nullable = false)
   private Long taskNumber;

@@ -10,4 +10,8 @@ public record UpdateTaskDetailsRequest(
     @Size(max = 2000) String description,
     TaskPriority priority,
     Instant plannedStartDate,
-    Instant plannedDueDate) {}
+    Instant plannedDueDate) {
+  public UpdateTaskDetailsRequest {
+    name = name == null ? null : name.trim();
+  }
+}

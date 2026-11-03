@@ -25,7 +25,7 @@ export default function TaskDescription({
       </div>
 
       <EditableField
-        value={task.description}
+        value={task.description ?? undefined}
         displayClassName="text-sm leading-7 text-foreground/90"
         placeholder="No Description Yet"
         multiline

@@ -1,21 +1,22 @@
-import type { TaskPriority } from "../utils/taskPriority";
+import type { DeletedFilter } from "@/common/types/deletedFilter.types";
+import type { TaskPriority } from "../constants/task.constants";
 import type { TaskStatus } from "../utils/task.constants";
 
 export type Task = {
   taskNumber: number;
   name: string;
-  description?: string;
+  description?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   assignedUser?: TaskUser;
-  supportUser?: TaskUser;
-  plannedStartDate?: string;
-  plannedDueDate?: string;
-  actualStartDate?: string;
-  actualCompletionDate?: string;
+  supportUser?: TaskUser | null;
+  plannedStartDate?: string | null;
+  plannedDueDate?: string | null;
+  actualStartDate?: string | null;
+  actualCompletionDate?: string | null;
   createdAt: string;
   updatedAt: string;
-  lastActivityAt: string;
+  lastActivityAt: string | null;
   deletedAt?: string | null;
   deletedBy?: TaskUser | null;
   readOnly?: boolean;
@@ -28,10 +29,20 @@ export interface TaskUser {
   email: string;
 }
 
+export interface TaskQueryParams {
+  page?: number;
+  size?: number;
+  search?: string;
+  status?: TaskStatus[];
+  priority?: TaskPriority[];
+  sort?: string;
+  deletedFilter: DeletedFilter;
+}
+
 export interface UpdateTaskInput {
   name?: string;
   description?: string;
-  priority?: string;
+  priority?: TaskPriority;
   plannedStartDate?: string | null;
   plannedDueDate?: string | null;
 }
@@ -46,14 +57,7 @@ export interface TaskActivity {
   message: string;
   type: ActivityType;
   details: ActivityDetails;
-  user: User;
-  task?: Task;
+  user: TaskUser;
+  task?: { id: string; name: string | null; taskNumber?: number } | null;
   createdAt: string;
 }
-
-type User = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-};

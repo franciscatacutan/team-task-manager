@@ -7,6 +7,9 @@ import {
 } from "../../components/ui/select";
 import {
   type TaskStatus,
+  allowedTransitions,
+  canTransition,
+  isTaskStatus,
   TaskStatusStyles,
   TaskStatusLabel,
 } from "../../features/tasks/utils/task.constants";
@@ -24,18 +27,18 @@ export default function TaskStatusSelector({
   onChange,
   className,
 }: Props) {
-  const statuses: TaskStatus[] = [
-    "TODO",
-    "IN_PROGRESS",
-    "IN_REVIEW",
-    "ON_HOLD",
-    "DONE",
-    "CANCELLED",
-  ];
+  const statuses: TaskStatus[] = [value, ...allowedTransitions[value]];
 
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as TaskStatus)}>
+    <Select
+      value={value}
+      disabled={!allowedTransitions[value].length}
+      onValueChange={(v) => {
+        if (isTaskStatus(v) && canTransition(value, v)) onChange(v);
+      }}
+    >
       <SelectTrigger
+        aria-label="Task status"
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",
           className,
@@ -54,20 +57,18 @@ export default function TaskStatusSelector({
       </SelectTrigger>
 
       <SelectContent className="rounded-xl border-border/70">
-        {statuses
-          .filter((status) => value === "TODO" || status !== "TODO")
-          .map((status) => (
-            <SelectItem key={status} value={status}>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                  TaskStatusStyles[status],
-                )}
-              >
-                {TaskStatusLabel[status]}
-              </span>
-            </SelectItem>
-          ))}
+        {statuses.map((status) => (
+          <SelectItem key={status} value={status}>
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
+                TaskStatusStyles[status],
+              )}
+            >
+              {TaskStatusLabel[status]}
+            </span>
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

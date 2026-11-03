@@ -10,13 +10,14 @@ import { cn } from "../../lib/utils";
 
 import {
   type TaskPriority,
+  isTaskPriority,
   TASK_PRIORITY_LABEL,
   TASK_PRIORITY_STYLES,
   TASK_PRIORITY_ORDER,
 } from "../../features/tasks/constants/task.constants";
 
 interface Props {
-  value: TaskPriority;
+  value?: TaskPriority;
   onChange: (priority: TaskPriority) => void;
   className?: string;
 }
@@ -25,23 +26,28 @@ export default function PrioritySelect({ value, onChange, className }: Props) {
   return (
     <Select
       value={value}
-      onValueChange={(val) => onChange(val as TaskPriority)}
+      onValueChange={(val) => {
+        if (isTaskPriority(val)) onChange(val);
+      }}
     >
       <SelectTrigger
+        aria-label="Priority"
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",
           className,
         )}
       >
-        <SelectValue>
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-              TASK_PRIORITY_STYLES[value],
-            )}
-          >
-            {TASK_PRIORITY_LABEL[value]}
-          </span>
+        <SelectValue placeholder="Select priority">
+          {value ? (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
+                TASK_PRIORITY_STYLES[value],
+              )}
+            >
+              {TASK_PRIORITY_LABEL[value]}
+            </span>
+          ) : undefined}
         </SelectValue>
       </SelectTrigger>
 

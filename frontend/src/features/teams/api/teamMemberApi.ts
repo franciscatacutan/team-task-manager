@@ -13,19 +13,25 @@ import type {
 
 export const getTeamMembers = async (
   teamKey: string,
-  params: BaseQueryParams & {
+  params: Omit<BaseQueryParams, "sort"> & {
+    sort?: string | string[];
     roles?: TeamRole[];
   },
+  signal?: AbortSignal,
 ): Promise<PageResponse<TeamMember>> => {
-  const response = await apiClient.get(`/teams/${teamKey}/members`, {
-    params: {
-      ...params,
-      role: params.roles?.length ? params.roles : undefined,
+  const response = await apiClient.get<PageResponse<TeamMember>>(
+    `/teams/${teamKey}/members`,
+    {
+      signal,
+      params: {
+        ...params,
+        role: params.roles?.length ? params.roles : undefined,
+      },
+      paramsSerializer: {
+        indexes: null,
+      },
     },
-    paramsSerializer: {
-      indexes: null,
-    },
-  });
+  );
   return response.data;
 };
 

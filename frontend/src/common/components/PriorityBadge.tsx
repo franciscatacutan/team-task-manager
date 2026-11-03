@@ -1,4 +1,4 @@
-import type { TaskPriority } from "../../features/tasks/utils/taskPriority";
+import type { TaskPriority } from "../../features/tasks/constants/task.constants";
 import { cn } from "../../lib/utils";
 import {
   TASK_PRIORITY_LABEL,

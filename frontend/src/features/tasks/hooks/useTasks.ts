@@ -16,8 +16,10 @@ export const useTasks = (
     sort?: string;
     deletedFilter: DeletedFilter;
   },
+  enabled = true,
 ) => {
   return useQuery<PageResponse<Task>>({
+    enabled: Boolean(teamKey && projectKey) && enabled,
     queryKey: [
       "tasks",
       teamKey,

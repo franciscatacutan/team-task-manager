@@ -26,12 +26,14 @@ export function CreateTaskModal({
           <DialogTitle>Create Task</DialogTitle>
         </DialogHeader>
 
-        <CreateTaskForm
-          teamKey={teamKey}
-          projectKey={projectKey}
-          onSuccess={() => onOpenChange(false)}
-          onCancel={() => onOpenChange(false)}
-        />
+        {open && (
+          <CreateTaskForm
+            teamKey={teamKey}
+            projectKey={projectKey}
+            onSuccess={() => onOpenChange(false)}
+            onCancel={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
