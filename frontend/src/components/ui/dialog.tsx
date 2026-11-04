@@ -49,9 +49,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeDisabled = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  closeDisabled?: boolean;
 }) {
   return (
     <DialogPortal>
@@ -68,6 +70,8 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
+              type="button"
+              disabled={closeDisabled}
               variant="ghost"
               className="absolute top-2 right-2"
               size="icon-sm"

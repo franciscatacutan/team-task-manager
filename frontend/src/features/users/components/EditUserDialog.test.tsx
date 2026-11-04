@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -205,6 +211,16 @@ describe("atomic user edit dialog", () => {
     await waitFor(() => expect(apiClient.patch).toHaveBeenCalledOnce());
     expect(screen.getByLabelText("First name")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    expect(screen.getByLabelText("Last name")).toBeDisabled();
+    expect(screen.getByLabelText("Email")).toBeDisabled();
+    expect(
+      screen.getByRole("combobox", { name: "Global role" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("form", { name: "Edit user details" }),
+    ).toHaveAttribute("aria-busy", "true");
+    fireEvent.pointerDown(document.body);
     await userEvent.keyboard("[Escape]");
     expect(close).not.toHaveBeenCalled();
     await act(async () => {
@@ -252,5 +268,46 @@ describe("atomic user edit dialog", () => {
       ).toBeDisabled(),
     );
     expect(apiClient.patch).not.toHaveBeenCalled();
+  });
+  it.each(["target", "account", "reopening"])(
+    "does not close a new editor after a late old %s response",
+    async (change) => {
+      let resolve!: (value: { data: User }) => void;
+      vi.mocked(apiClient.patch).mockReturnValue(
+        new Promise<{ data: User }>((yes) => {
+          resolve = yes;
+        }),
+      );
+      const result = mount();
+      await changeName();
+      await save();
+      await waitFor(() => expect(apiClient.patch).toHaveBeenCalledOnce());
+      if (change === "account") authStorage.setToken("new-login");
+      if (change === "reopening") result.rerender(result.element(false));
+      result.rerender(
+        result.element(
+          true,
+          change === "target"
+            ? { ...target, id: "next-user", firstName: "Next" }
+            : target,
+        ),
+      );
+      await changeName("New draft");
+      await act(async () =>
+        resolve({ data: { ...target, firstName: "Changed" } }),
+      );
+      expect(result.close).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("First name")).toHaveValue("New draft");
+    },
+  );
+  it("restores Close and Cancel after a failed save", async () => {
+    vi.mocked(apiClient.patch).mockRejectedValue(new Error("offline"));
+    const { close } = mount();
+    await changeName();
+    await save();
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(close).toHaveBeenCalledWith(false);
   });
 });

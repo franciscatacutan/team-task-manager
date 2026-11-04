@@ -1,6 +1,6 @@
 # Phase 2J part 3 — comment and operational-log feedback
 
-Baseline: user commit `a4bad9e`. The user approved this focused checkpoint and chose to lock the comment composer until posting settles. Implementation is verified and awaiting user review/commit. Phase 2J part 3 remains in progress; the remaining roadmap estimate is four parts (2J3 and 2K1–3).
+Baseline: user commit `a4bad9e`. The user approved this focused checkpoint and chose to lock the comment composer until posting settles. The user committed this verified checkpoint as `f495e3b`. Phase 2J part 3 remains in progress; the remaining roadmap estimate is four parts (2J3 and 2K1–3).
 
 ## Comment behavior
 
