@@ -1,3 +1,4 @@
+import UserProfileLink from "@/features/users/components/UserProfileLink";
 import { SortHeader } from "@/common/components/toolbar/SortHeader";
 import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
@@ -46,6 +47,7 @@ import {
 } from "../../../common/components/pagination/Pagination";
 
 interface Props {
+  canViewProfile?: (member: TeamMember) => boolean;
   permissions: TeamPermissions;
   teamKey: string;
   members: TeamMember[];
@@ -56,6 +58,7 @@ interface Props {
 }
 
 export default function MembersList({
+  canViewProfile = () => false,
   permissions,
   teamKey,
   members,
@@ -172,7 +175,10 @@ export default function MembersList({
 
                       <div className="min-w-0">
                         <div className="truncate font-medium text-foreground">
-                          {member.firstName} {member.lastName}
+                          <UserProfileLink
+                            user={member}
+                            enabled={canViewProfile(member)}
+                          />
                         </div>
                         {member.globalRole && (
                           <div className="truncate text-xs text-muted-foreground">

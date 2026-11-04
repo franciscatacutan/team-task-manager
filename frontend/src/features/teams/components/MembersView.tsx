@@ -1,3 +1,5 @@
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { canLinkProfile } from "@/features/users/utils/profileNavigation";
 import { useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 
@@ -31,19 +33,29 @@ export default function MembersPage() {
 
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data: membersData, isLoading: membersLoading } = useTeamMembers(
-    teamKey || "",
-    {
-      page,
-      size: 10,
-      search: debouncedSearch,
-      sort,
-      roles: roleFilter,
-    },
-  );
-  const { data: teamMe } = useTeamMe(teamKey || "");
+  const membersQuery = useTeamMembers(teamKey || "", {
+    page,
+    size: 10,
+    search: debouncedSearch,
+    sort,
+    roles: roleFilter,
+  });
+  const { data: membersData, isLoading: membersLoading } = membersQuery;
+  const membership = useTeamMe(teamKey || "");
+  const { data: teamMe } = membership;
+  const { user: viewer } = useAuth();
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
+  const sharesConfirmedActiveTeam = Boolean(
+    viewer &&
+    !isWorkspaceReadOnly &&
+    membersQuery.isSuccess &&
+    !membersQuery.isError &&
+    membership.isSuccess &&
+    !membership.isError &&
+    teamMe?.userId === viewer.id &&
+    ["OWNER", "ADMIN", "MEMBER"].includes(teamMe?.role ?? ""),
+  );
 
   const members = membersData?.content ?? [];
   const totalPages = membersData?.totalPages ?? 0;
@@ -85,6 +97,9 @@ export default function MembersPage() {
       />
 
       <MembersList
+        canViewProfile={(member) =>
+          canLinkProfile(viewer, member.id, sharesConfirmedActiveTeam)
+        }
         permissions={permissions}
         teamKey={teamKey}
         members={members}

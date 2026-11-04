@@ -1,3 +1,5 @@
+import UserProfileLink from "./UserProfileLink";
+import { canLinkProfile } from "../utils/profileNavigation";
 import { canEditUser } from "../utils/userPermissions";
 import {
   ArrowUpDown,
@@ -134,23 +136,26 @@ export default function UsersList({
                   return (
                     <TableRow
                       key={user.id}
-                      className="group cursor-pointer transition-colors hover:bg-muted/40"
+                      className="group transition-colors hover:bg-muted/40"
                     >
                       <TableCell className="px-4 py-3">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
-                          {user.firstName}
+                        <div className="truncate">
+                          <UserProfileLink
+                            user={user}
+                            enabled={canLinkProfile(currentUser, user.id)}
+                          >
+                            {user.firstName}
+                          </UserProfileLink>
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
+                        <div className="font-medium truncate">
                           {user.lastName}
                         </div>
                       </TableCell>
 
                       <TableCell className="px-4 py-3">
-                        <div className="truncate group-hover:text-primary transition-colors">
-                          {user.email}
-                        </div>
+                        <div className="truncate">{user.email}</div>
                       </TableCell>
 
                       <TableCell className="px-4 py-3">

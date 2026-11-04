@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -64,7 +65,9 @@ afterEach(() => client.clear());
 const mount = () =>
   render(
     <QueryClientProvider client={client}>
-      <UsersPage />
+      <MemoryRouter>
+        <UsersPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 describe("directory paging and count scope", () => {

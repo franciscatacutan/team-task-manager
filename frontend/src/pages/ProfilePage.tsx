@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { useUser } from "@/features/users/hooks/useUser";
 import { useTeams } from "@/features/teams/hooks/useTeams";
@@ -66,6 +66,7 @@ export default function ProfilePage() {
     data: profileData,
     isLoading: profileUserLoading,
     isError: profileError,
+    isFetching: profileFetching,
     refetch: refetchProfile,
   } = useUser(profileUserId);
   const profileUser = profileError ? undefined : profileData;
@@ -167,9 +168,18 @@ export default function ProfilePage() {
           This profile could not be loaded. It may not exist, or you may no
           longer have access.
         </p>
-        <Button variant="outline" onClick={() => void refetchProfile()}>
-          Retry profile
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={profileFetching}
+            onClick={() => void refetchProfile()}
+          >
+            {profileFetching ? "Retrying profile..." : "Retry profile"}
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/teams">Open workspace</Link>
+          </Button>
+        </div>
       </section>
     );
 

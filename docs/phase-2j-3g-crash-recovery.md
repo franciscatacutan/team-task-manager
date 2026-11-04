@@ -1,6 +1,6 @@
 # Phase 2J part 3 — root crash recovery
 
-Baseline: user commit `1573530`. Verified November 5, 2026. The user approved a provider-independent root fallback with Reload and Workspace actions and regression tests for forced rendering failures. This checkpoint is verified and awaiting user review/commit. Phase 2J part 3 remains in progress; the estimate remains four unfinished roadmap parts (2J3 and 2K1–3).
+Baseline: user commit `1573530`. Verified November 5, 2026. The user approved a provider-independent root fallback with Reload and Workspace actions and regression tests for forced rendering failures. The user committed this verified checkpoint as `ec1fabc`. Phase 2J part 3 remains in progress; the historical four-part estimate has been superseded by the approved [v1 completion checklist](v1-completion-checklist.md).
 
 ## Problem and resulting behavior
 

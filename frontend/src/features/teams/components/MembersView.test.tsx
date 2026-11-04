@@ -7,6 +7,9 @@ import { getUserFromToken } from "../../users/api/userApi";
 const workspace = vi.hoisted(() => ({
   team: { key: "TEAM-A", deletedAt: null as string | null },
 }));
+vi.mock("@/features/auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { id: "viewer", role: "USER" } }),
+}));
 vi.mock("react-router", () => ({
   useParams: () => ({ teamKey: "TEAM-A" }),
   useOutletContext: () => workspace,
