@@ -1,3 +1,4 @@
+import type { ActivityRecord } from "@/common/types/activity.types";
 import type { DeletedFilter } from "@/common/types/deletedFilter.types";
 import type { TaskPriority } from "../constants/task.constants";
 import type { TaskStatus } from "../utils/task.constants";
@@ -47,6 +48,11 @@ export interface UpdateTaskInput {
   plannedDueDate?: string | null;
 }
 
-import type { ActivityRecord } from "@/common/types/activity.types";
-
 export type TaskActivity = ActivityRecord;
+
+/** Public workspace routing identity, distinct from persistence IDs. */
+export interface TaskScope {
+  teamKey: string;
+  projectKey: string;
+  taskNumber: number;
+}

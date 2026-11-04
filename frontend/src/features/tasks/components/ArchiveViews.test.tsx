@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../types/task.types";
 import type { TaskPermissions } from "../utils/taskPermissions";
-import TaskDetailsPage from "./TaskDetails";
+import TaskDetailsPage from "@/pages/TaskDetailsPage";
 import TaskModal from "./TaskModal";
 
 const state = vi.hoisted(() => ({
@@ -25,8 +25,8 @@ vi.mock("../hooks/useTask", () => ({
 vi.mock("../../teams/hooks/useTeamMe", () => ({
   useTeamMe: () => ({ data: { userId: "owner", role: "OWNER" } }),
 }));
-vi.mock("../../users/api/userApi", () => ({
-  getUserFromToken: () => ({ role: "USER" }),
+vi.mock("@/features/auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { role: "USER" } }),
 }));
 vi.mock("./TaskHeader", () => ({
   default: ({ permissions }: { permissions: TaskPermissions }) => (
@@ -59,6 +59,7 @@ describe.each(["page", "modal"] as const)("task archive %s", (view) => {
         <TaskDetailsPage />
       ) : (
         <TaskModal
+          isWorkspaceReadOnly={Boolean(state.teamDeletedAt)}
           open
           onClose={vi.fn()}
           taskNumber={1}
@@ -142,6 +143,7 @@ it("allows the unavailable task dialog to be closed", async () => {
   const onClose = vi.fn();
   render(
     <TaskModal
+      isWorkspaceReadOnly={Boolean(state.teamDeletedAt)}
       open
       onClose={onClose}
       taskNumber={1}

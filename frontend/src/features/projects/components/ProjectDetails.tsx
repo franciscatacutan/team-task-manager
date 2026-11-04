@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useProject } from "../hooks/useProject";
 
 import TaskBoard from "../../tasks/components/TaskBoard";
-import TaskModal from "../../tasks/components/TaskModal";
+import { TaskModal } from "@/features/tasks";
 
 import type { Task } from "../../tasks/types/task.types";
 import { getTaskPermissions } from "../../tasks/utils/taskPermissions";
@@ -437,6 +437,7 @@ export default function ProjectDetails() {
       )}
       {selectedTask && (
         <TaskModal
+          isWorkspaceReadOnly={isProjectReadOnly}
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onTaskDeleted={() => setSelectedTask(null)}

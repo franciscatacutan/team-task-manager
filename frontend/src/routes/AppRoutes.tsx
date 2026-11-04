@@ -10,7 +10,7 @@ import TeamSelectionPage from "../pages/TeamSelectionPage";
 import ProfilePage from "../pages/ProfilePage";
 import SettingsPage from "../pages/SettingsPage";
 import UsersPage from "../pages/UsersPage";
-import TaskDetails from "../features/tasks/components/TaskDetails";
+import TaskDetailsPage from "@/pages/TaskDetailsPage";
 import ProjectDetails from "../features/projects/components/ProjectDetails";
 import ProjectsView from "../features/projects/components/ProjectsView";
 import WorkspaceLayout from "../layout/workspace/WorkspaceLayout";
@@ -72,7 +72,7 @@ export default function AppRoutes() {
 
             <Route
               path="projects/:projectKey/tasks/:taskNumber"
-              element={<TaskDetails />}
+              element={<TaskDetailsPage />}
             />
           </Route>
         </Route>

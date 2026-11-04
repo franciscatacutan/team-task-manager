@@ -248,7 +248,11 @@ describe("notification inbox", () => {
     const { user } = setup();
     await open(user);
     await user.click(await screen.findByRole("button", { name: /Notice 0/ }));
-    expect(screen.getByTestId("location")).toHaveTextContent("/destination/0");
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/destination/0",
+      ),
+    );
     expect(api.markNotificationRead).not.toHaveBeenCalled();
   });
   it("blocks duplicate read operations, filters and dismissal while a read is pending", async () => {
