@@ -11,9 +11,10 @@ public record ProjectActivityResponse(
     ActivityDetails details,
     User user,
     Task task,
-    Instant createdAt) {
+    Instant createdAt,
+    String targetPath) {
 
   public record User(UUID id, String firstName, String lastName, String email) {}
 
-  public record Task(UUID id, String name) {}
+  public record Task(UUID id, String name, Long taskNumber) {}
 }

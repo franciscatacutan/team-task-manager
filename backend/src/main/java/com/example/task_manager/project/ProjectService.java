@@ -1,7 +1,7 @@
 package com.example.task_manager.project;
 
-import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.ActivityEventService;
+import com.example.task_manager.activity.ActivityHistoryQuery;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
@@ -10,6 +10,7 @@ import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.ProjectAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
+import com.example.task_manager.config.security.Authorization.WorkspaceReadPolicy;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
@@ -25,7 +26,6 @@ import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
 import com.example.task_manager.team.entity.TeamEntity;
-import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -67,7 +67,8 @@ public class ProjectService {
   private final ProjectRepository projectRepository;
   private final TeamMemberRepository teamMemberRepository;
   private final TaskRepository taskRepository;
-  private final ActivityEventRepository activityEventRepository;
+  private final ActivityHistoryQuery activityHistoryQuery;
+  private final WorkspaceReadPolicy readPolicy;
   private final ActivityEventService activityEventService;
   private final GlobalAuthorizationService globalAuthorizationService;
   private final TeamAuthorizationService teamAuthorizationService;
@@ -312,17 +313,22 @@ public class ProjectService {
   /** Returns all updates by projects. */
   @Transactional(readOnly = true)
   public PageResponse<ProjectActivityResponse> getProjectActivities(
-      String teamKey, String projectKey, Pageable pageable, Authentication authentication) {
+      String teamKey,
+      String projectKey,
+      String search,
+      Pageable pageable,
+      Authentication authentication) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
     boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
     ProjectEntity project = projectAuthorizationService.requireProject(projectKey, teamKey);
-    validateCanReadProject(project, requester.getId(), isGlobalAdmin);
+    var readAccess = validateCanReadProject(project, requester.getId(), isGlobalAdmin);
 
     Page<ActivityEventEntity> page =
-        activityEventRepository.findByProjectId(project.getId(), pageable);
+        activityHistoryQuery.project(project.getId(), search, pageable);
 
-    return toPageResponse(page, activityEventService::toProjectActivitiesResponse);
+    return toPageResponse(
+        page, event -> activityEventService.toProjectActivitiesResponse(event, readAccess));
   }
 
   /** Change the status of a project Only admin and owner can change status */
@@ -504,22 +510,11 @@ public class ProjectService {
   }
 
   /** Ensures: - User is able to read project - User is Global admin or team member */
-  private void validateCanReadProject(
+  private WorkspaceReadPolicy.Access validateCanReadProject(
       ProjectEntity project, UUID requesterId, boolean isGlobalAdmin) {
-    if (isGlobalAdmin) {
-      return;
-    }
-
-    UUID teamId = project.getTeam().getId();
-    TeamMemberEntity membership =
-        teamMemberRepository
-            .findByTeamIdAndUserId(teamId, requesterId)
-            .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-
-    boolean deleted = project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null;
-    if (deleted && !teamAuthorizationService.canManageTeam(membership)) {
-      throw new ResourceNotFoundException("Project not found");
-    }
+    var access = readPolicy.forTeam(project.getTeam().getId(), requesterId, isGlobalAdmin);
+    if (!access.project(project)) throw new ResourceNotFoundException("Project not found");
+    return access;
   }
 
   /** Checks if a Project Name is unique for an active project */

@@ -6,6 +6,7 @@ import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
+import com.example.task_manager.notification.dto.NotificationDestinationResponse;
 import com.example.task_manager.notification.dto.NotificationResponse;
 import com.example.task_manager.notification.dto.UnreadNotificationCountResponse;
 import com.example.task_manager.notification.entity.NotificationEntity;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final NotificationDestinationResolver destinations;
   private final UserRepository userRepository;
   private final TeamMemberRepository teamMemberRepository;
   private final TeamRepository teamRepository;
@@ -95,6 +97,16 @@ public class NotificationService {
   @Transactional(readOnly = true)
   public UnreadNotificationCountResponse getUnreadCount(String recipientEmail) {
     return new UnreadNotificationCountResponse(notificationRepository.countUnread(recipientEmail));
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationDestinationResponse getDestination(
+      UUID notificationId, String recipientEmail) {
+    NotificationEntity notification =
+        notificationRepository
+            .findOwned(notificationId, recipientEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+    return destinations.resolve(notification, getUserByEmail(recipientEmail));
   }
 
   @Transactional

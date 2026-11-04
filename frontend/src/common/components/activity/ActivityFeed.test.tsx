@@ -100,3 +100,116 @@ it("shows a failed activity read with a retry instead of an empty feed", () => {
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(retry).toHaveBeenCalledOnce();
 });
+
+function feed(
+  items: TeamActivity[],
+  groupBy: "person" | "project" | "task" | "date",
+  extras = {},
+) {
+  const onOpenTask = vi.fn();
+  const result = render(
+    <ActivityFeed
+      variant="team"
+      data={{
+        items,
+        isLoading: false,
+        page: 0,
+        totalPages: 1,
+        totalElements: items.length,
+        ...extras,
+      }}
+      controls={{
+        search: "",
+        sort: "createdAt,desc",
+        groupBy,
+        groupByOptions: [{ value: groupBy, label: groupBy }],
+        onSearchChange: vi.fn(),
+        onSortChange: vi.fn(),
+        onGroupByChange: vi.fn(),
+        onPageChange: vi.fn(),
+      }}
+      behavior={{ onOpenTask }}
+    />,
+  );
+  return { ...result, onOpenTask };
+}
+
+it("keeps groups in the first event's chronology rather than alphabetic order", () => {
+  feed(
+    [
+      {
+        ...item,
+        id: "recent",
+        user: { ...item.user, id: "ada", firstName: "Ada", lastName: "Person" },
+      },
+      {
+        ...item,
+        id: "older",
+        user: { ...item.user, id: "zed", firstName: "Zed", lastName: "Person" },
+        createdAt: "2026-11-01T00:00:00Z",
+      },
+    ],
+    "person",
+  );
+  expect(
+    screen.getAllByRole("heading", { level: 3 }).map((el) => el.textContent),
+  ).toEqual(["Ada Person", "Zed Person"]);
+  expect(
+    screen.getByText("Grouped on this page. Search covers the full history."),
+  ).toBeInTheDocument();
+});
+
+it.each(["person", "project", "task"] as const)(
+  "keeps separate %s identities with duplicate display names",
+  (groupBy) => {
+    const a = {
+      ...item,
+      project: { id: "p1", key: "P1", name: "Same" },
+      task: { id: "t1", taskNumber: 1, name: "Same" },
+      user: { ...item.user, id: "u1", firstName: "Same", lastName: "Person" },
+    };
+    const b = {
+      ...a,
+      id: "second",
+      project: { ...a.project, id: "p2", key: "P2" },
+      task: { ...a.task, id: "t2" },
+      user: { ...a.user, id: "u2", email: "second@example.test" },
+    };
+    feed([a, b], groupBy);
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(2);
+  },
+);
+
+it("keeps controls mounted while loading and reports matches rather than a false empty history", () => {
+  feed([], "date", { isLoading: true });
+  expect(
+    screen.getByRole("textbox", { name: "Search team activity..." }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Loading activity...")).toBeInTheDocument();
+});
+
+it("does not make a row interactive when the server supplies no authorized destination", () => {
+  const { onOpenTask } = feed([{ ...item, targetPath: null }], "date");
+  fireEvent.click(screen.getByText("Build login screen"));
+  expect(onOpenTask).not.toHaveBeenCalled();
+});
+
+it("expands long text without accidentally opening its task, while the row supports keyboard opening", () => {
+  const { onOpenTask, container } = feed(
+    [
+      {
+        ...item,
+        message: "Long history ".repeat(30),
+        targetPath: "/teams/TEAM/projects/PROJECT/tasks/7",
+      },
+    ],
+    "date",
+  );
+  const more = screen.getByRole("button", { name: "Show more" });
+  fireEvent.click(more);
+  expect(onOpenTask).not.toHaveBeenCalled();
+  fireEvent.keyDown(more, { key: "Enter" });
+  expect(onOpenTask).not.toHaveBeenCalled();
+  fireEvent.keyDown(container.querySelector("article")!, { key: "Enter" });
+  expect(onOpenTask).toHaveBeenCalledOnce();
+});

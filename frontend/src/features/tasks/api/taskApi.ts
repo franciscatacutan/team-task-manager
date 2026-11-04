@@ -1,3 +1,4 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { apiClient } from "./../../../api/apiClients";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { CreateTaskInput } from "../types/createTaskSchema";
@@ -84,11 +85,12 @@ export const getTaskActivities = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-  params: { page: number; size: number; sort?: string },
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<TaskActivity>> => {
   const res = await apiClient.get<PageResponse<TaskActivity>>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/activities`,
-    { params },
+    { params, signal },
   );
 
   return res.data;

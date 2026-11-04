@@ -12,11 +12,12 @@ public record TeamActivityResponse(
     User user,
     Project project,
     Task task,
-    Instant createdAt) {
+    Instant createdAt,
+    String targetPath) {
 
   public record User(UUID id, String firstName, String lastName, String email) {}
 
-  public record Project(UUID id, String name) {}
+  public record Project(UUID id, String name, String key) {}
 
-  public record Task(UUID id, String name) {}
+  public record Task(UUID id, String name, Long taskNumber) {}
 }

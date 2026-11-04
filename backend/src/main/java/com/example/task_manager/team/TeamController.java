@@ -114,10 +114,12 @@ public class TeamController {
   @GetMapping("/{teamKey}/activities")
   public ResponseEntity<PageResponse<TeamActivityResponse>> getTeamActivities(
       @PathVariable String teamKey,
+      @RequestParam(required = false) String search,
       @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
           Pageable pageable,
       Authentication authentication) {
-    return ResponseEntity.ok(teamService.getTeamActivities(teamKey, pageable, authentication));
+    return ResponseEntity.ok(
+        teamService.getTeamActivities(teamKey, search, pageable, authentication));
   }
 
   @PostMapping("/{teamKey}/members")

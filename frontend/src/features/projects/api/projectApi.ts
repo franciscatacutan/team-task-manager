@@ -1,3 +1,4 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
@@ -60,11 +61,12 @@ export const getProject = async (
 export const getProjectActivities = async (
   teamKey: string,
   projectKey: string,
-  params: BaseQueryParams,
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<ProjectActivity>> => {
   const res = await apiClient.get(
     `/teams/${teamKey}/projects/${projectKey}/activities`,
-    { params },
+    { params, signal },
   );
   return res.data;
 };

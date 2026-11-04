@@ -43,3 +43,26 @@ export interface ActivityDetails {
   task?: ActivityReference | null;
   subjectUser?: ActivityReference | null;
 }
+
+/** Identity, display data, and authorized navigation are separate fields. */
+export interface ActivityRecord {
+  id: string;
+  message: string;
+  type: ActivityType;
+  details: ActivityDetails;
+  user: { id?: string; firstName: string; lastName: string; email: string };
+  project?: { id?: string; key?: string | null; name: string | null } | null;
+  task?: {
+    id?: string;
+    taskNumber?: number | null;
+    name: string | null;
+  } | null;
+  createdAt: string;
+  targetPath?: string | null;
+}
+export interface ActivityQueryParams {
+  page?: number;
+  size?: number;
+  search?: string;
+  sort?: string;
+}

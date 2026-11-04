@@ -1,3 +1,4 @@
+import { useNotificationDestination } from "../hooks/useNotificationDestination";
 import QueryFailure from "@/common/components/QueryFailure";
 import { requestError } from "@/common/utils/requestError";
 import { authStorage } from "@/features/auth/utils/authStorage";
@@ -71,6 +72,8 @@ export default function NotificationCenter() {
   }>({ filter: "all", page: 0 });
   const { filter, page } = inbox;
   const readInFlight = useRef(false);
+  const [destinationNotice, setDestinationNotice] = useState("");
+  const destination = useNotificationDestination();
   const notificationsQuery = useNotifications(
     { page, unreadOnly: filter === "unread" },
     open,
@@ -78,7 +81,8 @@ export default function NotificationCenter() {
   const unreadQuery = useUnreadNotificationCount();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
-  const busy = markRead.isPending || markAllRead.isPending;
+  const busy =
+    markRead.isPending || markAllRead.isPending || destination.isPending;
   const notifications = notificationsQuery.data?.content ?? [];
   const unreadCount = unreadQuery.data?.unreadCount;
   const hasUnread =
@@ -98,6 +102,8 @@ export default function NotificationCenter() {
   function changeFilter(filter: "all" | "unread") {
     markRead.reset();
     markAllRead.reset();
+    destination.reset();
+    setDestinationNotice("");
     setInbox({ filter, page: 0 });
   }
   async function openNotification(notification: AppNotification) {
@@ -105,6 +111,8 @@ export default function NotificationCenter() {
     readInFlight.current = true;
     markRead.reset();
     markAllRead.reset();
+    destination.reset();
+    setDestinationNotice("");
     const revision = authStorage.getRevision();
     try {
       if (!notification.read) await markRead.mutateAsync(notification.id);
@@ -114,8 +122,21 @@ export default function NotificationCenter() {
         authStorage.isLoggingOut()
       )
         return;
+      const resolved = await destination.mutateAsync(notification.id);
+      if (
+        browserSession.sync() ||
+        revision !== authStorage.getRevision() ||
+        authStorage.isLoggingOut()
+      )
+        return;
+      if (!resolved.available || !resolved.targetPath) {
+        setDestinationNotice(
+          "Destination unavailable. This item no longer exists or you no longer have access. The notification remains in your history.",
+        );
+        return;
+      }
       setOpen(false);
-      navigate(notification.targetPath);
+      navigate(resolved.targetPath);
     } catch {
       // The mutation exposes a visible, retryable error; keep the inbox open.
     } finally {
@@ -127,6 +148,8 @@ export default function NotificationCenter() {
     readInFlight.current = true;
     markRead.reset();
     markAllRead.reset();
+    destination.reset();
+    setDestinationNotice("");
     try {
       await markAllRead.mutateAsync();
     } catch {
@@ -144,6 +167,8 @@ export default function NotificationCenter() {
         if (value) {
           markRead.reset();
           markAllRead.reset();
+          destination.reset();
+          setDestinationNotice("");
         }
         setOpen(value);
       }}
@@ -243,6 +268,17 @@ export default function NotificationCenter() {
               Retry unread count
             </Button>
           </div>
+        )}
+        {destinationNotice && (
+          <p role="alert" className="px-4 pb-3 text-sm text-muted-foreground">
+            {destinationNotice}
+          </p>
+        )}
+        {destination.isError && (
+          <p role="alert" className="px-4 pb-3 text-sm text-destructive">
+            Could not check the destination. Try opening this notification
+            again.
+          </p>
         )}
         {(markRead.isError || markAllRead.isError) && (
           <p role="alert" className="px-4 pb-3 text-sm text-destructive">

@@ -1,3 +1,4 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type {
@@ -35,9 +36,13 @@ export const getAllTeams = async (
 
 export const getTeamActivities = async (
   teamKey: string,
-  params: BaseQueryParams,
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<TeamActivity>> => {
-  const res = await apiClient.get(`/teams/${teamKey}/activities`, { params });
+  const res = await apiClient.get(`/teams/${teamKey}/activities`, {
+    params,
+    signal,
+  });
   return res.data;
 };
 

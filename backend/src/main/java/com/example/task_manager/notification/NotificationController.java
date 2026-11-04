@@ -1,6 +1,7 @@
 package com.example.task_manager.notification;
 
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.notification.dto.NotificationDestinationResponse;
 import com.example.task_manager.notification.dto.NotificationResponse;
 import com.example.task_manager.notification.dto.UnreadNotificationCountResponse;
 import java.util.UUID;
@@ -38,6 +39,13 @@ public class NotificationController {
   public ResponseEntity<UnreadNotificationCountResponse> getUnreadCount(
       Authentication authentication) {
     return ResponseEntity.ok(notificationService.getUnreadCount(authentication.getName()));
+  }
+
+  @GetMapping("/{notificationId}/destination")
+  public ResponseEntity<NotificationDestinationResponse> getDestination(
+      @PathVariable UUID notificationId, Authentication authentication) {
+    return ResponseEntity.ok(
+        notificationService.getDestination(notificationId, authentication.getName()));
   }
 
   @PatchMapping("/{notificationId}/read")

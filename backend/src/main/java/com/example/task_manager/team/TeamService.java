@@ -1,7 +1,7 @@
 package com.example.task_manager.team;
 
-import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.ActivityEventService;
+import com.example.task_manager.activity.ActivityHistoryQuery;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
@@ -9,6 +9,7 @@ import com.example.task_manager.common.KeyGenerator;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
+import com.example.task_manager.config.security.Authorization.WorkspaceReadPolicy;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ForbiddenException;
@@ -77,7 +78,8 @@ public class TeamService {
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
   private final TaskRepository taskRepository;
-  private final ActivityEventRepository activityEventRepository;
+  private final ActivityHistoryQuery activityHistoryQuery;
+  private final WorkspaceReadPolicy readPolicy;
   private final ActivityEventService activityEventService;
   private final GlobalAuthorizationService globalAuthorizationService;
   private final TeamAuthorizationService teamAuthorizationService;
@@ -353,16 +355,16 @@ public class TeamService {
   /** Returns team activity visible to the requester. */
   @Transactional(readOnly = true)
   public PageResponse<TeamActivityResponse> getTeamActivities(
-      String teamKey, Pageable pageable, Authentication authentication) {
+      String teamKey, String search, Pageable pageable, Authentication authentication) {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
     TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
-    validateCanReadTeam(team, requester);
+    var readAccess = validateCanReadTeam(team, requester);
 
-    Page<ActivityEventEntity> page =
-        activityEventRepository.findTeamActivity(team.getId(), pageable);
+    Page<ActivityEventEntity> page = activityHistoryQuery.team(team.getId(), search, pageable);
 
-    return toPageResponse(page, activityEventService::toTeamActivitiesResponse);
+    return toPageResponse(
+        page, event -> activityEventService.toTeamActivitiesResponse(event, readAccess));
   }
 
   /** Owners and super admins can grant or revoke team-admin roles. */
@@ -577,19 +579,12 @@ public class TeamService {
   }
 
   /** Ensures: - User is able to read team - User is Global admin or team member */
-  private void validateCanReadTeam(TeamEntity team, UserEntity requester) {
-    if (globalAuthorizationService.isGlobalAdmin(requester)) {
-      return;
-    }
-
-    TeamMemberEntity membership =
-        teamMemberRepository
-            .findByTeamIdAndUserId(team.getId(), requester.getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-
-    if (team.getDeletedAt() != null && !teamAuthorizationService.canManageTeam(membership)) {
-      throw new ResourceNotFoundException("Team not found");
-    }
+  private WorkspaceReadPolicy.Access validateCanReadTeam(TeamEntity team, UserEntity requester) {
+    var access =
+        readPolicy.forTeam(
+            team.getId(), requester.getId(), globalAuthorizationService.isGlobalAdmin(requester));
+    if (!access.team(team)) throw new ResourceNotFoundException("Team not found");
+    return access;
   }
 
   private String normalizeTeamName(String name) {

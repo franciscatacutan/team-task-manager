@@ -35,6 +35,7 @@ interface ActivityFeedProps {
     items: ActivityRecord[];
     isLoading: boolean;
     isError?: boolean;
+    isFetching?: boolean;
     onRetry?: () => unknown;
     page: number;
     totalPages: number;
@@ -94,82 +95,42 @@ const ACTIVITY_FEED_DEFAULTS: Record<ActivityFeedVariant, ActivityFeedDetails> =
   };
 
 function groupActivity(items: ActivityRecord[], groupBy: ActivityFeedGroupBy) {
-  return items.reduce<Record<string, ActivityRecord[]>>((groups, item) => {
-    let key = new Date(item.createdAt).toDateString();
-
+  const groups = new Map<
+    string,
+    { key: string; label: string; items: ActivityRecord[] }
+  >();
+  for (const item of items) {
+    let label = new Date(item.createdAt).toDateString();
+    let key = label;
     if (groupBy === "project") {
+      label =
+        item.project?.name ?? item.details?.project?.label ?? "No project";
       key =
-        "project" in item
-          ? (item.project?.name ?? "No project")
-          : "Current task";
+        item.project?.id ??
+        item.project?.key ??
+        item.details?.project?.id ??
+        label;
     }
-
     if (groupBy === "task") {
-      key = item.task?.name ?? "Current task";
+      label = item.task?.name ?? item.details?.task?.label ?? "No task";
+      key =
+        item.task?.id ??
+        item.details?.task?.id ??
+        `${item.project?.id ?? item.project?.key ?? ""}:${item.task?.taskNumber ?? label}`;
     }
-
     if (groupBy === "person") {
-      key = `${item.user.firstName} ${item.user.lastName}`.trim();
+      label = `${item.user.firstName} ${item.user.lastName}`.trim();
+      key = item.user.id ?? item.user.email;
     }
-
     if (groupBy === "type") {
-      key = getActivityTypeLabel(item);
+      label = getActivityTypeLabel(item);
+      key = label;
     }
-
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-
-    groups[key].push(item);
-
-    return groups;
-  }, {});
-}
-
-function filterActivity(items: ActivityRecord[], search: string) {
-  const normalizedSearch = search.trim().toLowerCase();
-
-  if (!normalizedSearch) {
-    return items;
+    if (!groups.has(key)) groups.set(key, { key, label, items: [] });
+    groups.get(key)!.items.push(item);
   }
-
-  return items.filter((item) => {
-    const fullName = `${item.user.firstName} ${item.user.lastName}`
-      .trim()
-      .toLowerCase();
-    const taskName = (item.task?.name ?? "").toLowerCase();
-    const projectName = (
-      "project" in item ? (item.project?.name ?? "") : ""
-    ).toLowerCase();
-    const typeLabel = getActivityTypeLabel(item).toLowerCase();
-    const message = item.message.toLowerCase();
-
-    return (
-      fullName.includes(normalizedSearch) ||
-      taskName.includes(normalizedSearch) ||
-      projectName.includes(normalizedSearch) ||
-      typeLabel.includes(normalizedSearch) ||
-      message.includes(normalizedSearch)
-    );
-  });
-}
-
-function sortGroupedEntries(
-  entries: Array<[string, ActivityRecord[]]>,
-  groupBy: ActivityFeedGroupBy,
-  sort: string,
-) {
-  if (groupBy === "date") {
-    return entries;
-  }
-
-  return [...entries].sort((a, b) => {
-    if (sort === "createdAt,asc") {
-      return a[0].localeCompare(b[0]);
-    }
-
-    return b[0].localeCompare(a[0]);
-  });
+  // Map insertion order preserves the first event's position in server-selected chronology.
+  return [...groups.values()];
 }
 
 export function ActivityFeed({
@@ -183,44 +144,12 @@ export function ActivityFeed({
   const interactiveItems = behavior?.interactiveItems ?? true;
   const showHeaderMeta = behavior?.showHeaderMeta ?? true;
 
-  const filteredItems = useMemo(
-    () => filterActivity(data.items, controls.search),
-    [data.items, controls.search],
-  );
-  const grouped = useMemo(
-    () => groupActivity(filteredItems, controls.groupBy),
-    [filteredItems, controls.groupBy],
-  );
   const groupEntries = useMemo(
-    () =>
-      sortGroupedEntries(
-        Object.entries(grouped),
-        controls.groupBy,
-        controls.sort,
-      ),
-    [grouped, controls.groupBy, controls.sort],
+    () => groupActivity(data.items, controls.groupBy),
+    [data.items, controls.groupBy],
   );
   const isFirstPage = data.page === 0;
   const isLastPage = data.totalPages === 0 || data.page + 1 >= data.totalPages;
-
-  if (data.isError)
-    return (
-      <QueryFailure label="activity" onRetry={data.onRetry ?? (() => {})} />
-    );
-  if (data.isLoading) {
-    return (
-      <section className="space-y-4 py-4">
-        <div className="space-y-3 px-0">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-18 animate-pulse rounded-xl bg-muted/35"
-            />
-          ))}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-2">
@@ -245,6 +174,8 @@ export function ActivityFeed({
           <div className="relative w-full max-w-md">
             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label={resolvedCopy.searchPlaceholder}
+              maxLength={200}
               placeholder={resolvedCopy.searchPlaceholder}
               value={controls.search}
               onChange={(e) => controls.onSearchChange(e.target.value)}
@@ -259,7 +190,10 @@ export function ActivityFeed({
                 controls.onGroupByChange(value as ActivityFeedGroupBy)
               }
             >
-              <SelectTrigger className="h-10 w-full min-w-40 rounded-xl border-border/70 bg-background shadow-none sm:w-44">
+              <SelectTrigger
+                aria-label="Group activity on this page"
+                className="h-10 w-full min-w-40 rounded-xl border-border/70 bg-background shadow-none sm:w-44"
+              >
                 <SelectValue placeholder="Group by" />
               </SelectTrigger>
 
@@ -273,7 +207,10 @@ export function ActivityFeed({
             </Select>
 
             <Select value={controls.sort} onValueChange={controls.onSortChange}>
-              <SelectTrigger className="h-10 w-full min-w-40 rounded-xl border-border/70 bg-background shadow-none sm:w-44">
+              <SelectTrigger
+                aria-label="Activity order"
+                className="h-10 w-full min-w-40 rounded-xl border-border/70 bg-background shadow-none sm:w-44"
+              >
                 <SelectValue />
               </SelectTrigger>
 
@@ -284,27 +221,50 @@ export function ActivityFeed({
             </Select>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Grouped on this page. Search covers the full history.
+        </p>
       </header>
 
-      <div className="flex flex-col flex-1 space-y-4 overflow-auto p-2 rounded-xl border border-border/60 bg-background/70">
-        {groupEntries.length === 0 ? (
+      <div
+        aria-busy={data.isFetching || data.isLoading}
+        className="flex flex-col flex-1 space-y-4 overflow-auto p-2 rounded-xl border border-border/60 bg-background/70"
+      >
+        {data.isError ? (
+          <QueryFailure
+            label="activity"
+            onRetry={data.onRetry ?? (() => {})}
+            pending={data.isFetching}
+          />
+        ) : data.isLoading ? (
+          <div role="status" className="space-y-3 p-3">
+            <p>Loading activity...</p>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div
+                key={i}
+                className="h-18 animate-pulse rounded-xl bg-muted/35"
+              />
+            ))}
+          </div>
+        ) : groupEntries.length === 0 ? (
           <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
             <div className="mb-4 rounded-2xl bg-background p-4 shadow-sm">
               <CalendarDays className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-base font-semibold text-foreground">
-              {resolvedCopy.emptyTitle}
+              {controls.search.trim()
+                ? "No matching activity"
+                : resolvedCopy.emptyTitle}
             </h3>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              {resolvedCopy.emptyDescription}
+              {controls.search.trim()
+                ? "Try another search across this history."
+                : resolvedCopy.emptyDescription}
             </p>
           </div>
         ) : (
-          groupEntries.map(([groupLabel, groupItems]) => (
-            <section
-              key={groupLabel}
-              className="m-0 space-y-2 backdrop-blur-sm"
-            >
+          groupEntries.map(({ key, label: groupLabel, items: groupItems }) => (
+            <section key={key} className="m-0 space-y-2 backdrop-blur-sm">
               <div className="flex items-center gap-2.5">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {controls.groupBy === "date"
@@ -333,32 +293,40 @@ export function ActivityFeed({
         )}
       </div>
 
-      {data.totalPages > 1 && (
+      {!data.isLoading && !data.isError && (
         <footer className="flex items-center justify-between border-t border-border/50 bg-transparent px-4 pt-3">
-          <p className="text-sm text-muted-foreground">
-            Showing page {data.page + 1} of {data.totalPages}
+          <p role="status" className="text-sm text-muted-foreground">
+            {data.totalElements} {controls.search.trim() ? "matching " : ""}
+            event{data.totalElements === 1 ? "" : "s"}
+            {data.totalPages > 0
+              ? ` · Page ${data.page + 1} of ${data.totalPages}`
+              : ""}
           </p>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => controls.onPageChange(data.page - 1)}
-              disabled={isFirstPage}
-              className="rounded-xl"
-            >
-              Previous
-            </Button>
+          {data.totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => controls.onPageChange(data.page - 1)}
+                aria-label="Previous activity page"
+                disabled={isFirstPage || data.isFetching}
+                className="rounded-xl"
+              >
+                Previous
+              </Button>
 
-            <Button
-              type="button"
-              onClick={() => controls.onPageChange(data.page + 1)}
-              disabled={isLastPage}
-              className="rounded-xl"
-            >
-              Next
-            </Button>
-          </div>
+              <Button
+                type="button"
+                onClick={() => controls.onPageChange(data.page + 1)}
+                aria-label="Next activity page"
+                disabled={isLastPage || data.isFetching}
+                className="rounded-xl"
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </footer>
       )}
     </section>

@@ -1,10 +1,7 @@
-import { useState } from "react";
+import { useActivityFeedState } from "@/common/hooks/useActivityFeedState";
 
 import { useProjectActivity } from "../hooks/useProjectActivities";
-import {
-  ActivityFeed,
-  type ActivityFeedGroupBy,
-} from "../../../common/components/activity/ActivityFeed";
+import { ActivityFeed } from "../../../common/components/activity/ActivityFeed";
 
 interface Props {
   teamKey: string;
@@ -17,21 +14,13 @@ export default function ProjectActivity({
   projectKey,
   onOpenTask,
 }: Props) {
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("createdAt,desc");
-  const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
-
-  const { data, isLoading, isError, refetch } = useProjectActivity(
+  const feed = useActivityFeedState(JSON.stringify([teamKey, projectKey]));
+  const { data, isPending, isError, isFetching, refetch } = useProjectActivity(
     teamKey,
     projectKey,
-    {
-      page: page,
-      size: 1000,
-      search,
-      sort,
-    },
+    feed.params,
   );
+  feed.recoverPage(!isError ? data?.totalPages : undefined);
 
   return (
     <ActivityFeed
@@ -42,37 +31,26 @@ export default function ProjectActivity({
       }}
       data={{
         items: data?.content ?? [],
-        isLoading,
-        isError,
+        isLoading: isPending || feed.searching,
+        isError: isError && !feed.searching,
+        isFetching: isFetching || feed.searching,
         onRetry: refetch,
-        page: data?.page ?? page,
+        page: data?.page ?? feed.params.page,
         totalPages: data?.totalPages ?? 0,
         totalElements: data?.totalElements ?? 0,
       }}
       controls={{
-        search,
-        sort,
-        groupBy,
+        ...feed.controls,
         groupByOptions: [
           { value: "date", label: "Date" },
           { value: "task", label: "Task" },
           { value: "person", label: "Person" },
           { value: "type", label: "Type" },
         ],
-        onSearchChange: (value) => {
-          setSearch(value);
-          setPage(0);
-        },
-        onSortChange: (value) => {
-          setSort(value);
-          setPage(0);
-        },
-        onGroupByChange: setGroupBy,
-        onPageChange: setPage,
       }}
       behavior={{
         onOpenTask: (item) => {
-          if (item.task?.taskNumber) {
+          if (item.targetPath && item.task?.taskNumber) {
             onOpenTask(item.task.taskNumber);
           }
         },

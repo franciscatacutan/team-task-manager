@@ -47,17 +47,6 @@ export interface UpdateTaskInput {
   plannedDueDate?: string | null;
 }
 
-import type {
-  ActivityDetails,
-  ActivityType,
-} from "../../../common/types/activity.types";
+import type { ActivityRecord } from "@/common/types/activity.types";
 
-export interface TaskActivity {
-  id: string;
-  message: string;
-  type: ActivityType;
-  details: ActivityDetails;
-  user: TaskUser;
-  task?: { id: string; name: string | null; taskNumber?: number } | null;
-  createdAt: string;
-}
+export type TaskActivity = ActivityRecord;

@@ -60,6 +60,8 @@ try {
       });
     if (path === "/api/users/me")
       return route.fulfill({ json: { ...user, id: user.userId } });
+    if (/\/notifications\/\d+\/destination$/.test(path))
+      return route.fulfill({ json: { available: true, targetPath: "/teams" } });
     if (path === "/api/notifications/unread-count")
       return route.fulfill({ json: { unreadCount: unreadCount() } });
     if (path === "/api/notifications/read-all") {

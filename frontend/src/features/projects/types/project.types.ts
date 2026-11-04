@@ -1,3 +1,4 @@
+import type { ActivityRecord } from "@/common/types/activity.types";
 export type ProjectStatus = "ACTIVE" | "ON_HOLD" | "COMPLETED" | "DELETED";
 
 export type Project = {
@@ -31,18 +32,7 @@ type User = {
   email: string;
 };
 
-type Task = {
-  taskNumber: number;
-  name: string;
-};
-
-export type ProjectActivity = {
-  id: string;
-  message: string;
-  user: User;
-  task: Task;
-  createdAt: string;
-};
+export type ProjectActivity = ActivityRecord;
 
 export interface UpdateProjectInput {
   name?: string;

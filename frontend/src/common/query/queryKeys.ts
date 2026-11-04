@@ -152,6 +152,7 @@ export const mutationKeys = {
   userAdminUpdate: (user: string) => ["user-admin-update", user] as const,
   userProfile: (user: string) => ["user-profile", user] as const,
   userRole: (user: string) => ["user-role", user] as const,
+  notificationDestination: ["notification-destination"] as const,
   notificationRead: ["notification-read"] as const,
   notificationsRead: ["notifications-read"] as const,
 };

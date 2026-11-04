@@ -25,6 +25,7 @@ import type {
 
 vi.mock("../api/notificationApi", () => ({
   getNotifications: vi.fn(),
+  getNotificationDestination: vi.fn(),
   getUnreadNotificationCount: vi.fn(),
   markNotificationRead: vi.fn(),
   markAllNotificationsRead: vi.fn(),
@@ -94,6 +95,10 @@ const serverError = {
 };
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(api.getNotificationDestination).mockImplementation(async (id) => ({
+    available: true,
+    targetPath: `/destination/${id}`,
+  }));
   localStorage.clear();
   browserSession.sync();
   authStorage.endLogout();
@@ -431,4 +436,77 @@ it("does not install a previous account's Read all result or invalidate its repl
   expect(
     cache.getQueryState(queryKeys.notifications.unreadCount)?.isInvalidated,
   ).toBe(false);
+});
+
+it("retains and reads an unavailable notification without leaving the inbox", async () => {
+  rows = [notification(1)];
+  vi.mocked(api.getNotificationDestination).mockResolvedValue({
+    available: false,
+    targetPath: null,
+  });
+  const { user } = setup();
+  await open(user);
+  await user.click(screen.getByRole("button", { name: "Unread" }));
+  await user.click(await screen.findByRole("button", { name: /Notice 1/ }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Destination unavailable",
+  );
+  expect(screen.getByTestId("location")).toHaveTextContent("/teams");
+  expect(screen.getByText("No unread notifications")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "All" }));
+  expect(await screen.findByText("Notice 1")).toBeInTheDocument();
+  expect(rows[0].read).toBe(true);
+  await user.click(screen.getByRole("button", { name: /Notice 1/ }));
+  await screen.findByText(/Destination unavailable/);
+  expect(api.markNotificationRead).toHaveBeenCalledOnce();
+  expect(api.getNotificationDestination).toHaveBeenCalledTimes(2);
+});
+it("allows retrying a destination lookup failure without repeating a confirmed read", async () => {
+  rows = [notification(1)];
+  vi.mocked(api.getNotificationDestination).mockRejectedValueOnce(serverError);
+  const { user } = setup();
+  await open(user);
+  await user.click(await screen.findByRole("button", { name: /Notice 1/ }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Could not check the destination",
+  );
+  expect(screen.getByTestId("location")).toHaveTextContent("/teams");
+  await user.click(screen.getByRole("button", { name: /Notice 1/ }));
+  await waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent("/destination/1"),
+  );
+  expect(api.markNotificationRead).toHaveBeenCalledOnce();
+});
+it("guards pending destination lookups and ignores an old-account destination response", async () => {
+  rows = [notification(1, true)];
+  const gate = deferred<{ available: boolean; targetPath: string }>();
+  vi.mocked(api.getNotificationDestination).mockReturnValueOnce(gate.promise);
+  const { user } = setup();
+  await open(user);
+  const item = await screen.findByRole("button", { name: /Notice 1/ });
+  await user.click(item);
+  expect(item).toBeDisabled();
+  await user.keyboard("[Escape]");
+  expect(screen.getByText("Notifications")).toBeInTheDocument();
+  authStorage.setToken("new-account");
+  await act(async () =>
+    gate.resolve({ available: true, targetPath: "/destination/old" }),
+  );
+  expect(screen.getByTestId("location")).toHaveTextContent("/teams");
+});
+it("uses a fresh destination instead of an old stored route", async () => {
+  rows = [
+    { ...notification(1, true), targetPath: "https://example.test/old-path" },
+  ];
+  vi.mocked(api.getNotificationDestination).mockResolvedValueOnce({
+    available: true,
+    targetPath: "/teams/RENAMED",
+  });
+  const { user } = setup();
+  await open(user);
+  await user.click(await screen.findByRole("button", { name: /Notice 1/ }));
+  await waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent("/teams/RENAMED"),
+  );
+  expect(api.markNotificationRead).not.toHaveBeenCalled();
 });

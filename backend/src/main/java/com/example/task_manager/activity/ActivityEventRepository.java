@@ -6,10 +6,13 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 /** Repository for unified activity events. */
-public interface ActivityEventRepository extends JpaRepository<ActivityEventEntity, UUID> {
+public interface ActivityEventRepository
+    extends JpaRepository<ActivityEventEntity, UUID>,
+        JpaSpecificationExecutor<ActivityEventEntity> {
   @Query(
       """
       SELECT e FROM ActivityEventEntity e

@@ -55,3 +55,8 @@ export type NotificationInboxParams = {
   unreadOnly: boolean;
   sort: string;
 };
+
+export type NotificationDestination = {
+  available: boolean;
+  targetPath: string | null;
+};

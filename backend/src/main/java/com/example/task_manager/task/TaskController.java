@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for managing tasks within projects. */
@@ -111,12 +112,14 @@ public class TaskController {
       @PathVariable String teamKey,
       @PathVariable String projectKey,
       @PathVariable Long taskNumber,
+      @RequestParam(required = false) String search,
       @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
           Pageable pageable,
       Authentication authentication) {
 
     return ResponseEntity.ok(
-        taskService.getTaskActivities(teamKey, projectKey, taskNumber, pageable, authentication));
+        taskService.getTaskActivities(
+            teamKey, projectKey, taskNumber, search, pageable, authentication));
   }
 
   @PatchMapping("/{taskNumber}/status")

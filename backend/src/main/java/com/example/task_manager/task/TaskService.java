@@ -1,7 +1,7 @@
 package com.example.task_manager.task;
 
-import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.ActivityEventService;
+import com.example.task_manager.activity.ActivityHistoryQuery;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
@@ -9,6 +9,7 @@ import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.ProjectAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
+import com.example.task_manager.config.security.Authorization.WorkspaceReadPolicy;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ForbiddenException;
@@ -65,7 +66,8 @@ public class TaskService {
 
   private final TaskRepository taskRepository;
   private final TeamMemberRepository teamMemberRepository;
-  private final ActivityEventRepository activityEventRepository;
+  private final ActivityHistoryQuery activityHistoryQuery;
+  private final WorkspaceReadPolicy readPolicy;
   private final ActivityEventService activityEventService;
   private final GlobalAuthorizationService globalAuthorizationService;
   private final TeamAuthorizationService teamAuthorizationService;
@@ -332,6 +334,7 @@ public class TaskService {
       String teamKey,
       String projectKey,
       Long taskNumber,
+      String search,
       Pageable pageable,
       Authentication authentication) {
 
@@ -345,11 +348,12 @@ public class TaskService {
 
     TaskEntity task = requireTask(taskNumber, project.getId(), team.getId());
 
-    validateCanReadTask(task, requester.getId(), isGlobalAdmin);
+    var readAccess = validateCanReadTask(task, requester.getId(), isGlobalAdmin);
 
-    Page<ActivityEventEntity> page = activityEventRepository.findByTaskId(task.getId(), pageable);
+    Page<ActivityEventEntity> page = activityHistoryQuery.task(task.getId(), search, pageable);
 
-    return toPageResponse(page, activityEventService::toTaskActivitiesResponse);
+    return toPageResponse(
+        page, event -> activityEventService.toTaskActivitiesResponse(event, readAccess));
   }
 
   /** Change the status of a task Only admin, owner, assignee and support can change status */
@@ -631,7 +635,10 @@ public class TaskService {
     ActivityEventEntity activity =
         activityEventService.recordTaskComment(task, requester, request.message());
 
-    return activityEventService.toTaskActivitiesResponse(activity);
+    return activityEventService.toTaskActivitiesResponse(
+        activity,
+        readPolicy.forTeam(
+            team.getId(), requester.getId(), globalAuthorizationService.isGlobalAdmin(requester)));
   }
 
   // ********************
@@ -787,24 +794,12 @@ public class TaskService {
   }
 
   /** Ensures: - User is able to read task - User is Global admin or team member */
-  private void validateCanReadTask(TaskEntity task, UUID requesterId, boolean isGlobalAdmin) {
-    if (isGlobalAdmin) {
-      return;
-    }
-
-    UUID teamId = task.getProject().getTeam().getId();
-    TeamMemberEntity membership =
-        teamMemberRepository
-            .findByTeamIdAndUserId(teamId, requesterId)
-            .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
-
-    boolean deleted =
-        task.getDeletedAt() != null
-            || task.getProject().getDeletedAt() != null
-            || task.getProject().getTeam().getDeletedAt() != null;
-    if (deleted && !teamAuthorizationService.canManageTeam(membership)) {
-      throw new ResourceNotFoundException("Task not found");
-    }
+  private WorkspaceReadPolicy.Access validateCanReadTask(
+      TaskEntity task, UUID requesterId, boolean isGlobalAdmin) {
+    var access =
+        readPolicy.forTeam(task.getProject().getTeam().getId(), requesterId, isGlobalAdmin);
+    if (!access.task(task)) throw new ResourceNotFoundException("Task not found");
+    return access;
   }
 
   private TaskDetailsUpdateMessage buildTaskDetailsUpdateMessage(
