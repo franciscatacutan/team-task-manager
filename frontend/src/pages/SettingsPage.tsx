@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,29 +34,16 @@ import { useUpdatePassword } from "@/features/settings/hooks/useUpdatePassword";
 import { useThemePreference } from "@/features/settings/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 
-const passwordRules =
-  "Use 8+ characters with uppercase, lowercase, number, and special character.";
-
-const passwordPattern =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-[\]{};':"\\|,.<>/?]).{8,}$/;
-
-const emailSchema = z.object({
-  newEmail: z.string().trim().email("Enter a valid email address"),
-  currentPassword: z.string().min(1, "Current password is required"),
-});
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .regex(passwordPattern, "Password does not meet the requirements"),
-    confirmPassword: z.string().min(1, "Confirm your new password"),
-  })
-  .refine((values) => values.newPassword === values.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
+import { accountRequestError } from "@/common/utils/accountRequestError";
+import {
+  emailChangeSchema as emailSchema,
+  passwordChangeSchema as passwordSchema,
+  passwordRules,
+} from "@/common/validation/accountValidation";
+import { useSessionFormSubmission } from "@/common/hooks/useSessionFormSubmission";
+import QueryFailure from "@/common/components/QueryFailure";
+import { authStorage } from "@/features/auth/utils/authStorage";
+import type { User } from "@/features/users/types/userType";
 
 type EmailFormValues = z.infer<typeof emailSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
@@ -77,11 +70,52 @@ const themeOptions = [
 ] as const;
 
 export default function SettingsPage() {
-  const { data: user, isLoading } = useCurrentUser();
+  const query = useCurrentUser();
+  if (query.isLoading) return <SettingsSkeleton />;
+  if (!query.data)
+    return (
+      <div className="p-6">
+        <h1 className="mb-4 text-xl font-semibold">Settings unavailable</h1>
+        <QueryFailure
+          label="account settings"
+          onRetry={query.refetch}
+          pending={query.isFetching}
+        />
+      </div>
+    );
+  return (
+    <SettingsEditor
+      key={JSON.stringify([query.data.id, authStorage.getRevision()])}
+      user={query.data}
+      feedback={
+        query.isError ? (
+          <QueryFailure
+            label="the latest account settings"
+            onRetry={query.refetch}
+            pending={query.isFetching}
+          />
+        ) : null
+      }
+    />
+  );
+}
+
+function SettingsEditor({
+  user,
+  feedback,
+}: {
+  user: User;
+  feedback: ReactNode;
+}) {
+  const submission = useSessionFormSubmission();
+  const [tab, setTab] = useState("account");
   const updateEmail = useUpdateAccountEmail();
-  const updatePassword = useUpdatePassword(user?.id ?? "");
+  const updatePassword = useUpdatePassword(user.id);
   const { theme, setTheme } = useThemePreference();
 
+  const busy =
+    submission.pending || updateEmail.isPending || updatePassword.isPending;
+  const feedbackRef = useRef<HTMLParagraphElement>(null);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [preferenceSaved, setPreferenceSaved] = useState(false);
@@ -89,7 +123,7 @@ export default function SettingsPage() {
   const emailForm = useForm<EmailFormValues>({
     resolver: zodResolver(emailSchema),
     defaultValues: {
-      newEmail: "",
+      newEmail: user.email,
       currentPassword: "",
     },
   });
@@ -103,80 +137,76 @@ export default function SettingsPage() {
     },
   });
 
-  const currentEmail = user?.email;
-
   const initials = useMemo(() => {
     if (!user) return "U";
     return `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}` || "U";
   }, [user]);
 
   useEffect(() => {
-    if (!currentEmail) return;
+    if (emailError || passwordError)
+      feedbackRef.current?.scrollIntoView({ block: "nearest" });
+  }, [emailError, passwordError]);
 
-    emailForm.reset({
-      newEmail: currentEmail,
-      currentPassword: "",
+  async function submitEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submission.run(async (isCurrent) => {
+      setEmailError("");
+      await emailForm.handleSubmit(async (values) => {
+        if (!isCurrent()) return;
+        try {
+          await updateEmail.mutateAsync({
+            newEmail: values.newEmail,
+            currentPassword: values.currentPassword,
+          });
+          if (isCurrent()) emailForm.reset({ ...values, currentPassword: "" });
+        } catch (error) {
+          if (isCurrent())
+            setEmailError(accountRequestError(error, "credentials"));
+        }
+      })(event);
     });
-  }, [currentEmail, emailForm]);
-
-  const handleEmailSubmit = async (values: EmailFormValues) => {
+  }
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submission.run(async (isCurrent) => {
+      setPasswordError("");
+      await passwordForm.handleSubmit(async (values) => {
+        if (!isCurrent()) return;
+        try {
+          await updatePassword.mutateAsync({
+            currentPassword: values.currentPassword,
+            newPassword: values.newPassword,
+          });
+          if (isCurrent()) passwordForm.reset();
+        } catch (error) {
+          if (isCurrent())
+            setPasswordError(accountRequestError(error, "credentials"));
+        }
+      })(event);
+    });
+  }
+  function changeTab(next: string) {
+    if (submission.inFlight.current) return;
+    emailForm.reset({ ...emailForm.getValues(), currentPassword: "" });
+    passwordForm.reset();
     setEmailError("");
-
-    try {
-      await updateEmail.mutateAsync({
-        newEmail: values.newEmail.trim(),
-        currentPassword: values.currentPassword,
-      });
-    } catch (error) {
-      setEmailError(
-        getErrorMessage(error, "Unable to update your email right now."),
-      );
-    }
-  };
-
-  const handlePasswordSubmit = async (values: PasswordFormValues) => {
-    if (!user) return;
-
     setPasswordError("");
-
-    try {
-      await updatePassword.mutateAsync({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      });
-    } catch (error) {
-      setPasswordError(
-        getErrorMessage(error, "Unable to update your password right now."),
-      );
-    }
-  };
+    updateEmail.reset();
+    updatePassword.reset();
+    setTab(next);
+  }
 
   const handleThemeChange = (nextTheme: typeof theme) => {
+    if (submission.inFlight.current) return;
     setTheme(nextTheme);
     setPreferenceSaved(true);
     window.setTimeout(() => setPreferenceSaved(false), 1800);
   };
 
-  if (isLoading) {
-    return <SettingsSkeleton />;
-  }
-
-  if (!user) {
-    return (
-      <div className="flex h-full items-center justify-center bg-muted/10 p-6">
-        <div className="rounded-xl border border-border/60 bg-background p-6 text-center shadow-sm">
-          <h1 className="text-lg font-semibold">Settings unavailable</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in again to manage your account settings.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full min-h-0 overflow-auto bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        {feedback}
         <header className="flex flex-col gap-4 rounded-xl border border-border/60 bg-background p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-primary/10 text-base font-semibold text-primary">
@@ -204,27 +234,32 @@ export default function SettingsPage() {
         </header>
 
         <Tabs
-          defaultValue="account"
+          orientation="vertical"
+          value={tab}
+          onValueChange={changeTab}
           className="grid gap-5 lg:grid-cols-[14rem_1fr]"
         >
-          <TabsList className="h-fit flex-col items-stretch justify-start gap-1 rounded-xl border border-border/60 bg-background p-1 shadow-sm">
+          <TabsList className="h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl border border-border/60 bg-background p-1 shadow-sm">
             <TabsTrigger
               value="account"
-              className="justify-start gap-2 rounded-lg"
+              disabled={busy}
+              className="h-auto flex-none justify-start gap-2 rounded-lg px-3 py-2"
             >
               <Mail className="h-4 w-4" />
               Account
             </TabsTrigger>
             <TabsTrigger
               value="security"
-              className="justify-start gap-2 rounded-lg"
+              disabled={busy}
+              className="h-auto flex-none justify-start gap-2 rounded-lg px-3 py-2"
             >
               <ShieldCheck className="h-4 w-4" />
               Security
             </TabsTrigger>
             <TabsTrigger
               value="preferences"
-              className="justify-start gap-2 rounded-lg"
+              disabled={busy}
+              className="h-auto flex-none justify-start gap-2 rounded-lg px-3 py-2"
             >
               <Palette className="h-4 w-4" />
               Preferences
@@ -244,55 +279,98 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <form
-                    onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
+                    noValidate
+                    aria-label="Change login email"
+                    aria-busy={busy}
+                    onSubmit={(event) => {
+                      void submitEmail(event);
+                    }}
                     className="grid gap-5"
                   >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="settings-email">New email</Label>
-                        <Input
-                          id="settings-email"
-                          type="email"
-                          className="h-10 rounded-xl"
-                          {...emailForm.register("newEmail")}
-                        />
-                        {emailForm.formState.errors.newEmail && (
-                          <p className="text-xs text-destructive">
-                            {emailForm.formState.errors.newEmail.message}
-                          </p>
-                        )}
-                      </div>
+                    <fieldset disabled={busy} className="grid min-w-0 gap-5">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="settings-email">New email</Label>
+                          <Input
+                            id="settings-email"
+                            maxLength={150}
+                            autoComplete="email"
+                            type="email"
+                            className="h-10 rounded-xl"
+                            {...emailForm.register("newEmail")}
+                            aria-required="true"
+                            aria-invalid={Boolean(
+                              emailForm.formState.errors.newEmail,
+                            )}
+                            aria-describedby={
+                              emailForm.formState.errors.newEmail
+                                ? "settings-email-error"
+                                : undefined
+                            }
+                          />
+                          {emailForm.formState.errors.newEmail && (
+                            <p
+                              id="settings-email-error"
+                              role="alert"
+                              className="text-xs text-destructive"
+                            >
+                              {emailForm.formState.errors.newEmail.message}
+                            </p>
+                          )}
+                        </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="settings-email-password">
-                          Current password
-                        </Label>
-                        <Input
-                          id="settings-email-password"
-                          type="password"
-                          className="h-10 rounded-xl"
-                          autoComplete="current-password"
-                          {...emailForm.register("currentPassword")}
-                        />
-                        {emailForm.formState.errors.currentPassword && (
-                          <p className="text-xs text-destructive">
-                            {emailForm.formState.errors.currentPassword.message}
-                          </p>
-                        )}
+                        <div className="space-y-2">
+                          <Label htmlFor="settings-email-password">
+                            Current password
+                          </Label>
+                          <Input
+                            id="settings-email-password"
+                            type="password"
+                            className="h-10 rounded-xl"
+                            autoComplete="current-password"
+                            {...emailForm.register("currentPassword")}
+                            aria-required="true"
+                            aria-invalid={Boolean(
+                              emailForm.formState.errors.currentPassword,
+                            )}
+                            aria-describedby={
+                              emailForm.formState.errors.currentPassword
+                                ? "settings-email-password-error"
+                                : undefined
+                            }
+                          />
+                          {emailForm.formState.errors.currentPassword && (
+                            <p
+                              id="settings-email-password-error"
+                              role="alert"
+                              className="text-xs text-destructive"
+                            >
+                              {
+                                emailForm.formState.errors.currentPassword
+                                  .message
+                              }
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-
+                    </fieldset>
                     {emailError && (
-                      <p className="text-sm text-destructive">{emailError}</p>
+                      <p
+                        ref={feedbackRef}
+                        role="alert"
+                        className="text-sm text-destructive"
+                      >
+                        {emailError}
+                      </p>
                     )}
 
                     <div className="flex justify-end">
                       <Button
                         type="submit"
                         className="rounded-xl"
-                        disabled={updateEmail.isPending}
+                        disabled={busy}
                       >
-                        {updateEmail.isPending ? "Updating..." : "Update email"}
+                        {busy ? "Updating..." : "Update email"}
                       </Button>
                     </div>
                   </form>
@@ -311,46 +389,66 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <form
-                    onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                    noValidate
+                    aria-label="Change password"
+                    aria-busy={busy}
+                    onSubmit={(event) => {
+                      void submitPassword(event);
+                    }}
                     className="grid gap-5"
                   >
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      <PasswordField
-                        id="settings-current-password"
-                        label="Current password"
-                        autoComplete="current-password"
-                        registration={passwordForm.register("currentPassword")}
-                        error={
-                          passwordForm.formState.errors.currentPassword?.message
-                        }
-                      />
-                      <PasswordField
-                        id="settings-new-password"
-                        label="New password"
-                        autoComplete="new-password"
-                        registration={passwordForm.register("newPassword")}
-                        error={
-                          passwordForm.formState.errors.newPassword?.message
-                        }
-                      />
-                      <PasswordField
-                        id="settings-confirm-password"
-                        label="Confirm password"
-                        autoComplete="new-password"
-                        registration={passwordForm.register("confirmPassword")}
-                        error={
-                          passwordForm.formState.errors.confirmPassword?.message
-                        }
-                      />
-                    </div>
+                    <fieldset disabled={busy} className="grid min-w-0 gap-5">
+                      <div className="grid gap-4 lg:grid-cols-3">
+                        <PasswordField
+                          id="settings-current-password"
+                          label="Current password"
+                          autoComplete="current-password"
+                          registration={passwordForm.register(
+                            "currentPassword",
+                          )}
+                          error={
+                            passwordForm.formState.errors.currentPassword
+                              ?.message
+                          }
+                        />
+                        <PasswordField
+                          id="settings-new-password"
+                          hintId="settings-password-rules"
+                          label="New password"
+                          autoComplete="new-password"
+                          registration={passwordForm.register("newPassword")}
+                          error={
+                            passwordForm.formState.errors.newPassword?.message
+                          }
+                        />
+                        <PasswordField
+                          id="settings-confirm-password"
+                          label="Confirm password"
+                          autoComplete="new-password"
+                          registration={passwordForm.register(
+                            "confirmPassword",
+                          )}
+                          error={
+                            passwordForm.formState.errors.confirmPassword
+                              ?.message
+                          }
+                        />
+                      </div>
 
-                    <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3 text-sm text-muted-foreground">
-                      <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{passwordRules}</span>
-                    </div>
-
+                      <div
+                        id="settings-password-rules"
+                        className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3 text-sm text-foreground/75"
+                      >
+                        <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{passwordRules}</span>
+                      </div>
+                    </fieldset>
                     {passwordError && (
-                      <p className="text-sm text-destructive">
+                      <p
+                        ref={feedbackRef}
+                        role="alert"
+                        className="text-sm text-destructive"
+                      >
                         {passwordError}
                       </p>
                     )}
@@ -359,11 +457,9 @@ export default function SettingsPage() {
                       <Button
                         type="submit"
                         className="rounded-xl"
-                        disabled={updatePassword.isPending}
+                        disabled={busy}
                       >
-                        {updatePassword.isPending
-                          ? "Updating..."
-                          : "Update password"}
+                        {busy ? "Updating..." : "Update password"}
                       </Button>
                     </div>
                   </form>
@@ -389,6 +485,8 @@ export default function SettingsPage() {
                         <button
                           key={option.value}
                           type="button"
+                          aria-pressed={isSelected}
+                          disabled={busy}
                           onClick={() => handleThemeChange(option.value)}
                           className={cn(
                             "flex min-h-28 flex-col items-start justify-between rounded-xl border border-border/60 bg-background p-4 text-left transition hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -414,7 +512,10 @@ export default function SettingsPage() {
 
                   <div className="flex min-h-9 items-center text-sm text-muted-foreground">
                     {preferenceSaved && (
-                      <span className="inline-flex items-center gap-2 text-foreground">
+                      <span
+                        role="status"
+                        className="inline-flex items-center gap-2 text-foreground"
+                      >
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         Preference saved
                       </span>
@@ -436,12 +537,14 @@ function PasswordField({
   autoComplete,
   registration,
   error,
+  hintId,
 }: {
   id: string;
   label: string;
   autoComplete: string;
   registration: UseFormRegisterReturn;
   error?: string;
+  hintId?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -452,8 +555,19 @@ function PasswordField({
         className="h-10 rounded-xl"
         autoComplete={autoComplete}
         {...registration}
+        aria-required="true"
+        aria-invalid={Boolean(error)}
+        aria-describedby={
+          [hintId, error ? `${id}-error` : undefined]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
       />
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -470,16 +584,4 @@ function SettingsSkeleton() {
       </div>
     </div>
   );
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? fallback;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return fallback;
 }

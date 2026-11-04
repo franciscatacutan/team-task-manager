@@ -1,6 +1,6 @@
 # Phase 2J part 3 — member batch dialogs
 
-Baseline: user commit `65da55b`. The user approved bounded sizing, blocked editing/dismissal during requests and preservation of the existing partial-result/retry rules. This checkpoint is verified and awaiting user review/commit. Phase 2J part 3 remains in progress; four roadmap parts remain (2J3 and 2K1–3).
+Baseline: user commit `65da55b`. The user approved bounded sizing, blocked editing/dismissal during requests and preservation of the existing partial-result/retry rules. The user committed this verified checkpoint as `6715e81`. Phase 2J part 3 remains in progress; four roadmap parts remain (2J3 and 2K1–3).
 
 ## What changed
 

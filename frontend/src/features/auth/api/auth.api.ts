@@ -19,6 +19,7 @@ export const register = async (payload: {
   lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
 }) => {
   return browserSession.authenticate(async () => {
     const { data } = await apiClient.post<AuthResponse>(

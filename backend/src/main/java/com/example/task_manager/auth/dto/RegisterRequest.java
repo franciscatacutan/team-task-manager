@@ -8,11 +8,14 @@ import jakarta.validation.constraints.Size;
 /** DTO for register request */
 public record RegisterRequest(
     @NotBlank
+        @Size(max = 150)
         @Pattern(regexp = "^[^@]+@[^@]+\\.[^@]+$", message = "Please enter a valid email address")
         @Email
         String email,
-    @NotBlank @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid first name") String firstName,
-    @NotBlank @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid last name") String lastName,
+    @NotBlank @Size(max = 100) @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid first name")
+        String firstName,
+    @NotBlank @Size(max = 100) @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid last name")
+        String lastName,
     @NotBlank
         @Size(min = 8, message = "Password should be at least 8 characters")
         @Pattern(

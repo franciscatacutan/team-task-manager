@@ -699,6 +699,7 @@ describe("cache races and workspace identity", () => {
             lastName: "User",
             email: "new@example.test",
             password: "Password1!",
+            confirmPassword: "Password1!",
           });
       });
       expect(
