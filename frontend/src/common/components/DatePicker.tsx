@@ -1,3 +1,4 @@
+import { useState, type ComponentProps } from "react";
 import { format } from "date-fns";
 import {
   Popover,
@@ -9,11 +10,15 @@ import { Calendar } from "../../components/ui/calendar";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 
-interface Props {
+interface Props extends Pick<
+  ComponentProps<typeof Button>,
+  "id" | "aria-describedby" | "aria-invalid" | "aria-label"
+> {
   value?: Date;
   onChange: (date: Date | undefined) => void;
   placeholder?: string;
   disabled?: (date: Date) => boolean;
+  triggerDisabled?: boolean;
 }
 
 export default function DatePicker({
@@ -21,11 +26,17 @@ export default function DatePicker({
   onChange,
   placeholder = "Pick a date",
   disabled,
+  triggerDisabled = false,
+  ...controlProps
 }: Props) {
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open && !triggerDisabled} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          {...controlProps}
+          type="button"
+          disabled={triggerDisabled}
           variant="outline"
           className={cn(
             "h-auto min-h-10 w-full rounded-xl border-border/70 bg-background px-3 py-2 text-left font-normal shadow-none hover:bg-muted/20",
@@ -60,7 +71,7 @@ export default function DatePicker({
           selected={value}
           onSelect={onChange}
           autoFocus
-          disabled={disabled}
+          disabled={triggerDisabled || disabled}
         />
       </PopoverContent>
     </Popover>

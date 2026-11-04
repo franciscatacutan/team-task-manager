@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import {
   Select,
   SelectContent,
@@ -16,21 +17,32 @@ import {
   TASK_PRIORITY_ORDER,
 } from "../../features/tasks/constants/task.constants";
 
-interface Props {
+interface Props extends Pick<
+  ComponentProps<typeof SelectTrigger>,
+  "id" | "aria-describedby" | "aria-invalid" | "aria-required" | "disabled"
+> {
   value?: TaskPriority;
   onChange: (priority: TaskPriority) => void;
   className?: string;
 }
 
-export default function PrioritySelect({ value, onChange, className }: Props) {
+export default function PrioritySelect({
+  value,
+  onChange,
+  className,
+  disabled,
+  ...controlProps
+}: Props) {
   return (
     <Select
-      value={value}
+      disabled={disabled}
+      value={value ?? ""}
       onValueChange={(val) => {
-        if (isTaskPriority(val)) onChange(val);
+        if (!disabled && isTaskPriority(val)) onChange(val);
       }}
     >
       <SelectTrigger
+        {...controlProps}
         aria-label="Priority"
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",

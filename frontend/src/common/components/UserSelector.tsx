@@ -14,7 +14,7 @@ import {
   CommandList,
 } from "../../components/ui/command";
 import { Button } from "../../components/ui/button";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
 
 export interface SelectorUser {
@@ -24,7 +24,10 @@ export interface SelectorUser {
   email: string;
 }
 
-interface Props {
+interface Props extends Pick<
+  ComponentProps<typeof Button>,
+  "id" | "aria-describedby" | "aria-invalid" | "aria-required" | "aria-label"
+> {
   users: SelectorUser[];
   selectedUser?: SelectorUser | null;
   disabled?: boolean;
@@ -66,6 +69,8 @@ export default function UserSelector({
   onChange,
   search,
   onSearchChange,
+  "aria-label": ariaLabel = placeholder,
+  ...controlProps
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -86,11 +91,12 @@ export default function UserSelector({
     <Popover open={open} onOpenChange={changeOpen}>
       <PopoverTrigger asChild>
         <Button
+          {...controlProps}
           type="button"
           disabled={disabled}
           variant="outline"
           role="combobox"
-          aria-label={placeholder}
+          aria-label={ariaLabel}
           aria-expanded={open}
           className={cn(
             "h-auto min-h-10 w-full rounded-xl border-border/70 bg-background px-3 py-2 text-left font-normal shadow-none hover:bg-muted/20",
@@ -102,7 +108,7 @@ export default function UserSelector({
             {selectedUser ? (
               <>
                 <Avatar className="h-6 w-6 shrink-0 ring-1 ring-border/60">
-                  <AvatarFallback className="text-[10px]">
+                  <AvatarFallback className="text-[10px] text-foreground/75">
                     {selectedUser.lastName?.[0]}
                     {selectedUser.firstName?.[0]}
                   </AvatarFallback>
@@ -189,7 +195,7 @@ export default function UserSelector({
                     }}
                   >
                     <Avatar className="h-7 w-7 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[10px]">
+                      <AvatarFallback className="text-[10px] text-foreground/75">
                         {user.lastName?.[0]}
                         {user.firstName?.[0]}
                       </AvatarFallback>

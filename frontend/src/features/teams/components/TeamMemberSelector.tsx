@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import UserSelector, {
   type SelectorUser,
 } from "@/common/components/UserSelector";
 import { useDebounce } from "@/common/hooks/useDebounce";
 import { useSelectableTeamMembers } from "../hooks/useSelectableTeamMembers";
 
-interface Props {
+interface Props extends Pick<
+  ComponentProps<typeof UserSelector>,
+  "id" | "aria-describedby" | "aria-invalid" | "aria-required" | "aria-label"
+> {
   teamKey: string;
   value?: string;
   selectedUser?: SelectorUser | null;
