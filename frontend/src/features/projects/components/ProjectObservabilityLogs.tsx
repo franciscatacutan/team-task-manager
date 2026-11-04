@@ -42,6 +42,10 @@ export default function ProjectObservabilityLogs({
       audit={{
         logs: auditLogs.data?.content ?? [],
         isLoading: auditLogs.isLoading,
+        isError: auditLogs.isError,
+        error: auditLogs.error,
+        isFetching: auditLogs.isFetching,
+        onRetry: auditLogs.refetch,
         page: auditLogs.data?.page ?? auditPage,
         totalPages: auditLogs.data?.totalPages ?? 0,
         onPageChange: setAuditPage,
@@ -49,6 +53,10 @@ export default function ProjectObservabilityLogs({
       system={{
         events: systemEvents.data?.content ?? [],
         isLoading: systemEvents.isLoading,
+        isError: systemEvents.isError,
+        error: systemEvents.error,
+        isFetching: systemEvents.isFetching,
+        onRetry: systemEvents.refetch,
         page: systemEvents.data?.page ?? systemPage,
         totalPages: systemEvents.data?.totalPages ?? 0,
         onPageChange: setSystemPage,

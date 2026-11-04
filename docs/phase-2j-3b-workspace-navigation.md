@@ -1,6 +1,6 @@
 # Phase 2J part 3 — mobile and keyboard navigation checkpoint
 
-Baseline: user commit `dd2afd0`. Approved scope: mobile workspace navigation, keyboard-accessible team/project/task links and sorting, separate task open/drag controls and accessible control names. The user chose a **mobile drawer**, retaining the collapsible desktop sidebar. This checkpoint is implemented and verified, awaiting user review/commit. Other Phase 2J3 audit findings remain separate work.
+Baseline: user commit `dd2afd0`. Approved scope: mobile workspace navigation, keyboard-accessible team/project/task links and sorting, separate task open/drag controls and accessible control names. The user chose a **mobile drawer**, retaining the collapsible desktop sidebar. The user committed this verified checkpoint as `a4bad9e`. Other Phase 2J3 audit findings remain separate work.
 
 ## What changed
 
