@@ -6,12 +6,15 @@ import com.example.task_manager.notification.dto.UnreadNotificationCountResponse
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,8 +26,12 @@ public class NotificationController {
 
   @GetMapping
   public ResponseEntity<PageResponse<NotificationResponse>> getInbox(
-      Pageable pageable, Authentication authentication) {
-    return ResponseEntity.ok(notificationService.getInbox(authentication.getName(), pageable));
+      @RequestParam(defaultValue = "false") boolean unreadOnly,
+      @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
+      Authentication authentication) {
+    return ResponseEntity.ok(
+        notificationService.getInbox(authentication.getName(), unreadOnly, pageable));
   }
 
   @GetMapping("/unread-count")

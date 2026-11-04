@@ -6,7 +6,7 @@ import { getUnreadNotificationCount } from "../api/notificationApi";
 export const useUnreadNotificationCount = () => {
   return useQuery({
     queryKey: queryKeys.notifications.unreadCount,
-    queryFn: getUnreadNotificationCount,
+    queryFn: ({ signal }) => getUnreadNotificationCount(signal),
     refetchInterval: 30_000,
     staleTime: 10_000,
   });

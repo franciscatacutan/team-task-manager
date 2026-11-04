@@ -4,6 +4,7 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
 import com.example.task_manager.notification.dto.NotificationResponse;
 import com.example.task_manager.notification.dto.UnreadNotificationCountResponse;
@@ -22,10 +23,13 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +58,10 @@ public class NotificationService {
   }
 
   @Transactional(readOnly = true)
-  public PageResponse<NotificationResponse> getInbox(String recipientEmail, Pageable pageable) {
-    Page<NotificationEntity> page = notificationRepository.findInbox(recipientEmail, pageable);
+  public PageResponse<NotificationResponse> getInbox(
+      String recipientEmail, boolean unreadOnly, Pageable pageable) {
+    Page<NotificationEntity> page =
+        notificationRepository.findInbox(recipientEmail, unreadOnly, inboxPage(pageable));
 
     return new PageResponse<>(
         page.map(this::toResponse).getContent(),
@@ -65,6 +71,25 @@ public class NotificationService {
         page.getTotalPages(),
         page.isFirst(),
         page.isLast());
+  }
+
+  private Pageable inboxPage(Pageable pageable) {
+    Set<String> allowed = Set.of("createdAt", "readAt", "id", "type", "title");
+    Sort sort =
+        pageable.getSort().isSorted()
+            ? pageable.getSort()
+            : Sort.by(Sort.Direction.DESC, "createdAt");
+    for (Sort.Order order : sort) {
+      if (!allowed.contains(order.getProperty())) {
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
+      }
+    }
+    // Notifications created in the same transaction can share a timestamp; break ties consistently.
+    if (sort.getOrderFor("id") == null) sort = sort.and(Sort.by(Sort.Direction.DESC, "id"));
+    return PageRequest.of(
+        pageable.isPaged() ? pageable.getPageNumber() : 0,
+        pageable.isPaged() ? pageable.getPageSize() : 12,
+        sort);
   }
 
   @Transactional(readOnly = true)

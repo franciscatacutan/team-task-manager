@@ -113,6 +113,7 @@ export const queryKeys = {
   notifications: {
     all: ["notifications"] as const,
     inbox: ["notifications", "inbox"] as const,
+    inboxPage: (params: object) => ["notifications", "inbox", params] as const,
     unreadCount: ["notifications", "unread-count"] as const,
   },
 };

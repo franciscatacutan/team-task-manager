@@ -17,8 +17,9 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
       SELECT n FROM NotificationEntity n
       JOIN n.recipient r
       WHERE LOWER(r.email) = LOWER(:recipientEmail)
+        AND (:unreadOnly = false OR n.readAt IS NULL)
       """)
-  Page<NotificationEntity> findInbox(String recipientEmail, Pageable pageable);
+  Page<NotificationEntity> findInbox(String recipientEmail, boolean unreadOnly, Pageable pageable);
 
   @Query(
       """

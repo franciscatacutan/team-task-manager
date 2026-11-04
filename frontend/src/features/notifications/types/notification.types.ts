@@ -48,3 +48,10 @@ export type AppNotification = {
 export type UnreadNotificationCount = {
   unreadCount: number;
 };
+
+export type NotificationInboxParams = {
+  page: number;
+  size: number;
+  unreadOnly: boolean;
+  sort: string;
+};

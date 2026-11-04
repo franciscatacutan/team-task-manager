@@ -2,6 +2,7 @@ package com.example.task_manager.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,10 +85,11 @@ class NotificationServiceTest {
     NotificationEntity item = new NotificationEntity();
     item.setActivityEvent(event);
     item.setTargetPath("/teams/" + team.getId());
-    when(notifications.findInbox(any(), any())).thenReturn(new PageImpl<>(List.of(item)));
+    when(notifications.findInbox(any(), eq(false), any()))
+        .thenReturn(new PageImpl<>(List.of(item)));
     assertThat(
             service
-                .getInbox("test@example.test", Pageable.unpaged())
+                .getInbox("test@example.test", false, Pageable.unpaged())
                 .content()
                 .getFirst()
                 .targetPath())

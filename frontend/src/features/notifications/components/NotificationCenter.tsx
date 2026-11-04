@@ -1,4 +1,8 @@
-import { useState } from "react";
+import QueryFailure from "@/common/components/QueryFailure";
+import { requestError } from "@/common/utils/requestError";
+import { authStorage } from "@/features/auth/utils/authStorage";
+import { browserSession } from "@/features/auth/utils/sessionCoordinator";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Bell,
@@ -61,32 +65,89 @@ const eventLabels: Partial<Record<NotificationEventType, string>> = {
 export default function NotificationCenter() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
-
-  const notificationsQuery = useNotifications();
+  const [inbox, setInbox] = useState<{
+    filter: "all" | "unread";
+    page: number;
+  }>({ filter: "all", page: 0 });
+  const { filter, page } = inbox;
+  const readInFlight = useRef(false);
+  const notificationsQuery = useNotifications(
+    { page, unreadOnly: filter === "unread" },
+    open,
+  );
   const unreadQuery = useUnreadNotificationCount();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
-
+  const busy = markRead.isPending || markAllRead.isPending;
   const notifications = notificationsQuery.data?.content ?? [];
-  const visibleNotifications =
-    filter === "unread"
-      ? notifications.filter((notification) => !notification.read)
-      : notifications;
-  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
-  const hasUnread = unreadCount > 0;
+  const unreadCount = unreadQuery.data?.unreadCount;
+  const hasUnread =
+    !unreadQuery.isError && unreadCount !== undefined && unreadCount > 0;
+  const totalPages = notificationsQuery.data?.totalPages ?? 0;
+  const totalElements = notificationsQuery.data?.totalElements ?? 0;
 
+  // Polling/read-all can shrink an unread inbox while an older page is open.
+  if (
+    notificationsQuery.data &&
+    !notificationsQuery.isError &&
+    page > Math.max(0, totalPages - 1)
+  ) {
+    setInbox({ filter, page: Math.max(0, totalPages - 1) });
+  }
+
+  function changeFilter(filter: "all" | "unread") {
+    markRead.reset();
+    markAllRead.reset();
+    setInbox({ filter, page: 0 });
+  }
   async function openNotification(notification: AppNotification) {
-    if (!notification.read) {
-      await markRead.mutateAsync(notification.id);
+    if (readInFlight.current) return;
+    readInFlight.current = true;
+    markRead.reset();
+    markAllRead.reset();
+    const revision = authStorage.getRevision();
+    try {
+      if (!notification.read) await markRead.mutateAsync(notification.id);
+      if (
+        browserSession.sync() ||
+        revision !== authStorage.getRevision() ||
+        authStorage.isLoggingOut()
+      )
+        return;
+      setOpen(false);
+      navigate(notification.targetPath);
+    } catch {
+      // The mutation exposes a visible, retryable error; keep the inbox open.
+    } finally {
+      readInFlight.current = false;
     }
-
-    setOpen(false);
-    navigate(notification.targetPath);
+  }
+  async function readAll() {
+    if (readInFlight.current) return;
+    readInFlight.current = true;
+    markRead.reset();
+    markAllRead.reset();
+    try {
+      await markAllRead.mutateAsync();
+    } catch {
+      /* Error is rendered below. */
+    } finally {
+      readInFlight.current = false;
+    }
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(value) => {
+        if (readInFlight.current) return;
+        if (value) {
+          markRead.reset();
+          markAllRead.reset();
+        }
+        setOpen(value);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -94,29 +155,38 @@ export default function NotificationCenter() {
           size="icon"
           className="relative h-9 w-9 rounded-xl"
           aria-label={
-            hasUnread
-              ? `${unreadCount} unread notifications`
-              : "Open notifications"
+            unreadQuery.isError
+              ? "Notifications (unread count unavailable)"
+              : hasUnread
+                ? `${unreadCount} unread notifications`
+                : "Open notifications"
           }
         >
           <Bell className="h-4 w-4" />
           {hasUnread && (
             <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-background bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {(unreadCount ?? 0) > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[24rem] gap-0 p-0">
+      <PopoverContent
+        align="end"
+        className="w-[24rem] max-w-[calc(100vw-2rem)] gap-0 p-0"
+      >
         <PopoverHeader className="px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <PopoverTitle>Notifications</PopoverTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {hasUnread
-                  ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`
-                  : "You are all caught up"}
+                {unreadQuery.isError
+                  ? "Unread count unavailable"
+                  : unreadCount === undefined
+                    ? "Checking unread updates..."
+                    : hasUnread
+                      ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`
+                      : "You are all caught up"}
               </p>
             </div>
 
@@ -125,11 +195,11 @@ export default function NotificationCenter() {
               variant="ghost"
               size="sm"
               className="rounded-lg"
-              disabled={!hasUnread || markAllRead.isPending}
-              onClick={() => markAllRead.mutate()}
+              disabled={!hasUnread || busy}
+              onClick={() => void readAll()}
             >
               <CheckCheck className="h-4 w-4" />
-              Read all
+              {markAllRead.isPending ? "Marking read..." : "Read all"}
             </Button>
           </div>
         </PopoverHeader>
@@ -142,7 +212,9 @@ export default function NotificationCenter() {
             size="sm"
             variant={filter === "all" ? "secondary" : "ghost"}
             className="h-7 rounded-lg"
-            onClick={() => setFilter("all")}
+            aria-pressed={filter === "all"}
+            disabled={busy}
+            onClick={() => changeFilter("all")}
           >
             All
           </Button>
@@ -151,29 +223,100 @@ export default function NotificationCenter() {
             size="sm"
             variant={filter === "unread" ? "secondary" : "ghost"}
             className="h-7 rounded-lg"
-            onClick={() => setFilter("unread")}
+            aria-pressed={filter === "unread"}
+            disabled={busy}
+            onClick={() => changeFilter("unread")}
           >
             Unread
           </Button>
         </div>
 
-        <div className="max-h-[28rem] overflow-y-auto p-2 pt-0">
-          {notificationsQuery.isLoading ? (
+        {unreadQuery.isError && (
+          <div role="alert" className="px-4 pb-2 text-sm text-destructive">
+            Could not load the unread count.{" "}
+            <Button
+              variant="link"
+              size="sm"
+              disabled={unreadQuery.isFetching}
+              onClick={() => void unreadQuery.refetch()}
+            >
+              Retry unread count
+            </Button>
+          </div>
+        )}
+        {(markRead.isError || markAllRead.isError) && (
+          <p role="alert" className="px-4 pb-3 text-sm text-destructive">
+            {requestError(
+              markRead.error ?? markAllRead.error,
+              "Could not mark notifications as read. Please try again.",
+            )}
+          </p>
+        )}
+        <div
+          className="max-h-[28rem] overflow-y-auto p-2 pt-0"
+          aria-busy={notificationsQuery.isFetching || busy}
+        >
+          {notificationsQuery.isError ? (
+            <QueryFailure
+              label="notifications"
+              onRetry={notificationsQuery.refetch}
+              pending={notificationsQuery.isFetching}
+            />
+          ) : notificationsQuery.isPending ? (
             <NotificationSkeleton />
-          ) : visibleNotifications.length === 0 ? (
+          ) : notifications.length === 0 ? (
             <EmptyNotifications filter={filter} />
           ) : (
             <div className="space-y-1">
-              {visibleNotifications.map((notification) => (
+              {notifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
+                  disabled={busy}
                   onOpen={() => void openNotification(notification)}
                 />
               ))}
             </div>
           )}
         </div>
+        {!notificationsQuery.isError && notificationsQuery.data && (
+          <div className="space-y-2 border-t px-4 py-3">
+            <p className="text-xs text-muted-foreground" role="status">
+              {totalElements} {filter === "unread" ? "unread " : ""}notification
+              {totalElements === 1 ? "" : "s"}
+              {totalPages > 0 ? ` · Page ${page + 1} of ${totalPages}` : ""}
+            </p>
+            {totalPages > 1 && (
+              <div
+                className="flex justify-between gap-2"
+                aria-label="Notification pages"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Previous notifications"
+                  disabled={page === 0 || busy || notificationsQuery.isFetching}
+                  onClick={() => setInbox({ filter, page: page - 1 })}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Next notifications"
+                  disabled={
+                    page + 1 >= totalPages ||
+                    busy ||
+                    notificationsQuery.isFetching
+                  }
+                  onClick={() => setInbox({ filter, page: page + 1 })}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -181,9 +324,11 @@ export default function NotificationCenter() {
 
 function NotificationItem({
   notification,
+  disabled,
   onOpen,
 }: {
   notification: AppNotification;
+  disabled: boolean;
   onOpen: () => void;
 }) {
   const Icon = iconByType[notification.type];
@@ -195,6 +340,7 @@ function NotificationItem({
     <button
       type="button"
       onClick={onOpen}
+      disabled={disabled}
       className={cn(
         "group flex w-full gap-3 rounded-lg border border-transparent p-3 text-left transition hover:border-border hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         !notification.read && "bg-primary/5",
