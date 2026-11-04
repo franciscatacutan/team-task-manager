@@ -1,6 +1,6 @@
 # Phase 2J part 3 — account and authentication feedback
 
-Baseline: user commit `6715e81`. Verified November 5, 2026. The user approved separating sign-in validation from new-password rules, locking forms and mode/settings-tab switching during requests, and retaining failed password drafts only in the same form/account. This checkpoint is verified and awaiting user review/commit. Phase 2J part 3 remains in progress; the estimate remains four unfinished roadmap parts (2J3 and 2K1–3).
+Baseline: user commit `6715e81`. Verified November 5, 2026. The user approved separating sign-in validation from new-password rules, locking forms and mode/settings-tab switching during requests, and retaining failed password drafts only in the same form/account. The user committed this verified checkpoint as `1573530`. Phase 2J part 3 remains in progress; the estimate remains four unfinished roadmap parts (2J3 and 2K1–3).
 
 ## Validation and backend behavior
 
