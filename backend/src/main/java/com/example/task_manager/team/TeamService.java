@@ -363,8 +363,10 @@ public class TeamService {
 
     Page<ActivityEventEntity> page = activityHistoryQuery.team(team.getId(), search, pageable);
 
+    var pageProjects = activityEventService.loadPageProjects(page.getContent());
     return toPageResponse(
-        page, event -> activityEventService.toTeamActivitiesResponse(event, readAccess));
+        page,
+        event -> activityEventService.toTeamActivitiesResponse(event, readAccess, pageProjects));
   }
 
   /** Owners and super admins can grant or revoke team-admin roles. */

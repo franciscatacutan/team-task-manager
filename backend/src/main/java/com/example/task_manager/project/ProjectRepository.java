@@ -3,6 +3,7 @@ package com.example.task_manager.project;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.project.entity.ProjectStatus;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,10 @@ import org.springframework.data.jpa.repository.Query;
 /** Repository interface for Project entities. */
 public interface ProjectRepository
     extends JpaRepository<ProjectEntity, UUID>, JpaSpecificationExecutor<ProjectEntity> {
+
+  /** Page-scoped route references; no collection joins or authorization changes. */
+  @Query("select p from ProjectEntity p join fetch p.team where p.id in :ids")
+  List<ProjectEntity> findRouteProjects(Collection<UUID> ids);
 
   Optional<ProjectEntity> findByKeyAndTeamKey(String projectKey, String teamKey);
 

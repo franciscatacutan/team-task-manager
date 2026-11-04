@@ -3,8 +3,11 @@ package com.example.task_manager.activity;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import java.time.Instant;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +16,12 @@ import org.springframework.data.jpa.repository.Query;
 public interface ActivityEventRepository
     extends JpaRepository<ActivityEventEntity, UUID>,
         JpaSpecificationExecutor<ActivityEventEntity> {
+  /** Only to-one associations are fetched, so paging and counts stay in the database. */
+  @Override
+  @EntityGraph(attributePaths = {"user", "task", "task.project", "task.project.team"})
+  Page<ActivityEventEntity> findAll(
+      @Nullable Specification<ActivityEventEntity> spec, Pageable pageable);
+
   @Query(
       """
       SELECT e FROM ActivityEventEntity e

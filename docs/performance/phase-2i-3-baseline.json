@@ -1,0 +1,1794 @@
+{
+  "baseline": "b02e3b9",
+  "database": "PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+  "java": "25.0.4.1",
+  "samplesPerReadWrite": 7,
+  "warmups": 3,
+  "datasets": [
+    {
+      "concentrated": false,
+      "projects": 20,
+      "members": 51,
+      "notifications": 1000,
+      "tasks": 101,
+      "label": "small",
+      "activityEvents": 1200
+    },
+    {
+      "concentrated": false,
+      "projects": 20,
+      "members": 51,
+      "notifications": 10000,
+      "tasks": 1001,
+      "label": "medium",
+      "activityEvents": 10200
+    },
+    {
+      "concentrated": false,
+      "projects": 20,
+      "members": 51,
+      "notifications": 100000,
+      "tasks": 10001,
+      "label": "large",
+      "activityEvents": 100200
+    },
+    {
+      "concentrated": true,
+      "projects": 20,
+      "members": 51,
+      "notifications": 1000,
+      "tasks": 101,
+      "label": "concentrated",
+      "activityEvents": 1000
+    },
+    {
+      "concentrated": true,
+      "projects": 20,
+      "members": 51,
+      "notifications": 30,
+      "tasks": 6,
+      "label": "archive_5",
+      "activityEvents": 30
+    },
+    {
+      "concentrated": true,
+      "projects": 20,
+      "members": 51,
+      "notifications": 30,
+      "tasks": 21,
+      "label": "archive_20",
+      "activityEvents": 30
+    }
+  ],
+  "results": [
+    {
+      "dataset": "small",
+      "operation": "team_history_1",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 20.859,
+      "minMs": 17.9296,
+      "maxMs": 23.6081,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 7.444599999999999
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "team_history_20",
+      "sqlCounts": [66, 66, 66, 66, 66, 66, 66],
+      "medianMs": 59.0199,
+      "minMs": 54.0014,
+      "maxMs": 66.6563,
+      "entityLoads": [83, 83, 83, 83, 83, 83, 83],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 22,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 19,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 36.91429999999999
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "team_history_50",
+      "sqlCounts": [127, 127, 127, 127, 127, 127, 127],
+      "medianMs": 92.7632,
+      "minMs": 89.4879,
+      "maxMs": 101.6591,
+      "entityLoads": [174, 174, 174, 174, 174, 174, 174],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 52,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 20,
+          "SELECT tasks": 50
+        },
+        "lastSampleJdbcExecuteMs": 71.23400000000002
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "project_history_20",
+      "sqlCounts": [31, 31, 31, 31, 31, 31, 31],
+      "medianMs": 29.6106,
+      "minMs": 29.1025,
+      "maxMs": 30.763,
+      "entityLoads": [48, 48, 48, 48, 48, 48, 48],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 19,
+          "SELECT refresh_tokens": 1,
+          "SELECT projects": 1,
+          "SELECT team_members": 1,
+          "SELECT teams": 1,
+          "SELECT activity_events": 2,
+          "SELECT tasks": 6
+        },
+        "lastSampleJdbcExecuteMs": 19.1691
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "task_history_20",
+      "sqlCounts": [19, 19, 19, 19, 19, 19, 19],
+      "medianMs": 20.2771,
+      "minMs": 19.6639,
+      "maxMs": 22.2064,
+      "entityLoads": [36, 36, 36, 36, 36, 36, 36],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 12,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 1,
+          "SELECT tasks": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2
+        },
+        "lastSampleJdbcExecuteMs": 11.786
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "inbox_12",
+      "sqlCounts": [52, 52, 52, 52, 52, 52, 52],
+      "medianMs": 43.2617,
+      "minMs": 41.1428,
+      "maxMs": 44.4279,
+      "entityLoads": [61, 61, 61, 61, 61, 61, 61],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 11,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 31.084900000000008
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "unread_inbox_12",
+      "sqlCounts": [53, 53, 53, 53, 53, 53, 53],
+      "medianMs": 42.1096,
+      "minMs": 40.529,
+      "maxMs": 48.1507,
+      "entityLoads": [62, 62, 62, 62, 62, 62, 62],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 12,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 35.09589999999999
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "unread_count",
+      "sqlCounts": [3, 3, 3, 3, 3, 3, 3],
+      "medianMs": 6.7315,
+      "minMs": 6.493,
+      "maxMs": 7.9027,
+      "entityLoads": [1, 1, 1, 1, 1, 1, 1],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 1,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 2.4356999999999998
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_1",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 16.0637,
+      "minMs": 15.1271,
+      "maxMs": 17.5888,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 7.8596
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_20",
+      "sqlCounts": [66, 66, 66, 66, 66, 66, 66],
+      "medianMs": 50.7342,
+      "minMs": 48.5046,
+      "maxMs": 53.0481,
+      "entityLoads": [83, 83, 83, 83, 83, 83, 83],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 22,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 19,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 38.1752
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_50",
+      "sqlCounts": [127, 127, 127, 127, 127, 127, 127],
+      "medianMs": 86.2722,
+      "minMs": 84.8099,
+      "maxMs": 89.0755,
+      "entityLoads": [174, 174, 174, 174, 174, 174, 174],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 52,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 20,
+          "SELECT tasks": 50
+        },
+        "lastSampleJdbcExecuteMs": 72.4972
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "project_history_20",
+      "sqlCounts": [34, 34, 34, 34, 34, 34, 34],
+      "medianMs": 27.1,
+      "minMs": 26.1984,
+      "maxMs": 27.3765,
+      "entityLoads": [51, 51, 51, 51, 51, 51, 51],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 8,
+          "SELECT refresh_tokens": 1,
+          "SELECT projects": 1,
+          "SELECT team_members": 1,
+          "SELECT teams": 1,
+          "SELECT activity_events": 2,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 20.301099999999998
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "task_history_20",
+      "sqlCounts": [19, 19, 19, 19, 19, 19, 19],
+      "medianMs": 17.562,
+      "minMs": 17.257,
+      "maxMs": 19.2358,
+      "entityLoads": [36, 36, 36, 36, 36, 36, 36],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 12,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 1,
+          "SELECT tasks": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2
+        },
+        "lastSampleJdbcExecuteMs": 10.9772
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "inbox_12",
+      "sqlCounts": [52, 52, 52, 52, 52, 52, 52],
+      "medianMs": 40.4235,
+      "minMs": 39.8547,
+      "maxMs": 42.4575,
+      "entityLoads": [61, 61, 61, 61, 61, 61, 61],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 11,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 33.44700000000001
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "unread_inbox_12",
+      "sqlCounts": [53, 53, 53, 53, 53, 53, 53],
+      "medianMs": 40.1006,
+      "minMs": 39.3051,
+      "maxMs": 41.0842,
+      "entityLoads": [62, 62, 62, 62, 62, 62, 62],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 12,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 34.4609
+      }
+    },
+    {
+      "dataset": "medium",
+      "operation": "unread_count",
+      "sqlCounts": [3, 3, 3, 3, 3, 3, 3],
+      "medianMs": 5.8011,
+      "minMs": 5.1848,
+      "maxMs": 7.1345,
+      "entityLoads": [1, 1, 1, 1, 1, 1, 1],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 1,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 3.9351
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_1",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 22.87,
+      "minMs": 20.9245,
+      "maxMs": 24.5187,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 17.113899999999997
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_20",
+      "sqlCounts": [66, 66, 66, 66, 66, 66, 66],
+      "medianMs": 54.5481,
+      "minMs": 54.1053,
+      "maxMs": 56.1798,
+      "entityLoads": [83, 83, 83, 83, 83, 83, 83],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 22,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 19,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 46.681400000000004
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_50",
+      "sqlCounts": [127, 127, 127, 127, 127, 127, 127],
+      "medianMs": 90.2949,
+      "minMs": 88.9553,
+      "maxMs": 93.104,
+      "entityLoads": [174, 174, 174, 174, 174, 174, 174],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 52,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 20,
+          "SELECT tasks": 50
+        },
+        "lastSampleJdbcExecuteMs": 78.67650000000002
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "project_history_20",
+      "sqlCounts": [34, 34, 34, 34, 34, 34, 34],
+      "medianMs": 28.3965,
+      "minMs": 27.2332,
+      "maxMs": 28.9931,
+      "entityLoads": [51, 51, 51, 51, 51, 51, 51],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 8,
+          "SELECT refresh_tokens": 1,
+          "SELECT projects": 1,
+          "SELECT team_members": 1,
+          "SELECT teams": 1,
+          "SELECT activity_events": 2,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 22.910999999999994
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "task_history_20",
+      "sqlCounts": [19, 19, 19, 19, 19, 19, 19],
+      "medianMs": 15.8956,
+      "minMs": 15.1161,
+      "maxMs": 16.5615,
+      "entityLoads": [36, 36, 36, 36, 36, 36, 36],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 12,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 1,
+          "SELECT tasks": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2
+        },
+        "lastSampleJdbcExecuteMs": 10.783900000000001
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "inbox_12",
+      "sqlCounts": [52, 52, 52, 52, 52, 52, 52],
+      "medianMs": 80.0955,
+      "minMs": 79.6066,
+      "maxMs": 81.3512,
+      "entityLoads": [61, 61, 61, 61, 61, 61, 61],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 11,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 73.75780000000002
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "unread_inbox_12",
+      "sqlCounts": [53, 53, 53, 53, 53, 53, 53],
+      "medianMs": 72.2078,
+      "minMs": 69.1877,
+      "maxMs": 76.6445,
+      "entityLoads": [62, 62, 62, 62, 62, 62, 62],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 13,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 12,
+          "SELECT projects": 12,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 62.210300000000004
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "unread_count",
+      "sqlCounts": [3, 3, 3, 3, 3, 3, 3],
+      "medianMs": 15.6929,
+      "minMs": 15.1358,
+      "maxMs": 17.4022,
+      "entityLoads": [1, 1, 1, 1, 1, 1, 1],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 1,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 13.0161
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_1",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 10.8724,
+      "minMs": 10.7517,
+      "maxMs": 11.6219,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 6.394299999999999
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_20",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 11.974,
+      "minMs": 10.7802,
+      "maxMs": 13.0847,
+      "entityLoads": [27, 27, 27, 27, 27, 27, 27],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 6.302899999999999
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_50",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 12.8033,
+      "minMs": 12.1614,
+      "maxMs": 14.4752,
+      "entityLoads": [57, 57, 57, 57, 57, 57, 57],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 1,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 6.4544
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "project_history_20",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 11.3156,
+      "minMs": 10.8582,
+      "maxMs": 12.195,
+      "entityLoads": [27, 27, 27, 27, 27, 27, 27],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT projects": 1,
+          "SELECT team_members": 1,
+          "SELECT teams": 1,
+          "SELECT activity_events": 2,
+          "SELECT tasks": 1
+        },
+        "lastSampleJdbcExecuteMs": 6.458400000000001
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "task_history_20",
+      "sqlCounts": [10, 10, 10, 10, 10, 10, 10],
+      "medianMs": 11.7112,
+      "minMs": 11.0966,
+      "maxMs": 12.4375,
+      "entityLoads": [27, 27, 27, 27, 27, 27, 27],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 1,
+          "SELECT tasks": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2
+        },
+        "lastSampleJdbcExecuteMs": 7.044200000000001
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "inbox_12",
+      "sqlCounts": [20, 20, 20, 20, 20, 20, 20],
+      "medianMs": 17.5505,
+      "minMs": 16.4419,
+      "maxMs": 18.1436,
+      "entityLoads": [29, 29, 29, 29, 29, 29, 29],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 1,
+          "SELECT projects": 1,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 12.985199999999997
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "unread_inbox_12",
+      "sqlCounts": [20, 20, 20, 20, 20, 20, 20],
+      "medianMs": 17.6166,
+      "minMs": 16.8753,
+      "maxMs": 18.6226,
+      "entityLoads": [29, 29, 29, 29, 29, 29, 29],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 2,
+          "SELECT activity_events": 12,
+          "SELECT tasks": 1,
+          "SELECT projects": 1,
+          "SELECT teams": 1
+        },
+        "lastSampleJdbcExecuteMs": 12.033099999999997
+      }
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "unread_count",
+      "sqlCounts": [3, 3, 3, 3, 3, 3, 3],
+      "medianMs": 4.4678,
+      "minMs": 4.2178,
+      "maxMs": 4.7697,
+      "entityLoads": [1, 1, 1, 1, 1, 1, 1],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 1,
+          "SELECT refresh_tokens": 1,
+          "SELECT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 1.9575999999999998
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_rare-search-needle",
+      "sqlCounts": [60, 60, 60, 60, 60, 60, 60],
+      "medianMs": 351.3781,
+      "minMs": 349.04,
+      "maxMs": 385.9799,
+      "entityLoads": [77, 77, 77, 77, 77, 77, 77],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 22,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 13,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 377.36480000000006
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_not-present-anywhere",
+      "sqlCounts": [6, 6, 6, 6, 6, 6, 6],
+      "medianMs": 324.7358,
+      "minMs": 320.0876,
+      "maxMs": 330.467,
+      "entityLoads": [4, 4, 4, 4, 4, 4, 4],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 1
+        },
+        "lastSampleJdbcExecuteMs": 322.2094
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_Profile_task",
+      "sqlCounts": [67, 67, 67, 67, 67, 67, 67],
+      "medianMs": 214.329,
+      "minMs": 211.0767,
+      "maxMs": 222.4358,
+      "entityLoads": [84, 84, 84, 84, 84, 84, 84],
+      "entityInserts": [0, 0, 0, 0, 0, 0, 0],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 22,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 1,
+          "SELECT activity_events": 2,
+          "SELECT projects": 20,
+          "SELECT tasks": 20
+        },
+        "lastSampleJdbcExecuteMs": 203.55709999999988
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "comment_write",
+      "sqlCounts": [36, 36, 36, 36, 36, 36, 36],
+      "medianMs": 42.9383,
+      "minMs": 40.3134,
+      "maxMs": 45.7031,
+      "entityLoads": [6, 6, 6, 6, 6, 6, 6],
+      "entityInserts": [14, 14, 14, 14, 14, 14, 14],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 3,
+          "SELECT tasks": 9,
+          "SELECT team_members": 5,
+          "UPDATE tasks": 1,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "INSERT metric_snapshots": 7,
+          "INSERT kpi_snapshots": 3,
+          "INSERT notifications": 2
+        },
+        "lastSampleJdbcExecuteMs": 30.9059
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 14,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "task_name_write",
+      "sqlCounts": [38, 38, 38, 38, 38, 38, 38],
+      "medianMs": 39.0858,
+      "minMs": 38.2999,
+      "maxMs": 42.2205,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [14, 14, 14, 14, 14, 14, 14],
+      "entityUpdates": [1, 1, 1, 1, 1, 1, 1],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 4,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 3,
+          "SELECT tasks": 9,
+          "SELECT team_members": 4,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "UPDATE tasks": 2,
+          "INSERT metric_snapshots": 7,
+          "INSERT kpi_snapshots": 3,
+          "INSERT notifications": 2
+        },
+        "lastSampleJdbcExecuteMs": 27.896
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 14,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "team_name_write",
+      "sqlCounts": [23, 23, 23, 23, 23, 23, 23],
+      "medianMs": 27.4271,
+      "minMs": 26.0506,
+      "maxMs": 28.4442,
+      "entityLoads": [4, 4, 4, 4, 4, 4, 4],
+      "entityInserts": [8, 8, 8, 8, 8, 8, 8],
+      "entityUpdates": [1, 1, 1, 1, 1, 1, 1],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 2,
+          "SELECT team_members": 2,
+          "SELECT tasks": 4,
+          "SELECT projects": 2,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "INSERT metric_snapshots": 4,
+          "INSERT kpi_snapshots": 2,
+          "UPDATE teams": 2
+        },
+        "lastSampleJdbcExecuteMs": 19.3587
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14,
+        "notifications": 0,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "small",
+      "operation": "member_role_write",
+      "sqlCounts": [27, 27, 27, 27, 27, 27, 27],
+      "medianMs": 28.8212,
+      "minMs": 27.8167,
+      "maxMs": 31.3419,
+      "entityLoads": [6, 6, 6, 6, 6, 6, 6],
+      "entityInserts": [9, 9, 9, 9, 9, 9, 9],
+      "entityUpdates": [2, 2, 2, 2, 2, 2, 2],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 4,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "UPDATE teams": 2,
+          "UPDATE team_members": 1,
+          "SELECT tasks": 4,
+          "SELECT projects": 2,
+          "INSERT metric_snapshots": 4,
+          "INSERT kpi_snapshots": 2,
+          "INSERT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 20.9379
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14,
+        "notifications": 7,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "comment_write",
+      "sqlCounts": [36, 36, 36, 36, 36, 36, 36],
+      "medianMs": 37.1585,
+      "minMs": 35.7738,
+      "maxMs": 40.7488,
+      "entityLoads": [6, 6, 6, 6, 6, 6, 6],
+      "entityInserts": [14, 14, 14, 14, 14, 14, 14],
+      "entityUpdates": [0, 0, 0, 0, 0, 0, 0],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 3,
+          "SELECT tasks": 9,
+          "SELECT team_members": 5,
+          "UPDATE tasks": 1,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "INSERT metric_snapshots": 7,
+          "INSERT kpi_snapshots": 3,
+          "INSERT notifications": 2
+        },
+        "lastSampleJdbcExecuteMs": 27.848599999999998
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 14,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "task_name_write",
+      "sqlCounts": [38, 38, 38, 38, 38, 38, 38],
+      "medianMs": 38.2431,
+      "minMs": 35.6434,
+      "maxMs": 39.4724,
+      "entityLoads": [8, 8, 8, 8, 8, 8, 8],
+      "entityInserts": [14, 14, 14, 14, 14, 14, 14],
+      "entityUpdates": [1, 1, 1, 1, 1, 1, 1],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 4,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT projects": 3,
+          "SELECT tasks": 9,
+          "SELECT team_members": 4,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "UPDATE tasks": 2,
+          "INSERT metric_snapshots": 7,
+          "INSERT kpi_snapshots": 3,
+          "INSERT notifications": 2
+        },
+        "lastSampleJdbcExecuteMs": 29.794100000000007
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 14,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "team_name_write",
+      "sqlCounts": [23, 23, 23, 23, 23, 23, 23],
+      "medianMs": 26.3436,
+      "minMs": 25.9979,
+      "maxMs": 28.9856,
+      "entityLoads": [4, 4, 4, 4, 4, 4, 4],
+      "entityInserts": [8, 8, 8, 8, 8, 8, 8],
+      "entityUpdates": [1, 1, 1, 1, 1, 1, 1],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 2,
+          "SELECT team_members": 2,
+          "SELECT tasks": 4,
+          "SELECT projects": 2,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "INSERT metric_snapshots": 4,
+          "INSERT kpi_snapshots": 2,
+          "UPDATE teams": 2
+        },
+        "lastSampleJdbcExecuteMs": 19.8104
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14,
+        "notifications": 0,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "large",
+      "operation": "member_role_write",
+      "sqlCounts": [27, 27, 27, 27, 27, 27, 27],
+      "medianMs": 28.63,
+      "minMs": 28.4294,
+      "maxMs": 29.4623,
+      "entityLoads": [6, 6, 6, 6, 6, 6, 6],
+      "entityInserts": [9, 9, 9, 9, 9, 9, 9],
+      "entityUpdates": [2, 2, 2, 2, 2, 2, 2],
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 3,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 4,
+          "INSERT activity_events": 1,
+          "INSERT audit_logs": 1,
+          "UPDATE teams": 2,
+          "UPDATE team_members": 1,
+          "SELECT tasks": 4,
+          "SELECT projects": 2,
+          "INSERT metric_snapshots": 4,
+          "INSERT kpi_snapshots": 2,
+          "INSERT notifications": 1
+        },
+        "lastSampleJdbcExecuteMs": 22.152199999999997
+      },
+      "rowsAddedAcrossSevenCalls": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14,
+        "notifications": 7,
+        "system_events": 0
+      }
+    },
+    {
+      "dataset": "archive_5",
+      "operation": "archive_project_6",
+      "singleSampleMs": 205.9408,
+      "sqlCount": 199,
+      "entityInserts": 96,
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 13,
+          "SELECT projects": 15,
+          "SELECT tasks": 57,
+          "INSERT activity_events": 7,
+          "INSERT audit_logs": 7,
+          "INSERT system_events": 7,
+          "UPDATE projects": 2,
+          "UPDATE tasks": 12,
+          "INSERT metric_snapshots": 49,
+          "INSERT kpi_snapshots": 21,
+          "INSERT notifications": 5
+        },
+        "lastSampleJdbcExecuteMs": 155.55969999999996
+      },
+      "rowsAdded": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 5,
+        "system_events": 7
+      }
+    },
+    {
+      "dataset": "archive_20",
+      "operation": "archive_project_21",
+      "singleSampleMs": 625.5356,
+      "sqlCount": 619,
+      "entityInserts": 306,
+      "sqlShape": {
+        "statementsByFirstTable": {
+          "SELECT users": 2,
+          "SELECT refresh_tokens": 1,
+          "SELECT teams": 1,
+          "SELECT team_members": 43,
+          "SELECT projects": 45,
+          "SELECT tasks": 177,
+          "INSERT activity_events": 22,
+          "INSERT audit_logs": 22,
+          "INSERT system_events": 22,
+          "UPDATE projects": 2,
+          "UPDATE tasks": 42,
+          "INSERT metric_snapshots": 154,
+          "INSERT kpi_snapshots": 66,
+          "INSERT notifications": 20
+        },
+        "lastSampleJdbcExecuteMs": 491.28940000000017
+      },
+      "rowsAdded": {
+        "activity_events": 22,
+        "audit_logs": 22,
+        "metric_snapshots": 154,
+        "kpi_snapshots": 66,
+        "notifications": 20,
+        "system_events": 22
+      }
+    }
+  ],
+  "note": "Sequential local warm-cache diagnostic with test-only JDBC tracing and Hibernate statistics; not a production SLA or concurrent load benchmark. Archive operations are single samples.",
+  "plans": [
+    {
+      "dataset": "small",
+      "operation": "team_history_20",
+      "kind": "page",
+      "databaseExecutionMs": 0.097,
+      "planningMs": 0.076,
+      "sharedHitBlocks": 24,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 21,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        }
+      ]
+    },
+    {
+      "dataset": "small",
+      "operation": "team_history_20",
+      "kind": "count",
+      "databaseExecutionMs": 0.303,
+      "planningMs": 0.1,
+      "sharedHitBlocks": 65,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 1200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "small",
+      "operation": "inbox_12",
+      "kind": "page",
+      "databaseExecutionMs": 0.593,
+      "planningMs": 0.192,
+      "sharedHitBlocks": 39,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 1000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "small",
+      "operation": "inbox_12",
+      "kind": "count",
+      "databaseExecutionMs": 0.406,
+      "planningMs": 0.154,
+      "sharedHitBlocks": 39,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 1000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_20",
+      "kind": "page",
+      "databaseExecutionMs": 0.118,
+      "planningMs": 0.097,
+      "sharedHitBlocks": 24,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 21,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        }
+      ]
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_20",
+      "kind": "count",
+      "databaseExecutionMs": 1.851,
+      "planningMs": 0.042,
+      "sharedHitBlocks": 567,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 10200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "medium",
+      "operation": "inbox_12",
+      "kind": "page",
+      "databaseExecutionMs": 4.542,
+      "planningMs": 0.28,
+      "sharedHitBlocks": 307,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 10000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "medium",
+      "operation": "inbox_12",
+      "kind": "count",
+      "databaseExecutionMs": 1.937,
+      "planningMs": 0.175,
+      "sharedHitBlocks": 307,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 10000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_20",
+      "kind": "page",
+      "databaseExecutionMs": 0.083,
+      "planningMs": 0.087,
+      "sharedHitBlocks": 5,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 21,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_20",
+      "kind": "count",
+      "databaseExecutionMs": 13.539,
+      "planningMs": 0.03,
+      "sharedHitBlocks": 5604,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 100200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 12400,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "inbox_12",
+      "kind": "page",
+      "databaseExecutionMs": 39.25,
+      "planningMs": 0.238,
+      "sharedHitBlocks": 2991,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 100000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "inbox_12",
+      "kind": "count",
+      "databaseExecutionMs": 18.147,
+      "planningMs": 0.181,
+      "sharedHitBlocks": 2991,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 100000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_20",
+      "kind": "page",
+      "databaseExecutionMs": 0.067,
+      "planningMs": 0.081,
+      "sharedHitBlocks": 5,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 21,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        }
+      ]
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_20",
+      "kind": "count",
+      "databaseExecutionMs": 0.24,
+      "planningMs": 0.037,
+      "sharedHitBlocks": 62,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 1000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "inbox_12",
+      "kind": "page",
+      "databaseExecutionMs": 0.639,
+      "planningMs": 0.25,
+      "sharedHitBlocks": 37,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 1000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "inbox_12",
+      "kind": "count",
+      "databaseExecutionMs": 0.266,
+      "planningMs": 0.13,
+      "sharedHitBlocks": 10,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 203,
+          "index": null
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "notifications",
+          "rowsPerLoop": 1000,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_notification_recipient_read"
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_rare-search-needle",
+      "kind": "page",
+      "databaseExecutionMs": 78.884,
+      "planningMs": 0.725,
+      "sharedHitBlocks": 73299,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 20937,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "tasks",
+          "rowsPerLoop": 1,
+          "loops": 10001,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "tasks_pkey"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 20937,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "users_pkey"
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "projects",
+          "rowsPerLoop": 0,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 80,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_rare-search-needle",
+      "kind": "count",
+      "databaseExecutionMs": 240.859,
+      "planningMs": 0.382,
+      "sharedHitBlocks": 5892,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 100200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 12400,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 204,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "tasks",
+          "rowsPerLoop": 11204,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "projects",
+          "rowsPerLoop": 0,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 80,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_not-present-anywhere",
+      "kind": "page",
+      "databaseExecutionMs": 330.761,
+      "planningMs": 0.588,
+      "sharedHitBlocks": 237380,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 100200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "tasks",
+          "rowsPerLoop": 1,
+          "loops": 10001,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "tasks_pkey"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 100200,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "users_pkey"
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "projects",
+          "rowsPerLoop": 0,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 80,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_Profile_task",
+      "kind": "page",
+      "databaseExecutionMs": 0.515,
+      "planningMs": 0.511,
+      "sharedHitBlocks": 117,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Index Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 22,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "idx_activity_team_created_at"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "tasks",
+          "rowsPerLoop": 1,
+          "loops": 22,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "tasks_pkey"
+        },
+        {
+          "node": "Index Scan",
+          "relation": "users",
+          "rowsPerLoop": 1,
+          "loops": 22,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": "users_pkey"
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "projects",
+          "rowsPerLoop": 0,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 80,
+          "index": null
+        }
+      ]
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_Profile_task",
+      "kind": "count",
+      "databaseExecutionMs": 162.516,
+      "planningMs": 0.331,
+      "sharedHitBlocks": 5892,
+      "sharedReadBlocks": 0,
+      "scans": [
+        {
+          "node": "Seq Scan",
+          "relation": "activity_events",
+          "rowsPerLoop": 100200,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 12400,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "users",
+          "rowsPerLoop": 204,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "tasks",
+          "rowsPerLoop": 11204,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 0,
+          "index": null
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "projects",
+          "rowsPerLoop": 0,
+          "loops": 1,
+          "rowsRemovedByFilterPerLoop": 80,
+          "index": null
+        }
+      ]
+    }
+  ]
+}

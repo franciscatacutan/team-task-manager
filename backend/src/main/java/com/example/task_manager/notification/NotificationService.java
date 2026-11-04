@@ -4,6 +4,7 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.common.WorkspacePaths;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
 import com.example.task_manager.notification.dto.NotificationDestinationResponse;
@@ -17,13 +18,16 @@ import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
 import com.example.task_manager.team.TeamRepository;
+import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -63,10 +67,19 @@ public class NotificationService {
   public PageResponse<NotificationResponse> getInbox(
       String recipientEmail, boolean unreadOnly, Pageable pageable) {
     Page<NotificationEntity> page =
-        notificationRepository.findInbox(recipientEmail, unreadOnly, inboxPage(pageable));
+        notificationRepository.findInbox(
+            getUserByEmail(recipientEmail).getId(), unreadOnly, inboxPage(pageable));
 
+    var routes = pageRoutes(page.getContent());
     return new PageResponse<>(
-        page.map(this::toResponse).getContent(),
+        page.map(
+                item ->
+                    toResponse(
+                        item,
+                        item.getActivityEvent() == null
+                            ? item.getTargetPath()
+                            : routes.getOrDefault(item.getActivityEvent().getId(), "/teams")))
+            .getContent(),
         page.getNumber(),
         page.getSize(),
         page.getTotalElements(),
@@ -96,7 +109,8 @@ public class NotificationService {
 
   @Transactional(readOnly = true)
   public UnreadNotificationCountResponse getUnreadCount(String recipientEmail) {
-    return new UnreadNotificationCountResponse(notificationRepository.countUnread(recipientEmail));
+    return new UnreadNotificationCountResponse(
+        notificationRepository.countUnread(getUserByEmail(recipientEmail).getId()));
   }
 
   @Transactional(readOnly = true)
@@ -127,7 +141,8 @@ public class NotificationService {
   public UnreadNotificationCountResponse markAllRead(String recipientEmail) {
     UserEntity recipient = getUserByEmail(recipientEmail);
     notificationRepository.markAllRead(recipient.getId(), Instant.now());
-    return getUnreadCount(recipientEmail);
+    return new UnreadNotificationCountResponse(
+        notificationRepository.countUnread(recipient.getId()));
   }
 
   private boolean canReceiveActivity(ActivityEventEntity event, UserEntity recipient) {
@@ -456,7 +471,52 @@ public class NotificationService {
         .contains(eventType);
   }
 
+  private Map<UUID, String> pageRoutes(List<NotificationEntity> items) {
+    var events =
+        items.stream().map(NotificationEntity::getActivityEvent).filter(Objects::nonNull).toList();
+    var projectIds = new LinkedHashSet<UUID>();
+    var teamIds = new LinkedHashSet<UUID>();
+    for (var event : events) {
+      if (event.getTaskId() != null) continue;
+      if (event.getProjectId() != null) projectIds.add(event.getProjectId());
+      else if (event.getTeamId() != null) teamIds.add(event.getTeamId());
+    }
+    Map<UUID, ProjectEntity> projects = new LinkedHashMap<>();
+    if (!projectIds.isEmpty())
+      for (var project : projectRepository.findRouteProjects(projectIds))
+        projects.put(project.getId(), project);
+    Map<UUID, TeamEntity> teams = new LinkedHashMap<>();
+    if (!teamIds.isEmpty())
+      for (var team : teamRepository.findAllById(teamIds)) teams.put(team.getId(), team);
+    Map<UUID, String> routes = new LinkedHashMap<>();
+    for (var event : events) {
+      String path = "/teams";
+      if (event.getTaskId() != null) {
+        if (event.getTask() != null) path = WorkspacePaths.task(event.getTask());
+      } else if (event.getProjectId() != null) {
+        var project = projects.get(event.getProjectId());
+        if (project != null) path = WorkspacePaths.project(project);
+      } else {
+        var team = teams.get(event.getTeamId());
+        if (team != null)
+          path =
+              WorkspacePaths.team(team)
+                  + (isMembershipEvent(event.getEventType()) ? "/members" : "");
+      }
+      routes.put(event.getId(), path);
+    }
+    return routes;
+  }
+
   private NotificationResponse toResponse(NotificationEntity entity) {
+    return toResponse(
+        entity,
+        entity.getActivityEvent() == null
+            ? entity.getTargetPath()
+            : resolveTargetPath(entity.getActivityEvent()));
+  }
+
+  private NotificationResponse toResponse(NotificationEntity entity, String targetPath) {
     NotificationResponse.User actor =
         entity.getActor() == null
             ? null
@@ -472,9 +532,7 @@ public class NotificationService {
         entity.getActivityEvent() == null ? null : entity.getActivityEvent().getEventType(),
         entity.getTitle(),
         entity.getBody(),
-        entity.getActivityEvent() == null
-            ? entity.getTargetPath()
-            : resolveTargetPath(entity.getActivityEvent()),
+        targetPath,
         entity.getTeamId(),
         entity.getProjectId(),
         entity.getTaskId(),

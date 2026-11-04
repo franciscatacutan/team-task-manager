@@ -71,17 +71,18 @@ class NotificationServiceTest {
     String expected;
     if (type == ActivityEventType.TASK_COMMENTED) {
       event = event(type, team, project, task);
-      when(tasks.findById(task.getId())).thenReturn(Optional.of(task));
+
       expected = "/teams/TEAM-A/projects/PROJ-A/tasks/42";
     } else if (type == ActivityEventType.PROJECT_UPDATED) {
       event = event(type, team, project, null);
-      when(projects.findById(project.getId())).thenReturn(Optional.of(project));
+      when(projects.findRouteProjects(any())).thenReturn(List.of(project));
       expected = "/teams/TEAM-A/projects/PROJ-A";
     } else {
       event = event(type, team, null, null);
-      when(teams.findById(team.getId())).thenReturn(Optional.of(team));
+      when(teams.findAllById(any())).thenReturn(List.of(team));
       expected = "/teams/TEAM-A" + (type == ActivityEventType.TEAM_MEMBER_ADDED ? "/members" : "");
     }
+    when(users.findByEmailIgnoreCase("test@example.test")).thenReturn(Optional.of(user()));
     NotificationEntity item = new NotificationEntity();
     item.setActivityEvent(event);
     item.setTargetPath("/teams/" + team.getId());
@@ -136,6 +137,7 @@ class NotificationServiceTest {
     event.setTeamId(team.getId());
     event.setProjectId(project == null ? null : project.getId());
     event.setTaskId(task == null ? null : task.getId());
+    event.setTask(task);
     return event;
   }
 }

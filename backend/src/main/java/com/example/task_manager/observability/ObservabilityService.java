@@ -13,9 +13,6 @@ import com.example.task_manager.observability.dto.SystemEventResponse;
 import com.example.task_manager.observability.dto.TeamInsightsResponse;
 import com.example.task_manager.observability.entity.AuditAction;
 import com.example.task_manager.observability.entity.AuditLogEntity;
-import com.example.task_manager.observability.entity.KpiSnapshotEntity;
-import com.example.task_manager.observability.entity.MetricScope;
-import com.example.task_manager.observability.entity.MetricSnapshotEntity;
 import com.example.task_manager.observability.entity.SystemEventEntity;
 import com.example.task_manager.observability.entity.SystemEventSeverity;
 import com.example.task_manager.project.ProjectRepository;
@@ -32,7 +29,6 @@ import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -54,8 +50,6 @@ public class ObservabilityService {
 
   private final AuditLogRepository auditLogRepository;
   private final SystemEventRepository systemEventRepository;
-  private final MetricSnapshotRepository metricSnapshotRepository;
-  private final KpiSnapshotRepository kpiSnapshotRepository;
   private final ActivityEventRepository activityEventRepository;
   private final TaskRepository taskRepository;
   private final ProjectRepository projectRepository;
@@ -93,11 +87,9 @@ public class ObservabilityService {
           event.getDetails());
     }
 
-    if (event.getProjectId() != null) {
-      snapshotProjectMetrics(event.getProjectId());
-    }
+    // Insights read current domain data. Historical snapshot rows remain stored, but activity
+    // writes no longer produce unused metric/KPI copies or their aggregate queries.
 
-    snapshotTeamMetrics(event.getTeamId());
   }
 
   @Transactional
@@ -491,108 +483,6 @@ public class ObservabilityService {
         page.getTotalPages(),
         page.isFirst(),
         page.isLast());
-  }
-
-  private void snapshotProjectMetrics(UUID projectId) {
-    Instant now = Instant.now();
-    long totalTasks = taskRepository.countByProjectIdAndDeletedAtIsNull(projectId);
-    long doneTasks =
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.DONE);
-    long cancelledTasks =
-        taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(projectId, TaskStatus.CANCELLED);
-    long openTasks = Math.max(0, totalTasks - doneTasks - cancelledTasks);
-    long overdueTasks =
-        taskRepository.countOverdueOpenTasksByProject(
-            projectId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
-    double completionRate =
-        totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
-
-    saveProjectMetric(projectId, "project.tasks.total", totalTasks, "count");
-    saveProjectMetric(projectId, "project.tasks.open", openTasks, "count");
-    saveProjectMetric(projectId, "project.tasks.overdue", overdueTasks, "count");
-    saveProjectKpi(projectId, "project.completion_rate", completionRate, "percent", now);
-  }
-
-  private void snapshotTeamMetrics(UUID teamId) {
-    if (teamId == null) {
-      return;
-    }
-
-    Instant now = Instant.now();
-    long totalMembers = teamMemberRepository.countByTeamId(teamId);
-    long totalTasks = taskRepository.countByProjectTeamIdAndDeletedAtIsNull(teamId);
-    long doneTasks =
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(teamId, TaskStatus.DONE);
-    long cancelledTasks =
-        taskRepository.countByProjectTeamIdAndStatusAndDeletedAtIsNull(
-            teamId, TaskStatus.CANCELLED);
-    long openTasks = Math.max(0, totalTasks - doneTasks - cancelledTasks);
-    long overdueTasks =
-        taskRepository.countOverdueOpenTasks(
-            teamId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
-    long totalProjects = projectRepository.countByTeamIdAndDeletedAtIsNull(teamId);
-    long completedProjects =
-        projectRepository.countByTeamIdAndStatusAndDeletedAtIsNull(teamId, ProjectStatus.COMPLETED);
-    double taskCompletionRate =
-        totalTasks == 0 ? 0 : roundPercent((double) doneTasks / totalTasks * 100);
-    double projectCompletionRate =
-        totalProjects == 0 ? 0 : roundPercent((double) completedProjects / totalProjects * 100);
-
-    saveTeamMetric(teamId, "team.members.total", totalMembers, "count");
-    saveTeamMetric(teamId, "team.tasks.open", openTasks, "count");
-    saveTeamMetric(teamId, "team.tasks.overdue", overdueTasks, "count");
-    saveTeamMetric(teamId, "team.projects.total", totalProjects, "count");
-    saveTeamKpi(teamId, "team.task_completion_rate", taskCompletionRate, "percent", now);
-    saveTeamKpi(teamId, "team.project_completion_rate", projectCompletionRate, "percent", now);
-  }
-
-  private void saveProjectMetric(UUID projectId, String metricKey, double value, String unit) {
-    MetricSnapshotEntity metric = new MetricSnapshotEntity();
-    metric.setMetricKey(metricKey);
-    metric.setScope(MetricScope.PROJECT);
-    metric.setScopeId(projectId);
-    metric.setValue(BigDecimal.valueOf(value));
-    metric.setUnit(unit);
-
-    metricSnapshotRepository.save(metric);
-  }
-
-  private void saveProjectKpi(
-      UUID projectId, String kpiKey, double value, String unit, Instant now) {
-    KpiSnapshotEntity kpi = new KpiSnapshotEntity();
-    kpi.setKpiKey(kpiKey);
-    kpi.setScope(MetricScope.PROJECT);
-    kpi.setScopeId(projectId);
-    kpi.setPeriodStart(now.minus(INSIGHT_WINDOW));
-    kpi.setPeriodEnd(now);
-    kpi.setValue(BigDecimal.valueOf(value));
-    kpi.setUnit(unit);
-
-    kpiSnapshotRepository.save(kpi);
-  }
-
-  private void saveTeamMetric(UUID teamId, String metricKey, double value, String unit) {
-    MetricSnapshotEntity metric = new MetricSnapshotEntity();
-    metric.setMetricKey(metricKey);
-    metric.setScope(MetricScope.TEAM);
-    metric.setScopeId(teamId);
-    metric.setValue(BigDecimal.valueOf(value));
-    metric.setUnit(unit);
-
-    metricSnapshotRepository.save(metric);
-  }
-
-  private void saveTeamKpi(UUID teamId, String kpiKey, double value, String unit, Instant now) {
-    KpiSnapshotEntity kpi = new KpiSnapshotEntity();
-    kpi.setKpiKey(kpiKey);
-    kpi.setScope(MetricScope.TEAM);
-    kpi.setScopeId(teamId);
-    kpi.setPeriodStart(now.minus(INSIGHT_WINDOW));
-    kpi.setPeriodEnd(now);
-    kpi.setValue(BigDecimal.valueOf(value));
-    kpi.setUnit(unit);
-
-    kpiSnapshotRepository.save(kpi);
   }
 
   private AuditLogResponse toAuditLogResponse(AuditLogEntity entity) {

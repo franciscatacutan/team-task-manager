@@ -6,29 +6,36 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface NotificationRepository extends JpaRepository<NotificationEntity, UUID> {
 
+  @EntityGraph(
+      attributePaths = {
+        "actor",
+        "activityEvent",
+        "activityEvent.task",
+        "activityEvent.task.project",
+        "activityEvent.task.project.team"
+      })
   @Query(
       """
       SELECT n FROM NotificationEntity n
-      JOIN n.recipient r
-      WHERE LOWER(r.email) = LOWER(:recipientEmail)
+      WHERE n.recipient.id = :recipientId
         AND (:unreadOnly = false OR n.readAt IS NULL)
       """)
-  Page<NotificationEntity> findInbox(String recipientEmail, boolean unreadOnly, Pageable pageable);
+  Page<NotificationEntity> findInbox(UUID recipientId, boolean unreadOnly, Pageable pageable);
 
   @Query(
       """
       SELECT COUNT(n) FROM NotificationEntity n
-      JOIN n.recipient r
-      WHERE LOWER(r.email) = LOWER(:recipientEmail)
+      WHERE n.recipient.id = :recipientId
         AND n.readAt IS NULL
       """)
-  long countUnread(String recipientEmail);
+  long countUnread(UUID recipientId);
 
   @Query(
       """

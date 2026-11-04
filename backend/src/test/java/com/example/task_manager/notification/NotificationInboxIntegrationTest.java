@@ -38,6 +38,7 @@ class NotificationInboxIntegrationTest extends PostgresIntegrationTest {
   @Autowired EntityManager em;
   @Autowired JdbcTemplate jdbc;
   @Autowired NotificationRepository notifications;
+  @Autowired NotificationService notificationService;
   @Autowired JwtService jwt;
   @Autowired RefreshTokenService sessions;
   private final JsonMapper json = JsonMapper.builder().build();
@@ -189,9 +190,9 @@ class NotificationInboxIntegrationTest extends PostgresIntegrationTest {
   void emailMatchingIsCaseInsensitive() {
     seed(owner, 2, 0, false);
     String email = owner.getEmail().toUpperCase(Locale.ROOT);
-    assertThat(notifications.findInbox(email, true, PageRequest.of(0, 12)).getTotalElements())
+    assertThat(notificationService.getInbox(email, true, PageRequest.of(0, 12)).totalElements())
         .isEqualTo(2);
-    assertThat(notifications.countUnread(email)).isEqualTo(2);
+    assertThat(notificationService.getUnreadCount(email).unreadCount()).isEqualTo(2);
   }
 
   @ParameterizedTest

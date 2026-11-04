@@ -20,7 +20,11 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.dto.TeamActivityResponse;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.user.entity.UserEntity;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -133,13 +137,13 @@ public class ActivityEventService {
   }
 
   private ActivityEventEntity saveEvent(
-      java.util.UUID teamId,
-      java.util.UUID projectId,
-      java.util.UUID taskId,
+      UUID teamId,
+      UUID projectId,
+      UUID taskId,
       ActivityEntityType entityType,
-      java.util.UUID entityId,
+      UUID entityId,
       ActivityEntityType parentEntityType,
-      java.util.UUID parentEntityId,
+      UUID parentEntityId,
       UserEntity actor,
       ActivityEventType eventType,
       ActivityEventDetails details,
@@ -230,8 +234,27 @@ public class ActivityEventService {
         taskPath(entity, readAccess));
   }
 
+  public Map<UUID, ProjectEntity> loadPageProjects(List<ActivityEventEntity> events) {
+    Map<UUID, ProjectEntity> projects = new LinkedHashMap<>();
+    var missing = new LinkedHashSet<UUID>();
+    for (var event : events) {
+      if (event.getProjectId() == null) continue;
+      if (event.getTask() != null
+          && event.getProjectId().equals(event.getTask().getProject().getId()))
+        projects.put(event.getProjectId(), event.getTask().getProject());
+      else missing.add(event.getProjectId());
+    }
+    missing.removeAll(projects.keySet());
+    if (!missing.isEmpty())
+      for (var project : projectRepository.findRouteProjects(missing))
+        projects.put(project.getId(), project);
+    return projects;
+  }
+
   public TeamActivityResponse toTeamActivitiesResponse(
-      ActivityEventEntity entity, WorkspaceReadPolicy.Access readAccess) {
+      ActivityEventEntity entity,
+      WorkspaceReadPolicy.Access readAccess,
+      Map<UUID, ProjectEntity> pageProjects) {
     ActivityEventDetails details = readDetails(entity);
 
     TeamActivityResponse.User user =
@@ -247,10 +270,9 @@ public class ActivityEventService {
             : new TeamActivityResponse.Project(
                 entity.getProjectId(),
                 resolveProjectLabel(entity, details),
-                projectRepository
-                    .findById(entity.getProjectId())
-                    .map(ProjectEntity::getKey)
-                    .orElse(null));
+                pageProjects.containsKey(entity.getProjectId())
+                    ? pageProjects.get(entity.getProjectId()).getKey()
+                    : null);
 
     TeamActivityResponse.Task task =
         entity.getTaskId() == null
@@ -301,7 +323,7 @@ public class ActivityEventService {
     return new ActivityEventDetails(List.of(), null, null, null, List.of(), null, null, null, null);
   }
 
-  public ActivityReference reference(java.util.UUID id, String label) {
+  public ActivityReference reference(UUID id, String label) {
     if (id == null || label == null || label.isBlank()) {
       return null;
     }

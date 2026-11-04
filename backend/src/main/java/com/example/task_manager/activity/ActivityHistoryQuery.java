@@ -4,8 +4,9 @@ import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.project.entity.ProjectEntity;
+import com.example.task_manager.task.entity.TaskEntity;
+import com.example.task_manager.user.entity.UserEntity;
 import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,40 +51,56 @@ public class ActivityHistoryQuery {
           if (text.isEmpty()) return authorizedScope;
           String pattern =
               "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-          var actor = root.join("user", JoinType.LEFT);
-          var task = root.join("task", JoinType.LEFT);
-          List<Expression<String>> fields =
-              new ArrayList<>(
-                  List.of(
-                      root.get("message"),
-                      actor.get("firstName"),
-                      actor.get("lastName"),
-                      actor.get("email"),
-                      cb.concat(cb.concat(actor.get("firstName"), " "), actor.get("lastName")),
-                      task.get("name"),
-                      ((JpaExpression<Long>) task.<Long>get("taskNumber")).cast(String.class)));
+          // Match related identities once in uncorrelated subqueries, not once per event row.
+          var actorIds = query.subquery(UUID.class);
+          var actor = actorIds.from(UserEntity.class);
+          actorIds
+              .select(actor.get("id"))
+              .where(
+                  cb.or(
+                      cb.like(cb.lower(actor.get("firstName")), pattern, '\\'),
+                      cb.like(cb.lower(actor.get("lastName")), pattern, '\\'),
+                      cb.like(cb.lower(actor.get("email")), pattern, '\\'),
+                      cb.like(
+                          cb.lower(
+                              cb.concat(
+                                  cb.concat(actor.get("firstName"), " "), actor.get("lastName"))),
+                          pattern,
+                          '\\')));
+          var taskIds = query.subquery(UUID.class);
+          var task = taskIds.from(TaskEntity.class);
+          taskIds
+              .select(task.get("id"))
+              .where(
+                  cb.or(
+                      cb.like(cb.lower(task.get("name")), pattern, '\\'),
+                      cb.like(
+                          ((JpaExpression<Long>) task.<Long>get("taskNumber")).cast(String.class),
+                          pattern,
+                          '\\')));
+          var projectIds = query.subquery(UUID.class);
+          var project = projectIds.from(ProjectEntity.class);
+          projectIds
+              .select(project.get("id"))
+              .where(
+                  cb.or(
+                      cb.like(cb.lower(project.get("name")), pattern, '\\'),
+                      cb.like(cb.lower(project.get("key")), pattern, '\\')));
+          List<Predicate> matches = new ArrayList<>();
+          matches.add(cb.like(cb.lower(root.get("message")), pattern, '\\'));
+          matches.add(root.get("user").get("id").in(actorIds));
+          matches.add(root.get("taskId").in(taskIds));
+          matches.add(root.get("projectId").in(projectIds));
           for (String reference : List.of("team", "project", "task", "subjectUser")) {
-            fields.add(
+            Expression<String> label =
                 cb.function(
                     "jsonb_extract_path_text",
                     String.class,
                     root.get("details"),
                     cb.literal(reference),
-                    cb.literal("label")));
+                    cb.literal("label"));
+            matches.add(cb.like(cb.lower(label), pattern, '\\'));
           }
-          List<Predicate> matches = new ArrayList<>();
-          for (Expression<String> field : fields)
-            matches.add(cb.like(cb.lower(field), pattern, '\\'));
-          var project = query.subquery(Integer.class);
-          var p = project.from(ProjectEntity.class);
-          project
-              .select(cb.literal(1))
-              .where(
-                  cb.equal(p.get("id"), root.get("projectId")),
-                  cb.or(
-                      cb.like(cb.lower(p.get("name")), pattern, '\\'),
-                      cb.like(cb.lower(p.get("key")), pattern, '\\')));
-          matches.add(cb.exists(project));
           var types =
               Arrays.stream(ActivityEventType.values())
                   .filter(

@@ -1,0 +1,668 @@
+{
+  "baseline": "b02e3b9",
+  "optimized": "uncommitted approved implementation",
+  "results": [
+    {
+      "dataset": "small",
+      "operation": "team_history_1",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 20.859,
+      "msAfter": 20.6945,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "team_history_20",
+      "sqlBefore": [66, 66, 66, 66, 66, 66, 66],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 59.0199,
+      "msAfter": 22.1261,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "team_history_50",
+      "sqlBefore": [127, 127, 127, 127, 127, 127, 127],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 92.7632,
+      "msAfter": 21.7285,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "project_history_20",
+      "sqlBefore": [31, 31, 31, 31, 31, 31, 31],
+      "sqlAfter": [8, 8, 8, 8, 8, 8, 8],
+      "msBefore": 29.6106,
+      "msAfter": 19.5068,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "task_history_20",
+      "sqlBefore": [19, 19, 19, 19, 19, 19, 19],
+      "sqlAfter": [9, 9, 9, 9, 9, 9, 9],
+      "msBefore": 20.2771,
+      "msAfter": 18.8379,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "inbox_12",
+      "sqlBefore": [52, 52, 52, 52, 52, 52, 52],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 43.2617,
+      "msAfter": 16.074,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "unread_inbox_12",
+      "sqlBefore": [53, 53, 53, 53, 53, 53, 53],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 42.1096,
+      "msAfter": 15.9786,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "unread_count",
+      "sqlBefore": [3, 3, 3, 3, 3, 3, 3],
+      "sqlAfter": [4, 4, 4, 4, 4, 4, 4],
+      "msBefore": 6.7315,
+      "msAfter": 6.9783,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_1",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 16.0637,
+      "msAfter": 14.9195,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_20",
+      "sqlBefore": [66, 66, 66, 66, 66, 66, 66],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 50.7342,
+      "msAfter": 16.73,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "team_history_50",
+      "sqlBefore": [127, 127, 127, 127, 127, 127, 127],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 86.2722,
+      "msAfter": 19.1513,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "project_history_20",
+      "sqlBefore": [34, 34, 34, 34, 34, 34, 34],
+      "sqlAfter": [8, 8, 8, 8, 8, 8, 8],
+      "msBefore": 27.1,
+      "msAfter": 16.3044,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "task_history_20",
+      "sqlBefore": [19, 19, 19, 19, 19, 19, 19],
+      "sqlAfter": [9, 9, 9, 9, 9, 9, 9],
+      "msBefore": 17.562,
+      "msAfter": 14.4348,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "inbox_12",
+      "sqlBefore": [52, 52, 52, 52, 52, 52, 52],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 40.4235,
+      "msAfter": 14.3388,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "unread_inbox_12",
+      "sqlBefore": [53, 53, 53, 53, 53, 53, 53],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 40.1006,
+      "msAfter": 13.2434,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "medium",
+      "operation": "unread_count",
+      "sqlBefore": [3, 3, 3, 3, 3, 3, 3],
+      "sqlAfter": [4, 4, 4, 4, 4, 4, 4],
+      "msBefore": 5.8011,
+      "msAfter": 7.0531,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_1",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 22.87,
+      "msAfter": 23.1031,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_20",
+      "sqlBefore": [66, 66, 66, 66, 66, 66, 66],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 54.5481,
+      "msAfter": 24.9874,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_history_50",
+      "sqlBefore": [127, 127, 127, 127, 127, 127, 127],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 90.2949,
+      "msAfter": 27.608,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "project_history_20",
+      "sqlBefore": [34, 34, 34, 34, 34, 34, 34],
+      "sqlAfter": [8, 8, 8, 8, 8, 8, 8],
+      "msBefore": 28.3965,
+      "msAfter": 17.2963,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "task_history_20",
+      "sqlBefore": [19, 19, 19, 19, 19, 19, 19],
+      "sqlAfter": [9, 9, 9, 9, 9, 9, 9],
+      "msBefore": 15.8956,
+      "msAfter": 12.1087,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "inbox_12",
+      "sqlBefore": [52, 52, 52, 52, 52, 52, 52],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 80.0955,
+      "msAfter": 20.0919,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "unread_inbox_12",
+      "sqlBefore": [53, 53, 53, 53, 53, 53, 53],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 72.2078,
+      "msAfter": 22.1218,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "unread_count",
+      "sqlBefore": [3, 3, 3, 3, 3, 3, 3],
+      "sqlAfter": [4, 4, 4, 4, 4, 4, 4],
+      "msBefore": 15.6929,
+      "msAfter": 15.0176,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_1",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 10.8724,
+      "msAfter": 10.7974,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_20",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 11.974,
+      "msAfter": 12.6672,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "team_history_50",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 12.8033,
+      "msAfter": 13.9622,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "project_history_20",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [8, 8, 8, 8, 8, 8, 8],
+      "msBefore": 11.3156,
+      "msAfter": 12.2795,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "task_history_20",
+      "sqlBefore": [10, 10, 10, 10, 10, 10, 10],
+      "sqlAfter": [9, 9, 9, 9, 9, 9, 9],
+      "msBefore": 11.7112,
+      "msAfter": 12.4351,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "inbox_12",
+      "sqlBefore": [20, 20, 20, 20, 20, 20, 20],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 17.5505,
+      "msAfter": 11.3678,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "unread_inbox_12",
+      "sqlBefore": [20, 20, 20, 20, 20, 20, 20],
+      "sqlAfter": [5, 5, 5, 5, 5, 5, 5],
+      "msBefore": 17.6166,
+      "msAfter": 11.1017,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "concentrated",
+      "operation": "unread_count",
+      "sqlBefore": [3, 3, 3, 3, 3, 3, 3],
+      "sqlAfter": [4, 4, 4, 4, 4, 4, 4],
+      "msBefore": 4.4678,
+      "msAfter": 5.4803,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_rare-search-needle",
+      "sqlBefore": [60, 60, 60, 60, 60, 60, 60],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 351.3781,
+      "msAfter": 89.6409,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_not-present-anywhere",
+      "sqlBefore": [6, 6, 6, 6, 6, 6, 6],
+      "sqlAfter": [6, 6, 6, 6, 6, 6, 6],
+      "msBefore": 324.7358,
+      "msAfter": 116.1721,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_search_Profile_task",
+      "sqlBefore": [67, 67, 67, 67, 67, 67, 67],
+      "sqlAfter": [7, 7, 7, 7, 7, 7, 7],
+      "msBefore": 214.329,
+      "msAfter": 53.214,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "comment_write",
+      "sqlBefore": [36, 36, 36, 36, 36, 36, 36],
+      "sqlAfter": [15, 15, 15, 15, 15, 15, 15],
+      "msBefore": 42.9383,
+      "msAfter": 17.9544,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "task_name_write",
+      "sqlBefore": [38, 38, 38, 38, 38, 38, 38],
+      "sqlAfter": [17, 17, 17, 17, 17, 17, 17],
+      "msBefore": 39.0858,
+      "msAfter": 18.1377,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "team_name_write",
+      "sqlBefore": [23, 23, 23, 23, 23, 23, 23],
+      "sqlAfter": [10, 10, 10, 10, 10, 10, 10],
+      "msBefore": 27.4271,
+      "msAfter": 12.1499,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "small",
+      "operation": "member_role_write",
+      "sqlBefore": [27, 27, 27, 27, 27, 27, 27],
+      "sqlAfter": [14, 14, 14, 14, 14, 14, 14],
+      "msBefore": 28.8212,
+      "msAfter": 14.9561,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "comment_write",
+      "sqlBefore": [36, 36, 36, 36, 36, 36, 36],
+      "sqlAfter": [15, 15, 15, 15, 15, 15, 15],
+      "msBefore": 37.1585,
+      "msAfter": 15.7041,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "task_name_write",
+      "sqlBefore": [38, 38, 38, 38, 38, 38, 38],
+      "sqlAfter": [17, 17, 17, 17, 17, 17, 17],
+      "msBefore": 38.2431,
+      "msAfter": 18.8993,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "team_name_write",
+      "sqlBefore": [23, 23, 23, 23, 23, 23, 23],
+      "sqlAfter": [10, 10, 10, 10, 10, 10, 10],
+      "msBefore": 26.3436,
+      "msAfter": 12.2329,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "large",
+      "operation": "member_role_write",
+      "sqlBefore": [27, 27, 27, 27, 27, 27, 27],
+      "sqlAfter": [14, 14, 14, 14, 14, 14, 14],
+      "msBefore": 28.63,
+      "msAfter": 15.1876,
+      "timingKind": "median of seven",
+      "snapshotRowsAcrossSevenCallsBefore": {
+        "metric_snapshots": 28,
+        "kpi_snapshots": 14
+      },
+      "snapshotRowsAcrossSevenCallsAfter": {
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0
+      },
+      "archiveRowsBefore": null,
+      "archiveRowsAfter": null
+    },
+    {
+      "dataset": "archive_5",
+      "operation": "archive_project_6",
+      "sqlBefore": 199,
+      "sqlAfter": 52,
+      "msBefore": 205.9408,
+      "msAfter": 62.1714,
+      "timingKind": "single archive sample",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 49,
+        "kpi_snapshots": 21,
+        "notifications": 5,
+        "system_events": 7
+      },
+      "archiveRowsAfter": {
+        "activity_events": 7,
+        "audit_logs": 7,
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0,
+        "notifications": 5,
+        "system_events": 7
+      }
+    },
+    {
+      "dataset": "archive_20",
+      "operation": "archive_project_21",
+      "sqlBefore": 619,
+      "sqlAfter": 157,
+      "msBefore": 625.5356,
+      "msAfter": 157.8918,
+      "timingKind": "single archive sample",
+      "snapshotRowsAcrossSevenCallsBefore": {},
+      "snapshotRowsAcrossSevenCallsAfter": {},
+      "archiveRowsBefore": {
+        "activity_events": 22,
+        "audit_logs": 22,
+        "metric_snapshots": 154,
+        "kpi_snapshots": 66,
+        "notifications": 20,
+        "system_events": 22
+      },
+      "archiveRowsAfter": {
+        "activity_events": 22,
+        "audit_logs": 22,
+        "metric_snapshots": 0,
+        "kpi_snapshots": 0,
+        "notifications": 20,
+        "system_events": 22
+      }
+    }
+  ],
+  "note": "Sequential local synthetic-data diagnostics with tracing; no production SLA or concurrent load claim."
+}
