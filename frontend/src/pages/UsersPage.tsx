@@ -53,7 +53,7 @@ export default function UsersPage() {
 
   const { data: currentUser } = useCurrentUser();
 
-  const { data, isError, isLoading, refetch } = useUsers({
+  const { data, isError, isLoading, refetch, isPlaceholderData } = useUsers({
     page,
     size,
     search: debouncedSearch,
@@ -66,10 +66,21 @@ export default function UsersPage() {
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
 
+  // Confirmed pages can shrink after role/profile changes; placeholders describe the previous request.
+  if (
+    data &&
+    !isError &&
+    !isPlaceholderData &&
+    page > Math.max(0, totalPages - 1)
+  ) {
+    setPage(Math.max(0, totalPages - 1));
+  }
+
   // ---------------- HANDLERS ----------------
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
+    setPage(0);
   };
 
   const handleSort = (field: SortField) => {
@@ -125,6 +136,7 @@ export default function UsersPage() {
 
         <Toolbar
           search={{
+            label: "Search users",
             value: search,
             onChange: handleSearchChange,
           }}

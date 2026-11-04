@@ -9,6 +9,7 @@ type FilterValues = Record<string, string | string[] | undefined>;
 
 interface Props {
   search: {
+    label?: string;
     value: string;
     onChange: (value: string) => void;
   };
@@ -37,7 +38,11 @@ export default function Toolbar({ search, filters, view, sort }: Props) {
     <section className="rounded-2xl border border-border/60 bg-background/92 p-4 shadow-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
-          <SearchBar search={search.value} searchChange={search.onChange} />
+          <SearchBar
+            label={search.label}
+            search={search.value}
+            searchChange={search.onChange}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
