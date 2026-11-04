@@ -1,27 +1,27 @@
-import { useState } from "react";
-import type { AddMembersResult } from "../types/team.type";
-import MemberBatchFeedback from "./MemberBatchFeedback";
-import { memberBatchError } from "../utils/memberBatchError";
-import { Button } from "../../../components/ui/button";
-
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
-
-import MultiUserSelector from "../../../common/components/MultiUserSelector";
-import { Separator } from "../../../components/ui/separator";
-import { Controller, useForm, useWatch } from "react-hook-form";
-import { useAddMembers } from "../hooks/useAddMembers";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import type { UserIdentity } from "../../users/types/userType";
-import { cn } from "../../../lib/utils";
+} from "@/components/ui/select";
+import MultiUserSelector from "@/common/components/MultiUserSelector";
+import { cn } from "@/lib/utils";
+import { authStorage } from "@/features/auth/utils/authStorage";
+import type { UserIdentity } from "@/features/users/types/userType";
 import { TEAM_ROLE_STYLES, TEAM_ROLE_LABEL } from "../constants/team.constants";
-import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
+import { useAddMembers } from "../hooks/useAddMembers";
+import { useMemberBatchSubmission } from "../hooks/useMemberBatchSubmission";
+import type { AddMembersResult } from "../types/team.type";
+import { memberBatchError } from "../utils/memberBatchError";
+import MemberBatchFeedback from "./MemberBatchFeedback";
 
 const schema = z.object({
   members: z
@@ -37,6 +37,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface Props {
+  isLoading?: boolean;
+  onPendingChange?: (pending: boolean) => void;
+  usersError?: boolean;
+  isFetchingUsers?: boolean;
+  onRetryUsers?: () => unknown;
   canAssignAdmin: boolean;
   teamKey: string;
   users: UserIdentity[];
@@ -45,7 +50,21 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export function AddMemberForm({
+export function AddMemberForm(props: Props) {
+  return (
+    <MemberFormEditor
+      key={JSON.stringify([props.teamKey, authStorage.getRevision()])}
+      {...props}
+    />
+  );
+}
+
+function MemberFormEditor({
+  isLoading = false,
+  onPendingChange,
+  usersError,
+  isFetchingUsers,
+  onRetryUsers,
   canAssignAdmin,
   teamKey,
   users,
@@ -53,8 +72,14 @@ export function AddMemberForm({
   onSearchChange,
   onOpenChange,
 }: Props) {
+  const submission = useMemberBatchSubmission(onPendingChange);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const [result, setResult] = useState<AddMembersResult | null>(null);
   const [requestError, setRequestError] = useState("");
+  useEffect(() => {
+    if (result || requestError)
+      feedbackRef.current?.scrollIntoView({ block: "start" });
+  }, [result, requestError]);
   const [knownUsers, setKnownUsers] = useState<Record<string, UserIdentity>>(
     {},
   );
@@ -80,38 +105,50 @@ export function AddMemberForm({
 
   const addMember = useAddMembers(teamKey);
 
-  const onSubmit = (data: FormValues) => {
-    setResult(null);
-    setRequestError("");
-    addMember.mutate(data, {
-      onSuccess: (response) => {
-        if (
-          response.failed.length === 0 &&
-          response.success.length === data.members.length
-        ) {
-          form.reset();
-          onOpenChange(false);
-          return;
-        }
-        const succeeded = new Set(response.success.map((member) => member.id));
-        form.setValue(
-          "members",
-          data.members.filter((member) => !succeeded.has(member.userId)),
-        );
-        setResult(response);
-        if (
-          response.success.length + response.failed.length !==
-          data.members.length
-        )
-          setRequestError(
-            "Some changes could not be confirmed. Refresh the member list before retrying.",
+  const isSaving = submission.pending || addMember.isPending;
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isLoading) return;
+    await submission.run(async (isCurrent) => {
+      await form.handleSubmit(async (data) => {
+        if (!isCurrent()) return;
+        setResult(null);
+        setRequestError("");
+        try {
+          const response = await addMember.mutateAsync(data);
+          if (!isCurrent()) return;
+          if (
+            response.failed.length === 0 &&
+            response.success.length === data.members.length
+          ) {
+            form.reset();
+            onOpenChange(false);
+            return;
+          }
+          const succeeded = new Set(
+            response.success.map((member) => member.id),
           );
-      },
-      onError: (error) => setRequestError(memberBatchError(error)),
+          form.setValue(
+            "members",
+            data.members.filter((member) => !succeeded.has(member.userId)),
+          );
+          setResult(response);
+          if (
+            response.success.length + response.failed.length !==
+            data.members.length
+          )
+            setRequestError(
+              "Some changes could not be confirmed. Refresh the member list before retrying.",
+            );
+        } catch (failure) {
+          if (isCurrent()) setRequestError(memberBatchError(failure));
+        }
+      })(event);
     });
-  };
+  }
 
   function handleSelectedUsersChange(userIds: string[]) {
+    if (submission.inFlight.current) return;
     setKnownUsers((current) =>
       Object.fromEntries(
         userIds
@@ -140,6 +177,7 @@ export function AddMemberForm({
   }
 
   function handleRoleChange(userId: string, role: "ADMIN" | "MEMBER") {
+    if (submission.inFlight.current) return;
     form.setValue(
       "members",
       selectedMembers.map((member) =>
@@ -178,144 +216,196 @@ export function AddMemberForm({
 
   return (
     <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      className="px-6 py-5 space-y-6"
+      noValidate
+      aria-label="Add team members"
+      aria-busy={isSaving || isLoading}
+      onSubmit={(event) => {
+        void submit(event);
+      }}
+      className="flex min-h-0 flex-col"
     >
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">
-          Users
-        </label>
-
-        <Controller
-          control={form.control}
-          name="members"
-          render={() => (
-            <MultiUserSelector
-              search={search}
-              onSearchChange={onSearchChange}
-              users={users}
-              selectedUsers={selectedUsers.map((entry) => entry.user)}
-              disabled={addMember.isPending}
-              value={selectedUserIds}
-              placeholder="Search and select users..."
-              onChange={handleSelectedUsersChange}
-            />
-          )}
-        />
-
-        {form.formState.errors.members && (
-          <p className="text-xs text-destructive">
-            {form.formState.errors.members.message}
-          </p>
-        )}
-      </div>
-
-      {selectedUsers.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <label className="text-xs font-medium text-muted-foreground">
-              Roles Per UserIdentity
-            </label>
-
-            <span className="text-xs text-muted-foreground sm:text-right">
-              New selections default to Member
-            </span>
-          </div>
-
-          <div className="h-[calc(40vh-2rem)] overflow-y-auto space-y-2 rounded-2xl border border-border/70 bg-muted/20 p-2">
-            {selectedUsers.map(({ userId, role, user }) => (
-              <div
-                key={userId}
-                className="flex flex-col gap-3 rounded-xl border border-border/60 bg-background px-3 py-3 shadow-xs sm:flex-row sm:items-center"
+      <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <fieldset
+          disabled={isSaving || isLoading}
+          className="min-w-0 space-y-6"
+        >
+          {isLoading && <p role="status">Loading...</p>}
+          {usersError && (
+            <div role="alert" className="text-sm text-destructive">
+              Unable to load available users.{" "}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving || isFetchingUsers}
+                onClick={() => {
+                  void onRetryUsers?.();
+                }}
               >
-                <div className="flex flex-1 items-center gap-3">
-                  <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border/50">
-                    <AvatarFallback className="text-[10px]">
-                      {user.lastName?.[0]}
-                      {user.firstName?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                Retry loading
+              </Button>
+            </div>
+          )}
+          <div className="space-y-2">
+            <p
+              id="add-members-users-label"
+              className="text-xs font-medium text-foreground/75"
+            >
+              Users
+            </p>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {user.firstName} {user.lastName}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </div>
-                  </div>
-                </div>
+            <Controller
+              control={form.control}
+              name="members"
+              render={() => (
+                <MultiUserSelector
+                  aria-labelledby="add-members-users-label"
+                  aria-invalid={Boolean(form.formState.errors.members)}
+                  aria-describedby={
+                    form.formState.errors.members
+                      ? "add-members-users-error"
+                      : undefined
+                  }
+                  search={search}
+                  onSearchChange={onSearchChange}
+                  users={users}
+                  selectedUsers={selectedUsers.map((entry) => entry.user)}
+                  disabled={isSaving || isLoading}
+                  value={selectedUserIds}
+                  placeholder="Search and select users..."
+                  onChange={handleSelectedUsersChange}
+                />
+              )}
+            />
 
-                <div className="sm:w-auto">
-                  <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:hidden">
-                    Role
-                  </div>
-                  {canAssignAdmin ? (
-                    <Select
-                      disabled={addMember.isPending}
-                      value={role}
-                      onValueChange={(value) =>
-                        handleRoleChange(userId, value as "ADMIN" | "MEMBER")
-                      }
-                    >
-                      <SelectTrigger className="h-10 rounded-xl border-border/70 bg-background shadow-none sm:w-36">
-                        <SelectValue />
-                      </SelectTrigger>
-
-                      <SelectContent>
-                        <SelectItem value="MEMBER">
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
-                              TEAM_ROLE_STYLES.MEMBER,
-                            )}
-                          >
-                            {TEAM_ROLE_LABEL.MEMBER}
-                          </span>
-                        </SelectItem>
-
-                        <SelectItem value="ADMIN">
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
-                              TEAM_ROLE_STYLES.ADMIN,
-                            )}
-                          >
-                            {TEAM_ROLE_LABEL.ADMIN}
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
-                        TEAM_ROLE_STYLES.MEMBER,
-                      )}
-                    >
-                      {TEAM_ROLE_LABEL.MEMBER}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+            {form.formState.errors.members && (
+              <p
+                id="add-members-users-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {form.formState.errors.members.message}
+              </p>
+            )}
           </div>
-        </div>
-      )}
-      <MemberBatchFeedback
-        result={result}
-        labels={labels}
-        error={requestError}
-        verb="Added"
-      />
-      <Separator />
 
-      <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
+          {selectedUsers.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-medium text-foreground/75">
+                  Roles per member
+                </p>
+
+                <span className="text-xs text-muted-foreground sm:text-right">
+                  New selections default to Member
+                </span>
+              </div>
+
+              <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 p-2">
+                {selectedUsers.map(({ userId, role, user }) => (
+                  <div
+                    key={userId}
+                    className="flex flex-col gap-3 rounded-xl border border-border/60 bg-background px-3 py-3 shadow-xs sm:flex-row sm:items-center"
+                  >
+                    <div className="flex flex-1 items-center gap-3">
+                      <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border/50">
+                        <AvatarFallback className="text-[10px] text-foreground/75">
+                          {user.lastName?.[0]}
+                          {user.firstName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="sm:w-auto">
+                      <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:hidden">
+                        Role
+                      </div>
+                      {canAssignAdmin ? (
+                        <Select
+                          disabled={isSaving || isLoading}
+                          value={role}
+                          onValueChange={(value) =>
+                            handleRoleChange(
+                              userId,
+                              value as "ADMIN" | "MEMBER",
+                            )
+                          }
+                        >
+                          <SelectTrigger
+                            aria-label={`Role for ${user.firstName} ${user.lastName}`}
+                            className="h-10 rounded-xl border-border/70 bg-background shadow-none sm:w-36"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            <SelectItem value="MEMBER">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+                                  TEAM_ROLE_STYLES.MEMBER,
+                                  "text-foreground/75",
+                                )}
+                              >
+                                {TEAM_ROLE_LABEL.MEMBER}
+                              </span>
+                            </SelectItem>
+
+                            <SelectItem value="ADMIN">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+                                  TEAM_ROLE_STYLES.ADMIN,
+                                )}
+                              >
+                                {TEAM_ROLE_LABEL.ADMIN}
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+                            TEAM_ROLE_STYLES.MEMBER,
+                            "text-foreground/75",
+                          )}
+                        >
+                          {TEAM_ROLE_LABEL.MEMBER}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </fieldset>
+        <div ref={feedbackRef} className="mt-6 empty:hidden">
+          <MemberBatchFeedback
+            result={result}
+            labels={labels}
+            error={requestError}
+            verb="Added"
+          />
+        </div>
+      </div>
+      <DialogFooter className="mx-0 mb-0 shrink-0 px-6 py-4">
         <Button
           type="button"
           variant="ghost"
-          disabled={addMember.isPending}
-          onClick={() => onOpenChange(false)}
+          disabled={isSaving}
+          onClick={() => {
+            if (!submission.inFlight.current) onOpenChange(false);
+          }}
           className="h-9"
         >
           Cancel
@@ -323,16 +413,16 @@ export function AddMemberForm({
 
         <Button
           type="submit"
-          disabled={selectedCount === 0 || addMember.isPending}
+          disabled={selectedCount === 0 || isSaving || isLoading}
           className="h-9 px-4"
         >
-          {addMember.isPending
+          {isSaving
             ? "Adding..."
             : selectedCount > 0
               ? `Add ${selectedCount} member${selectedCount === 1 ? "" : "s"}`
               : "Add members"}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 }

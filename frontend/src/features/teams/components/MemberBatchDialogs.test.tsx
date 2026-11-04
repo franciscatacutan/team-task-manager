@@ -1,7 +1,23 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { ReactNode } from "react";
 import type { TeamMember } from "../types/team.type";
 import { addMembers, removeMembers } from "../api/teamMemberApi";
@@ -10,6 +26,20 @@ import AddMembersModal from "./AddMembersModal";
 import RemoveMultiMembersModal from "./RemoveMultiMemberModal";
 import RemoveMemberModal from "./RemoveMemberModal";
 
+import { authStorage } from "@/features/auth/utils/authStorage";
+const clients: QueryClient[] = [];
+const originalScroll = HTMLElement.prototype.scrollIntoView;
+beforeAll(() => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+});
+afterAll(() => {
+  if (originalScroll) HTMLElement.prototype.scrollIntoView = originalScroll;
+  else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+});
+afterEach(() => {
+  clients.splice(0).forEach((client) => client.clear());
+  authStorage.clearToken();
+});
 const state = vi.hoisted(() => ({
   members: [] as TeamMember[],
   isError: false,
@@ -128,6 +158,7 @@ function setup() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  clients.push(client);
   return {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -140,6 +171,8 @@ async function selectBoth() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  authStorage.endLogout();
+  authStorage.setToken("batch-login");
   state.members = [first, second];
   state.isError = false;
   vi.mocked(addMembers).mockResolvedValue({
@@ -382,4 +415,241 @@ it("provides retry feedback when available users cannot be loaded", async () => 
   );
   await userEvent.click(screen.getByRole("button", { name: "Retry loading" }));
   expect(state.refetch).toHaveBeenCalledTimes(1);
+});
+
+describe.each(["add", "remove"] as const)(
+  "%s batch pending lifecycle",
+  (kind) => {
+    const api = () =>
+      kind === "add" ? vi.mocked(addMembers) : vi.mocked(removeMembers);
+    const actionName = (count = 2) =>
+      `${kind === "add" ? "Add" : "Remove"} ${count} member${count === 1 ? "" : "s"}`;
+    const modal = (open = true, teamKey = "TEAM", isLoading = false) =>
+      kind === "add" ? (
+        <AddMembersModal
+          canAssignAdmin
+          teamKey={teamKey}
+          open={open}
+          isLoading={isLoading}
+          onOpenChange={close}
+        />
+      ) : (
+        <RemoveMultiMembersModal
+          userTeamRole="OWNER"
+          teamKey={teamKey}
+          open={open}
+          isLoading={isLoading}
+          onOpenChange={close}
+        />
+      );
+    function deferred() {
+      let resolve!: (value: never) => void;
+      const promise = new Promise<never>((yes) => {
+        resolve = yes;
+      });
+      return { promise, resolve };
+    }
+    it("locks all fields, lookup retries and dismissal, and guards duplicate submits", async () => {
+      state.isError = true;
+      const request = deferred();
+      api().mockReturnValue(request.promise);
+      render(modal(), setup());
+      await selectBoth();
+      const button = screen.getByRole("button", { name: actionName() });
+      fireEvent.click(button);
+      fireEvent.click(button);
+      await waitFor(() => expect(api()).toHaveBeenCalledOnce());
+      for (const box of screen.getAllByRole("checkbox"))
+        expect(box).toBeDisabled();
+      for (const role of screen.queryAllByRole("combobox", { name: "Role" }))
+        expect(role).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Retry loading" }),
+      ).toBeDisabled();
+      expect(screen.getByRole("form")).toHaveAttribute("aria-busy", "true");
+      await userEvent.keyboard("[Escape]");
+      fireEvent.pointerDown(document.body);
+      expect(close).not.toHaveBeenCalled();
+      await act(async () =>
+        request.resolve(
+          (kind === "add"
+            ? { success: [first], failed: [failed] }
+            : { success: [first.id], failed: [failed] }) as never,
+        ),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: actionName(1) }),
+        ).toBeEnabled(),
+      );
+      expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+      expect(
+        screen.getByRole("checkbox", { name: "Second User" }),
+      ).toBeChecked();
+      expect(
+        screen.getByRole("checkbox", { name: "First User" }),
+      ).not.toBeChecked();
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it.each(["team", "account", "reopening"])(
+      "isolates a new draft from a late success after changing %s",
+      async (change) => {
+        const request = deferred();
+        api().mockReturnValue(request.promise);
+        const view = render(modal(), setup());
+        await selectBoth();
+        await userEvent.click(
+          screen.getByRole("button", { name: actionName() }),
+        );
+        await waitFor(() => expect(api()).toHaveBeenCalledOnce());
+        if (change === "account") authStorage.setToken("next-login");
+        if (change === "reopening") view.rerender(modal(false));
+        view.rerender(modal(true, change === "team" ? "OTHER" : "TEAM"));
+        expect(
+          screen.getByRole("checkbox", { name: "First User" }),
+        ).not.toBeChecked();
+        await userEvent.click(
+          screen.getByRole("checkbox", { name: "First User" }),
+        );
+        await act(async () =>
+          request.resolve(
+            (kind === "add"
+              ? { success: [first, second], failed: [] }
+              : { success: [first.id, second.id], failed: [] }) as never,
+          ),
+        );
+        expect(close).not.toHaveBeenCalled();
+        expect(
+          screen.getByRole("checkbox", { name: "First User" }),
+        ).toBeChecked();
+        expect(
+          screen.getByRole("button", { name: actionName(1) }),
+        ).toBeEnabled();
+      },
+    );
+
+    it("keeps a running draft and partial result mounted across parent loading changes", async () => {
+      const request = deferred();
+      api().mockReturnValue(request.promise);
+      const view = render(modal(), setup());
+      await selectBoth();
+      await userEvent.click(screen.getByRole("button", { name: actionName() }));
+      await waitFor(() => expect(api()).toHaveBeenCalledOnce());
+      view.rerender(modal(true, "TEAM", true));
+      expect(
+        screen.getByRole("checkbox", { name: "Second User" }),
+      ).toBeChecked();
+      expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+      await act(async () =>
+        request.resolve(
+          (kind === "add"
+            ? { success: [first], failed: [failed] }
+            : { success: [first.id], failed: [failed] }) as never,
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Close" })).toBeEnabled(),
+      );
+      view.rerender(modal());
+      expect(screen.getByRole("alert")).toHaveTextContent("1 failed.");
+      expect(
+        screen.getByRole("checkbox", { name: "Second User" }),
+      ).toBeChecked();
+      expect(screen.getByRole("button", { name: actionName(1) })).toBeEnabled();
+      expect(close).not.toHaveBeenCalled();
+    });
+    it("retains unconfirmed selections and warns when a response omits outcomes", async () => {
+      api().mockResolvedValue(
+        (kind === "add"
+          ? { success: [first], failed: [] }
+          : { success: [first.id], failed: [] }) as never,
+      );
+      render(modal(), setup());
+      await selectBoth();
+      await userEvent.click(screen.getByRole("button", { name: actionName() }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Some changes could not be confirmed. Refresh the member list before retrying.",
+      );
+      expect(
+        screen.getByRole("checkbox", { name: "Second User" }),
+      ).toBeChecked();
+      expect(
+        screen.getByRole("checkbox", { name: "First User" }),
+      ).not.toBeChecked();
+      expect(api()).toHaveBeenCalledOnce();
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it("allows dismissal once a partial result has settled", async () => {
+      api().mockResolvedValue(
+        (kind === "add"
+          ? { success: [first], failed: [failed] }
+          : { success: [first.id], failed: [failed] }) as never,
+      );
+      render(modal(), setup());
+      await selectBoth();
+      await userEvent.click(screen.getByRole("button", { name: actionName() }));
+      await screen.findByRole("alert");
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Close" })).toBeEnabled(),
+      );
+      await userEvent.keyboard("[Escape]");
+      expect(close).toHaveBeenCalledWith(false);
+    });
+  },
+);
+
+it("keeps team-admin removal eligibility limited to regular members", () => {
+  state.members = [
+    first,
+    { ...second, teamRole: "ADMIN" },
+    { ...first, id: "owner", firstName: "Owner", teamRole: "OWNER" },
+  ];
+  render(
+    <RemoveMultiMembersModal
+      userTeamRole="ADMIN"
+      teamKey="TEAM"
+      open
+      isLoading={false}
+      onOpenChange={close}
+    />,
+    setup(),
+  );
+  expect(
+    screen.getByRole("checkbox", { name: "First User" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("checkbox", { name: "Second User" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("checkbox", { name: "Owner User" }),
+  ).not.toBeInTheDocument();
+});
+
+it("keeps non-owner additions restricted to the default Member role", async () => {
+  render(
+    <AddMembersModal
+      canAssignAdmin={false}
+      teamKey="TEAM"
+      open
+      isLoading={false}
+      onOpenChange={close}
+    />,
+    setup(),
+  );
+  await selectBoth();
+  expect(
+    screen.queryByRole("combobox", { name: "Role" }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Add 2 members" }));
+  await waitFor(() => expect(addMembers).toHaveBeenCalledOnce());
+  expect(vi.mocked(addMembers).mock.calls[0][1]).toEqual({
+    members: [
+      { userId: first.id, role: "MEMBER" },
+      { userId: second.id, role: "MEMBER" },
+    ],
+  });
 });

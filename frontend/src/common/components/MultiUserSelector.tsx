@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentPropsWithoutRef } from "react";
 import { Check, ChevronsUpDown, Users, X } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
@@ -19,7 +19,11 @@ import {
 import { cn } from "../../lib/utils";
 import type { UserIdentity } from "../../features/users/types/userType";
 
-interface Props {
+interface Props extends Pick<
+  ComponentPropsWithoutRef<"div">,
+  "id" | "aria-labelledby" | "aria-describedby" | "aria-invalid"
+> {
+  "aria-label"?: string;
   users: UserIdentity[];
   value?: string[];
   selectedUsers?: UserIdentity[];
@@ -45,6 +49,8 @@ export default function MultiUserSelector({
   popoverClassName,
   maxVisibleBadges = 3,
   onChange,
+  "aria-label": ariaLabel = placeholder,
+  ...controlProps
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -82,7 +88,19 @@ export default function MultiUserSelector({
     >
       <PopoverTrigger asChild>
         <div
+          {...controlProps}
           role="combobox"
+          aria-label={ariaLabel}
+          onKeyDown={(event) => {
+            if (
+              !disabled &&
+              event.target === event.currentTarget &&
+              (event.key === "Enter" || event.key === " ")
+            ) {
+              event.preventDefault();
+              setOpen((value) => !value);
+            }
+          }}
           aria-expanded={open}
           aria-disabled={disabled}
           tabIndex={disabled ? -1 : 0}
@@ -106,7 +124,7 @@ export default function MultiUserSelector({
                     className="max-w-full gap-1.5 rounded-full border border-border/60 bg-muted/60 px-1.5 py-1 text-xs font-medium text-foreground"
                   >
                     <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[9px]">
+                      <AvatarFallback className="text-[9px] text-foreground/75">
                         {user.lastName?.[0]}
                         {user.firstName?.[0]}
                       </AvatarFallback>
@@ -153,12 +171,12 @@ export default function MultiUserSelector({
       <PopoverContent
         align="start"
         className={cn(
-          "max-h-[min(70vh,32rem)] w-[min(30rem,calc(100vw-2rem))] min-w-[20rem] overflow-hidden rounded-2xl border-border/70 p-0 shadow-xl",
+          "flex max-h-[min(70dvh,32rem,var(--radix-popover-content-available-height))] w-[min(30rem,calc(100vw-2rem))] min-w-0 flex-col overflow-hidden rounded-2xl border-border/70 p-0 shadow-xl",
           popoverClassName,
         )}
       >
-        <Command className="min-h-0">
-          <div className="border-b border-border/60 px-1 pb-1 pt-1">
+        <Command label="Search users" className="min-h-0">
+          <div className="shrink-0 border-b border-border/60 px-1 pb-1 pt-1">
             <CommandInput
               disabled={disabled}
               value={search}
@@ -167,7 +185,7 @@ export default function MultiUserSelector({
             />
           </div>
 
-          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-3 py-2">
             <div className="text-xs font-medium text-muted-foreground">
               {selectedUsers.length > 0
                 ? `${selectedUsers.length} selected`
@@ -186,7 +204,7 @@ export default function MultiUserSelector({
             )}
           </div>
 
-          <CommandList className="max-h-[min(52vh,24rem)] overscroll-contain">
+          <CommandList className="min-h-0 max-h-none flex-1 overscroll-contain">
             <CommandEmpty>No user found.</CommandEmpty>
 
             <CommandGroup className="p-2">
@@ -206,7 +224,7 @@ export default function MultiUserSelector({
                     onSelect={() => toggleUser(user.id)}
                   >
                     <Avatar className="mt-0.5 h-9 w-9 shrink-0 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[10px]">
+                      <AvatarFallback className="text-[10px] text-foreground/75">
                         {user.lastName?.[0]}
                         {user.firstName?.[0]}
                       </AvatarFallback>

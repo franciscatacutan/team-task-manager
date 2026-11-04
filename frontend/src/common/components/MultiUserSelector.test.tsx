@@ -66,3 +66,33 @@ describe("retained member selections", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
+
+it("names the selector and opens it by keyboard without submitting its parent form", async () => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+  const submit = vi.fn((event) => event.preventDefault());
+  render(
+    <form onSubmit={submit}>
+      <MultiUserSelector
+        aria-label="Team candidates"
+        users={[]}
+        value={[]}
+        search=""
+        onSearchChange={vi.fn()}
+        onChange={vi.fn()}
+      />
+    </form>,
+  );
+  screen.getByRole("combobox", { name: "Team candidates" }).focus();
+  await userEvent.keyboard("[Enter]");
+  expect(
+    screen.getByRole("combobox", { name: "Search users" }),
+  ).toBeInTheDocument();
+  expect(submit).not.toHaveBeenCalled();
+});

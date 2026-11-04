@@ -1,6 +1,6 @@
 # Phase 2J part 3 — edit-user and ownership dialogs
 
-Baseline: user commit `f495e3b`. The user approved bounded dialog sizing and locking fields/dismissal during saves, retaining failed drafts for retry. This checkpoint is verified and awaiting user review/commit. Phase 2J part 3 remains in progress; the remaining roadmap estimate is still four parts (2J3 and 2K1–3).
+Baseline: user commit `f495e3b`. The user approved bounded dialog sizing and locking fields/dismissal during saves, retaining failed drafts for retry. The user committed this verified checkpoint as `65da55b`. Phase 2J part 3 remains in progress; the remaining roadmap estimate is still four parts (2J3 and 2K1–3).
 
 ## Behavior changes
 
