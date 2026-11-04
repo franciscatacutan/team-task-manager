@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "../types/project.types";
 import type { ProjectPermissions } from "../utils/projectPermissions";
@@ -10,6 +10,8 @@ const state = vi.hoisted(() => ({
   teamDeletedAt: null as string | null,
   boardPermission: undefined as undefined | ((task: Task) => boolean),
   taskFilter: "",
+  tasksError: false,
+  retryTasks: vi.fn(),
 }));
 vi.mock("react-router", () => ({
   useParams: () => ({ teamKey: "TEAM", projectKey: "PROJECT" }),
@@ -38,7 +40,11 @@ vi.mock("../../tasks/hooks/useTasks", () => ({
     params: { deletedFilter: string },
   ) => {
     state.taskFilter = params.deletedFilter;
-    return { data: { content: [] } };
+    return {
+      data: { content: [] },
+      isError: state.tasksError,
+      refetch: state.retryTasks,
+    };
   },
 }));
 vi.mock("../../tasks/components/TaskBoard", () => ({
@@ -68,7 +74,9 @@ vi.mock("../../tasks/components/CreateTaskModal", () => ({
   CreateTaskModal: () => null,
 }));
 vi.mock("../../tasks/components/TaskModal", () => ({ default: () => null }));
-vi.mock("../../tasks/components/TaskList", () => ({ default: () => null }));
+vi.mock("../../tasks/components/TaskList", () => ({
+  default: () => <div>Task list</div>,
+}));
 vi.mock("../../projects/components/ProjectActivity", () => ({
   default: () => null,
 }));
@@ -98,6 +106,8 @@ describe("project archive context", () => {
     };
     state.teamDeletedAt = null;
     state.boardPermission = undefined;
+    state.tasksError = false;
+    state.retryTasks.mockClear();
   });
   it.each(["project", "parent", "team"])(
     "makes an archived %s read-only and shows archived children",
@@ -130,5 +140,18 @@ describe("project archive context", () => {
     expect(
       state.boardPermission?.({ status: "TODO", readOnly: true } as Task),
     ).toBe(false);
+  });
+
+  it("shows failed task-list reads with a retry instead of an empty list", () => {
+    state.tasksError = true;
+    render(<ProjectDetails />);
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "List" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("tasks");
+    expect(screen.queryByText("Task list")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(state.retryTasks).toHaveBeenCalledOnce();
   });
 });

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
-import { cn } from "../../lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { requestError } from "../utils/requestError";
 import AutoResizeTextareaBase from "./AutoResizeTextareaBase";
-
 interface Props {
   value?: string;
   placeholder?: string;
@@ -11,10 +11,11 @@ interface Props {
   maxLength?: number;
   displayClassName?: string;
   inputClassName?: string;
-  onSave: (value: string) => void;
+  onSave: (value: string) => void | Promise<unknown>;
   disabled?: boolean;
+  allowEmpty?: boolean;
+  label?: string;
 }
-
 export default function EditableField({
   value = "",
   placeholder = "Click to edit",
@@ -24,75 +25,84 @@ export default function EditableField({
   inputClassName,
   onSave,
   disabled,
+  allowEmpty = false,
+  label = multiline ? "Edit description" : "Edit name",
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
   const [previousValue, setPreviousValue] = useState(value);
-
-  // Keep a refreshed server value in sync before rendering the editor.
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const container = useRef<HTMLDivElement>(null);
+  const inFlight = useRef(false);
   if (value !== previousValue) {
     setPreviousValue(value);
-    setDraft(value);
+    if (!editing) setDraft(value);
   }
-
-  const save = () => {
-    const trimmed = draft.trim();
-
-    if (trimmed !== value) {
-      onSave(trimmed);
-    }
-
-    setEditing(false);
-  };
-
   const cancel = useCallback(() => {
+    if (saving) return;
     setDraft(value);
     setEditing(false);
-  }, [value]);
+    setError("");
+  }, [saving, value]);
   useEffect(() => {
-    if (!editing) return;
-
-    function handleClickOutside(e: MouseEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) {
-        cancel();
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [editing, cancel]);
-
+    if (editing)
+      container.current?.querySelector<HTMLElement>("input,textarea")?.focus();
+  }, [editing]);
   useEffect(() => {
-    if (!editing) return;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        cancel();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+    if (!editing || saving || error) return;
+    const outside = (event: MouseEvent) => {
+      if (!container.current?.contains(event.target as Node)) cancel();
     };
-  }, [editing, cancel]);
-
-  if (!editing) {
+    document.addEventListener("mousedown", outside);
+    return () => document.removeEventListener("mousedown", outside);
+  }, [editing, saving, error, cancel]);
+  async function save() {
+    const next = draft.trim();
+    if (
+      inFlight.current ||
+      disabled ||
+      (!allowEmpty && !next) ||
+      (maxLength && next.length > maxLength)
+    )
+      return;
+    inFlight.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      if (next !== value) await onSave(next);
+      setEditing(false);
+    } catch (error) {
+      setError(requestError(error));
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
+    }
+  }
+  if (!editing)
     return (
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        aria-label={label}
         onClick={() => {
-          if (disabled) return;
-          setEditing(true);
+          if (!disabled) {
+            setDraft(value);
+            setError("");
+            setEditing(true);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (!disabled && (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            setDraft(value);
+            setError("");
+            setEditing(true);
+          }
         }}
         className={cn(
-          "group rounded-md px-2 py-1 transition cursor-pointer hover:bg-muted/50",
+          "group cursor-pointer rounded-md px-2 py-1 transition hover:bg-muted/50",
           disabled && "cursor-default hover:bg-transparent",
         )}
       >
@@ -103,56 +113,74 @@ export default function EditableField({
         </span>
       </div>
     );
-  }
-
   return (
     <div
-      ref={containerRef}
+      ref={container}
       className="space-y-2 rounded-md border bg-background px-3 py-2"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          cancel();
+        }
+        if (event.key === "Enter" && !multiline) {
+          event.preventDefault();
+          void save();
+        }
+      }}
     >
-      {multiline ? (
-        <AutoResizeTextareaBase
-          value={draft}
-          onChange={setDraft}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          className={cn("text-sm", inputClassName)}
-        />
-      ) : (
-        <Input
-          value={draft}
-          maxLength={maxLength}
-          onChange={(e) => setDraft(e.target.value)}
-          className={cn(
-            "border-none px-0 py-0 focus-visible:ring-0 shadow-none text-sm",
-            inputClassName,
-          )}
-        />
-      )}
-
-      <div className="flex items-center justify-between">
-        {maxLength ? (
-          <span
-            className={cn(
-              "text-xs",
-              draft.length > maxLength * 0.9
-                ? "text-destructive"
-                : "text-muted-foreground",
-            )}
-          >
-            {draft.length} / {maxLength}
-          </span>
+      <fieldset disabled={saving || disabled}>
+        {multiline ? (
+          <AutoResizeTextareaBase
+            value={draft}
+            onChange={setDraft}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            className={cn("text-sm", inputClassName)}
+          />
         ) : (
-          <span />
+          <Input
+            aria-label={label}
+            value={draft}
+            maxLength={maxLength}
+            onChange={(event) => setDraft(event.target.value)}
+            className={cn(
+              "border-none px-0 py-0 text-sm shadow-none focus-visible:ring-0",
+              inputClassName,
+            )}
+          />
         )}
-
+      </fieldset>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {maxLength ? `${draft.length} / ${maxLength}` : ""}
+        </span>
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={cancel}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={cancel}
+          >
             Cancel
           </Button>
-
-          <Button size="sm" onClick={save} disabled={!draft.trim()}>
-            Save
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void save()}
+            disabled={
+              saving ||
+              disabled ||
+              (!allowEmpty && !draft.trim()) ||
+              Boolean(maxLength && draft.trim().length > maxLength)
+            }
+          >
+            {saving ? "Saving..." : error ? "Retry save" : "Save"}
           </Button>
         </div>
       </div>

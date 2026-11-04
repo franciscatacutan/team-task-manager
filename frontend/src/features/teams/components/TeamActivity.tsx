@@ -17,12 +17,15 @@ export default function TeamActivity() {
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useTeamActivities(teamKey || "", {
-    page: page,
-    size: 1000,
-    search,
-    sort,
-  });
+  const { data, isLoading, isError, refetch } = useTeamActivities(
+    teamKey || "",
+    {
+      page: page,
+      size: 1000,
+      search,
+      sort,
+    },
+  );
 
   function openTask(projectKey: string, taskNumber: number) {
     navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
@@ -38,6 +41,8 @@ export default function TeamActivity() {
       data={{
         items: data?.content ?? [],
         isLoading,
+        isError,
+        onRetry: refetch,
         page: data?.page ?? page,
         totalPages: data?.totalPages ?? 0,
         totalElements: data?.totalElements ?? 0,

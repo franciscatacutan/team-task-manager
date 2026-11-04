@@ -11,6 +11,7 @@ export default function TeamInsightsPage() {
     data: teamInsights,
     isLoading: isTeamInsightsLoading,
     isError: isTeamInsightsError,
+    refetch: retryTeamInsights,
   } = useTeamInsights(teamKey || "");
 
   if (!teamKey) {
@@ -39,6 +40,7 @@ export default function TeamInsightsPage() {
         insights={teamInsights}
         isLoading={isTeamInsightsLoading}
         isError={isTeamInsightsError}
+        onRetry={retryTeamInsights}
       />
 
       <TeamObservabilityLogs teamKey={teamKey} />

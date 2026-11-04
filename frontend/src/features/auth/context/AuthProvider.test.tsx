@@ -170,3 +170,30 @@ describe("confirmed logout", () => {
     expect(redirectToLogin).toHaveBeenCalled();
   });
 });
+
+it("shows a retryable bootstrap problem without announcing logout on a temporary failure", async () => {
+  vi.mocked(refresh)
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockImplementationOnce(async () => {
+      authStorage.replaceToken(data.token, authStorage.getRevision());
+      return data;
+    });
+  const listener = vi.fn();
+  const unsubscribe = authStorage.subscribeUnauthorized(listener);
+  const client = setup();
+  try {
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not check your session",
+    );
+    expect(listener).not.toHaveBeenCalled();
+    expect(redirectToLogin).not.toHaveBeenCalled();
+    expect(client.getQueryData(["private-data"])).toBe("Private data");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retry session" }),
+    );
+    await screen.findByText("Ready");
+    expect(screen.getByText("Signed in")).toBeInTheDocument();
+  } finally {
+    unsubscribe();
+  }
+});

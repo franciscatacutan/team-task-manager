@@ -1,3 +1,4 @@
+import { requestError } from "@/common/utils/requestError";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Input } from "../../../components/ui/input";
@@ -90,6 +91,11 @@ export function CreateProjectForm({ teamKey, onSuccess, onCancel }: Props) {
           </FormField>
         )}
       />
+      {createProjectMutation.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {requestError(createProjectMutation.error)}
+        </p>
+      )}
       <Separator />
 
       <div className="flex justify-end gap-2 pt-4">

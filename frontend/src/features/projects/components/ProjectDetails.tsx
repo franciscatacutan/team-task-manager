@@ -1,3 +1,4 @@
+import QueryFailure from "@/common/components/QueryFailure";
 import { taskMutationError } from "../../tasks/utils/taskMutationError";
 import { useNavigate, useOutletContext, useParams } from "react-router";
 import { useState } from "react";
@@ -112,9 +113,16 @@ export default function ProjectDetails() {
     data: projectInsights,
     isLoading: isProjectInsightsLoading,
     isError: isProjectInsightsError,
+    refetch: retryProjectInsights,
   } = useProjectInsights(teamKey || "", projectKey || "");
 
-  const { data: tasksData, isLoading: isTasksLoading } = useTasks(
+  const {
+    data: tasksData,
+    isLoading: isTasksLoading,
+    isError: tasksError,
+    refetch: retryTasks,
+    isFetching: fetchingTasks,
+  } = useTasks(
     teamKey || "",
     projectKey || "",
     {
@@ -363,19 +371,27 @@ export default function ProjectDetails() {
             value="list"
             className="flex flex-col flex-1 min-h-0 gap-3"
           >
-            <TaskList
-              tasks={tasks}
-              isLoading={isTasksLoading}
-              teamKey={teamKey}
-              projectKey={projectKey}
-              onCreateTask={() => setOpen(true)}
-              onClearFilters={handleClearFilters}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-              canCreateTask={permissions.canCreateTask}
-              hasActiveFilters={hasActiveFilters}
-            />
+            {tasksError ? (
+              <QueryFailure
+                label="tasks"
+                onRetry={retryTasks}
+                pending={fetchingTasks}
+              />
+            ) : (
+              <TaskList
+                tasks={tasks}
+                isLoading={isTasksLoading}
+                teamKey={teamKey}
+                projectKey={projectKey}
+                onCreateTask={() => setOpen(true)}
+                onClearFilters={handleClearFilters}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                canCreateTask={permissions.canCreateTask}
+                hasActiveFilters={hasActiveFilters}
+              />
+            )}
           </TabsContent>
           <TabsContent
             value="activity"
@@ -394,6 +410,7 @@ export default function ProjectDetails() {
               insights={projectInsights}
               isLoading={isProjectInsightsLoading}
               isError={isProjectInsightsError}
+              onRetry={retryProjectInsights}
             />
             <div className="pb-4">
               <ProjectObservabilityLogs
@@ -404,7 +421,7 @@ export default function ProjectDetails() {
           </TabsContent>
         </div>
       </Tabs>
-      {view === "list" && totalPages > 1 && (
+      {view === "list" && !tasksError && totalPages > 1 && (
         <Pagination
           page={page}
           size={size}

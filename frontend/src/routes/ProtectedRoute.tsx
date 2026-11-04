@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: Props) {
   }
 
   /*
-   * If no token is found in local storage, redirect to the login page
+   * If there is no authenticated in-memory session, redirect to the login page
    */
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

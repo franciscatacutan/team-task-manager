@@ -1,3 +1,8 @@
+import {
+  updateAccountEmail,
+  updatePassword,
+} from "@/features/settings/api/settingsApi";
+import { browserSession } from "@/features/auth/utils/sessionCoordinator";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import {
@@ -45,6 +50,15 @@ function deferred<T>() {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
+  browserSession.sync();
+  Object.defineProperty(navigator, "locks", {
+    configurable: true,
+    value: {
+      request: async (_name: string, callback: () => Promise<unknown>) =>
+        callback(),
+    },
+  });
   adapter.mockReset();
   apiClient.defaults.adapter = adapter;
   authStorage.endLogout();
@@ -239,4 +253,85 @@ describe("authentication request lifecycle", () => {
       unsubscribe();
     }
   });
+});
+
+it("keeps credentials when refresh cannot reach the server", async () => {
+  authStorage.setToken("current");
+  const listener = vi.fn();
+  const unsubscribe = authStorage.subscribeUnauthorized(listener);
+  adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+    if (config.url === "/auth/refresh")
+      throw new AxiosError("offline", "ERR_NETWORK", config);
+    throw unauthorized(config);
+  });
+  try {
+    await expect(apiClient.get("/teams")).rejects.toBeInstanceOf(AxiosError);
+    expect(authStorage.getToken()).toBe("current");
+    expect(listener).not.toHaveBeenCalled();
+  } finally {
+    unsubscribe();
+  }
+});
+
+it.each(["email", "password"])(
+  "refreshes outside the credential lock before retrying an expired %s write",
+  async (kind) => {
+    let held = false;
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: {
+        request: async (_name: string, callback: () => Promise<unknown>) => {
+          expect(held).toBe(false);
+          held = true;
+          try {
+            return await callback();
+          } finally {
+            held = false;
+          }
+        },
+      },
+    });
+    authStorage.setToken("expired");
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url === "/auth/refresh") return response(config, payload);
+      if (config.url === "/auth/logout")
+        return response(config, undefined, 204);
+      if (config.headers.Authorization === "Bearer expired")
+        throw unauthorized(config);
+      return response(config, undefined, 204);
+    });
+    if (kind === "email")
+      await updateAccountEmail({
+        currentPassword: "current",
+        newEmail: "new@example.test",
+      });
+    else
+      await updatePassword("user", {
+        currentPassword: "current",
+        newPassword: "new-password",
+      });
+    expect(adapter.mock.calls.map(([config]) => config.url)).toEqual([
+      kind === "email" ? "/users/me/email" : "/users/user/password",
+      "/auth/refresh",
+      kind === "email" ? "/users/me/email" : "/users/user/password",
+      "/auth/logout",
+    ]);
+    expect(authStorage.hasToken()).toBe(false);
+  },
+);
+
+it("does not retry a credential change as a newly selected account", async () => {
+  authStorage.setToken("old");
+  adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+    authStorage.setToken("new");
+    throw unauthorized(config);
+  });
+  await expect(
+    updateAccountEmail({
+      currentPassword: "current",
+      newEmail: "new@example.test",
+    }),
+  ).rejects.toBeInstanceOf(AuthSessionChangedError);
+  expect(adapter).toHaveBeenCalledOnce();
+  expect(authStorage.getToken()).toBe("new");
 });

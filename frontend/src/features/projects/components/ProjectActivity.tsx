@@ -22,12 +22,16 @@ export default function ProjectActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useProjectActivity(teamKey, projectKey, {
-    page: page,
-    size: 1000,
-    search,
-    sort,
-  });
+  const { data, isLoading, isError, refetch } = useProjectActivity(
+    teamKey,
+    projectKey,
+    {
+      page: page,
+      size: 1000,
+      search,
+      sort,
+    },
+  );
 
   return (
     <ActivityFeed
@@ -39,6 +43,8 @@ export default function ProjectActivity({
       data={{
         items: data?.content ?? [],
         isLoading,
+        isError,
+        onRetry: refetch,
         page: data?.page ?? page,
         totalPages: data?.totalPages ?? 0,
         totalElements: data?.totalElements ?? 0,

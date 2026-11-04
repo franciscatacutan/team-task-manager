@@ -1,3 +1,4 @@
+import { browserSession } from "../utils/sessionCoordinator";
 import { queryKeys } from "@/common/query/queryKeys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../api/auth.api";
@@ -9,7 +10,8 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: api.register,
     onSuccess: async (data) => {
-      authStorage.setToken(data.token);
+      if (browserSession.sync() || authStorage.getToken() !== data.token)
+        return;
       const revision = authStorage.getRevision();
       await queryClient.cancelQueries();
       if (revision !== authStorage.getRevision() || authStorage.isLoggingOut())
@@ -22,6 +24,7 @@ export const useRegister = () => {
         email: data.user.email,
         role: data.user.role,
       });
+      browserSession.ready();
     },
   });
 };

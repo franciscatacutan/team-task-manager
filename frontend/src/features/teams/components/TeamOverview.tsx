@@ -1,3 +1,4 @@
+import QueryFailure from "@/common/components/QueryFailure";
 import { useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router";
 import { Activity, FolderKanban, Sparkles, Users } from "lucide-react";
@@ -44,7 +45,12 @@ export default function TeamOverview() {
 
   const { data: teamMe } = useTeamMe(teamKey || "");
 
-  const { data: projectsData } = useProjects(teamKey || "", {
+  const {
+    data: projectsData,
+    isError: projectsError,
+    isLoading: projectsLoading,
+    refetch: projectsRetry,
+  } = useProjects(teamKey || "", {
     sort: "updatedAt,desc",
     deletedFilter: team.deletedAt ? "ALL" : "ACTIVE",
   });
@@ -53,7 +59,12 @@ export default function TeamOverview() {
   const projectCount = projectsData?.totalElements ?? 0;
 
   // IMPLEMENT STATISTICS
-  const { data: activeProjectsData } = useProjects(teamKey || "", {
+  const {
+    data: activeProjectsData,
+    isError: activeError,
+    isLoading: activeLoading,
+    refetch: activeRetry,
+  } = useProjects(teamKey || "", {
     status: ["ACTIVE"],
     all: true,
     sort: "updatedAt,desc",
@@ -62,7 +73,12 @@ export default function TeamOverview() {
 
   const activeProjectCount = activeProjectsData?.totalElements ?? 0;
 
-  const { data: membersData } = useTeamMembers(teamKey || "", {
+  const {
+    data: membersData,
+    isError: membersError,
+    isLoading: membersLoading,
+    refetch: membersRetry,
+  } = useTeamMembers(teamKey || "", {
     page: 0,
     size: 10,
     sort: "joinedAt,desc",
@@ -71,7 +87,12 @@ export default function TeamOverview() {
   const members = membersData?.content ?? [];
   const memberCount = membersData?.totalElements ?? 0;
 
-  const { data: activitiesData } = useTeamActivities(teamKey || "", {
+  const {
+    data: activitiesData,
+    isError: activityError,
+    isLoading: activityLoading,
+    refetch: activityRetry,
+  } = useTeamActivities(teamKey || "", {
     page: 0,
     size: 5,
     sort: "createdAt,desc",
@@ -90,7 +111,28 @@ export default function TeamOverview() {
     isReadOnly: Boolean(team.deletedAt),
   });
 
-  if (isLoading || !team) {
+  if (projectsError || activeError || membersError || activityError)
+    return (
+      <QueryFailure
+        label="team overview"
+        onRetry={() =>
+          Promise.all([
+            projectsError ? projectsRetry() : undefined,
+            activeError ? activeRetry() : undefined,
+            membersError ? membersRetry() : undefined,
+            activityError ? activityRetry() : undefined,
+          ])
+        }
+      />
+    );
+  if (
+    isLoading ||
+    projectsLoading ||
+    activeLoading ||
+    membersLoading ||
+    activityLoading ||
+    !team
+  ) {
     return (
       <div className="text-sm text-muted-foreground">Loading overview...</div>
     );

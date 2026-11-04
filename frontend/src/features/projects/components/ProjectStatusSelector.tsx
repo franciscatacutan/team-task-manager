@@ -16,17 +16,23 @@ interface Props {
   value: ProjectStatus;
   onChange: (status: ProjectStatus) => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function ProjectStatusSelector({
   value,
   onChange,
   className,
+  disabled,
 }: Props) {
   const statuses: ProjectStatus[] = ["ACTIVE", "COMPLETED", "ON_HOLD"];
 
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as ProjectStatus)}>
+    <Select
+      disabled={disabled}
+      value={value}
+      onValueChange={(v) => onChange(v as ProjectStatus)}
+    >
       <SelectTrigger
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",

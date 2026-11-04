@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ActivityFeed } from "./ActivityFeed";
 import type { TeamActivity } from "@/features/teams/types/team.type";
@@ -67,4 +67,36 @@ describe("activity domain names", () => {
     renderFeed("platform", "project");
     expect(screen.getByText("Build login screen")).toBeInTheDocument();
   });
+});
+
+it("shows a failed activity read with a retry instead of an empty feed", () => {
+  const retry = vi.fn();
+  render(
+    <ActivityFeed
+      variant="team"
+      data={{
+        items: [],
+        isLoading: false,
+        isError: true,
+        onRetry: retry,
+        page: 0,
+        totalPages: 0,
+        totalElements: 0,
+      }}
+      controls={{
+        search: "",
+        sort: "createdAt,desc",
+        groupBy: "date",
+        groupByOptions: [],
+        onSearchChange: vi.fn(),
+        onGroupByChange: vi.fn(),
+        onSortChange: vi.fn(),
+        onPageChange: vi.fn(),
+      }}
+    />,
+  );
+  expect(screen.getByRole("alert")).toHaveTextContent("activity");
+  expect(screen.queryByText("No team activity yet")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(retry).toHaveBeenCalledOnce();
 });

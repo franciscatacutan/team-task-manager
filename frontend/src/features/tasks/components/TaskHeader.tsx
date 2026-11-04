@@ -63,7 +63,7 @@ export default function TaskHeader({
           maxLength={100}
           displayClassName="text-xl font-semibold leading-tight text-foreground sm:text-2xl"
           inputClassName="text-xl font-semibold sm:text-2xl"
-          onSave={(value) => updateTask.mutate({ name: value })}
+          onSave={(value) => updateTask.mutateAsync({ name: value })}
           disabled={!permissions.canEditTaskDetails}
         />
       </div>

@@ -24,7 +24,7 @@ export default function TaskActivity({
   const [sort, setSort] = useState("createdAt,desc");
   const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
 
-  const { data, isLoading } = useTaskActivities(
+  const { data, isLoading, isError, refetch } = useTaskActivities(
     teamKey,
     projectKey,
     taskNumber,
@@ -58,6 +58,8 @@ export default function TaskActivity({
           data={{
             items: data?.content ?? [],
             isLoading,
+            isError,
+            onRetry: refetch,
             page: data?.page ?? page,
             totalPages: data?.totalPages ?? 0,
             totalElements: data?.totalElements ?? 0,

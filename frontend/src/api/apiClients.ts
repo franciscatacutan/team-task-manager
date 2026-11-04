@@ -1,4 +1,16 @@
+import {
+  browserSession,
+  AuthSessionChangedError,
+} from "@/features/auth/utils/sessionCoordinator";
+export { AuthSessionChangedError } from "@/features/auth/utils/sessionCoordinator";
 import axios from "axios";
+
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /** Cookie-changing requests already hold the browser lock; refresh only after releasing it. */
+    skipSessionRefresh?: boolean;
+  }
+}
 import { authStorage } from "../features/auth/utils/authStorage";
 import type { AuthResponse } from "../features/auth/types/auth.types";
 
@@ -20,9 +32,11 @@ const requestRevisions = new WeakMap<object, number>();
 
 // Attach token on every request
 apiClient.interceptors.request.use((config) => {
+  const isAuthEndpoint = config.url?.includes("/auth/");
+  if (!isAuthEndpoint && browserSession.sync())
+    throw new AuthSessionChangedError();
   requestRevisions.set(config, authStorage.getRevision());
   const token = authStorage.getToken();
-  const isAuthEndpoint = config.url?.includes("/auth/");
 
   if (token && !isAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -31,32 +45,28 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-export class AuthSessionChangedError extends Error {
-  constructor() {
-    super("The authentication session changed during refresh");
-  }
-}
-
 let refreshFlight: { revision: number; promise: Promise<AuthResponse> } | null =
   null;
 
 // Bootstrap and 401 retries share one refresh within this tab. Session changes fence late responses.
 export const refreshAuthSession = (): Promise<AuthResponse> => {
+  try {
+    browserSession.sync();
+  } catch (error) {
+    return Promise.reject(error);
+  }
   if (authStorage.isLoggingOut())
     return Promise.reject(new AuthSessionChangedError());
   const revision = authStorage.getRevision();
   if (refreshFlight?.revision === revision) return refreshFlight.promise;
-  const promise = apiClient
-    .post<AuthResponse>("/auth/refresh")
-    .then(({ data }) => {
-      if (!authStorage.replaceToken(data.token, revision))
-        throw new AuthSessionChangedError();
+  const promise = browserSession
+    .refresh(async () => {
+      const { data } = await apiClient.post<AuthResponse>(
+        "/auth/refresh",
+        undefined,
+        { timeout: 20_000 },
+      );
       return data;
-    })
-    .catch((error: unknown) => {
-      if (authStorage.getRevision() !== revision || authStorage.isLoggingOut())
-        throw new AuthSessionChangedError();
-      throw error;
     })
     .finally(() => {
       if (refreshFlight?.promise === promise) refreshFlight = null;
@@ -70,20 +80,29 @@ const refreshAccessToken = async (): Promise<string | null> => {
   try {
     return (await refreshAuthSession()).token;
   } catch (error) {
+    // A temporary connection/server failure is a retryable read failure, not confirmed logout.
     if (
-      !(error instanceof AuthSessionChangedError) &&
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
       authStorage.getRevision() === revision
-    ) {
-      authStorage.clearToken();
+    )
       authStorage.notifyUnauthorized();
-    }
-    return null;
+    throw error;
   }
 };
 
 // Add a response interceptor to handle errors globally
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (!response.config.url?.includes("/auth/")) {
+      if (
+        browserSession.sync() ||
+        requestRevisions.get(response.config) !== authStorage.getRevision()
+      )
+        throw new AuthSessionChangedError();
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     const requestPath = originalRequest?.url ?? "";
@@ -97,6 +116,7 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
+      !originalRequest.skipSessionRefresh &&
       !isAuthRequest &&
       authStorage.hasToken() &&
       !authStorage.isLoggingOut() &&

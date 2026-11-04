@@ -119,6 +119,9 @@ export const queryKeys = {
 
 /** Mutation identity keeps a pending save bound to its original workspace on route changes. */
 export const mutationKeys = {
+  accountEmail: ["account-email"] as const,
+  accountPassword: (user: string) => ["account-password", user] as const,
+  userPasswordReset: (user: string) => ["user-password-reset", user] as const,
   teamCreate: ["team-create"] as const,
   teamUpdate: (team: string) => ["team-update", team] as const,
   teamArchive: ["team-archive"] as const,

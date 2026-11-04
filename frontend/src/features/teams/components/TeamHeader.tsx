@@ -71,7 +71,7 @@ export default function TeamHeader({
               inputClassName="w-full text-xl font-semibold tracking-normal sm:text-2xl"
               value={team.name}
               maxLength={100}
-              onSave={(value) => updateTeam.mutate({ name: value })}
+              onSave={(value) => updateTeam.mutateAsync({ name: value })}
               disabled={!permissions.canEditTeamDetails}
             />
 
@@ -80,9 +80,10 @@ export default function TeamHeader({
               inputClassName="w-full text-sm"
               placeholder="Add a concise team purpose or operating note"
               multiline
+              allowEmpty
               value={team.description}
               maxLength={2000}
-              onSave={(value) => updateTeam.mutate({ description: value })}
+              onSave={(value) => updateTeam.mutateAsync({ description: value })}
               disabled={!permissions.canEditTeamDetails}
             />
           </div>

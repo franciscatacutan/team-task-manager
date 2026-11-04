@@ -675,8 +675,14 @@ describe("cache races and workspace identity", () => {
           role: "USER" as const,
         },
       };
-      vi.mocked(auth.login).mockResolvedValue(response);
-      vi.mocked(auth.register).mockResolvedValue(response);
+      vi.mocked(auth.login).mockImplementation(async () => {
+        authStorage.setToken(response.token);
+        return response;
+      });
+      vi.mocked(auth.register).mockImplementation(async () => {
+        authStorage.setToken(response.token);
+        return response;
+      });
       const { result } = renderHook(
         () => ({ login: useLogin(), register: useRegister() }),
         { wrapper },

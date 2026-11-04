@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { requestError } from "@/common/utils/requestError";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
@@ -22,11 +24,13 @@ interface Props {
 
 export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const deleteTeamMutation = useDeleteTeam();
 
   const handleDelete = () => {
     deleteTeamMutation.mutate(teamKey, {
       onSuccess: () => {
+        setOpen(false);
         if (onTeamDeleted) {
           onTeamDeleted();
         }
@@ -36,7 +40,15 @@ export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!deleteTeamMutation.isPending) {
+          if (value) deleteTeamMutation.reset();
+          setOpen(value);
+        }
+      }}
+    >
       <AlertDialogTrigger asChild>
         <Button
           aria-label="Archive team"
@@ -64,13 +76,25 @@ export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {deleteTeamMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {requestError(deleteTeamMutation.error)}
+          </p>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel size="sm" variant="outline">
+          <AlertDialogCancel
+            disabled={deleteTeamMutation.isPending}
+            size="sm"
+            variant="outline"
+          >
             Cancel
           </AlertDialogCancel>
 
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={(event) => {
+              event.preventDefault();
+              handleDelete();
+            }}
             disabled={deleteTeamMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             variant="destructive"

@@ -29,9 +29,10 @@ export default function TaskDescription({
         displayClassName="text-sm leading-7 text-foreground/90"
         placeholder="No Description Yet"
         multiline
+        allowEmpty
         maxLength={2000}
         inputClassName="text-sm leading-7 text-foreground"
-        onSave={(value) => updateTask.mutate({ description: value })}
+        onSave={(value) => updateTask.mutateAsync({ description: value })}
         disabled={!permissions.canEditTaskDetails}
       />
     </section>

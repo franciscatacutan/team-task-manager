@@ -1,4 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
+import { useAppMutation } from "@/common/query/useAppMutation";
+import { mutationKeys } from "@/common/query/queryKeys";
 
 import {
   updateAccountEmail,
@@ -6,7 +7,8 @@ import {
 } from "../api/settingsApi";
 
 export const useUpdateAccountEmail = () => {
-  return useMutation({
+  return useAppMutation({
+    mutationKey: mutationKeys.accountEmail,
     mutationFn: (payload: UpdateAccountEmailPayload) =>
       updateAccountEmail(payload),
   });

@@ -1,3 +1,4 @@
+import QueryFailure from "../QueryFailure";
 import { CalendarDays, Search } from "lucide-react";
 import { useMemo } from "react";
 
@@ -33,6 +34,8 @@ interface ActivityFeedProps {
   data: {
     items: ActivityRecord[];
     isLoading: boolean;
+    isError?: boolean;
+    onRetry?: () => unknown;
     page: number;
     totalPages: number;
     totalElements: number;
@@ -200,6 +203,10 @@ export function ActivityFeed({
   const isFirstPage = data.page === 0;
   const isLastPage = data.totalPages === 0 || data.page + 1 >= data.totalPages;
 
+  if (data.isError)
+    return (
+      <QueryFailure label="activity" onRetry={data.onRetry ?? (() => {})} />
+    );
   if (data.isLoading) {
     return (
       <section className="space-y-4 py-4">

@@ -1,3 +1,4 @@
+import { requestError } from "@/common/utils/requestError";
 import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
 
 import EditableField from "../../../common/components/EditableField";
@@ -41,6 +42,7 @@ export default function ProjectHeader({
   const isDeleted = Boolean(project.deletedAt || project.readOnly);
 
   function handleStatusChange(projectKey: string, status: ProjectStatus) {
+    if (updateProjectStatus.isPending) return;
     updateProjectStatus.mutate({
       projectKey,
       status,
@@ -49,6 +51,12 @@ export default function ProjectHeader({
 
   return (
     <header className="rounded-xl border border-border/60 bg-background/95 p-4 shadow-sm shadow-slate-900/5">
+      {updateProjectStatus.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {requestError(updateProjectStatus.error)}
+        </p>
+      )}
+
       <div className="relative flex flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
@@ -61,6 +69,7 @@ export default function ProjectHeader({
               <div className="flex flex-wrap items-center gap-2">
                 {permissions.canChangeProjectStatus ? (
                   <ProjectStatusSelector
+                    disabled={updateProjectStatus.isPending}
                     value={project.status}
                     onChange={(status) =>
                       handleStatusChange(project.key, status)
@@ -86,7 +95,7 @@ export default function ProjectHeader({
               inputClassName="w-full text-xl font-semibold tracking-normal sm:text-2xl"
               value={project.name}
               maxLength={100}
-              onSave={(value) => updateProject.mutate({ name: value })}
+              onSave={(value) => updateProject.mutateAsync({ name: value })}
               disabled={!permissions.canEditProjectDetails}
             />
 
@@ -95,9 +104,12 @@ export default function ProjectHeader({
               inputClassName="w-full text-sm"
               placeholder="Add a concise project summary or goal"
               multiline
+              allowEmpty
               value={project.description}
               maxLength={2000}
-              onSave={(value) => updateProject.mutate({ description: value })}
+              onSave={(value) =>
+                updateProject.mutateAsync({ description: value })
+              }
               disabled={!permissions.canEditProjectDetails}
             />
           </div>

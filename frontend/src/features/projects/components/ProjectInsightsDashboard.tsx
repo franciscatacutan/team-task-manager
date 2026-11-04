@@ -1,3 +1,4 @@
+import QueryFailure from "@/common/components/QueryFailure";
 import {
   Activity,
   AlertTriangle,
@@ -29,6 +30,7 @@ interface Props {
   insights?: ProjectInsights;
   isLoading?: boolean;
   isError?: boolean;
+  onRetry?: () => unknown;
 }
 
 const numberFormatter = new Intl.NumberFormat("en", {
@@ -56,6 +58,7 @@ export default function ProjectInsightsDashboard({
   insights,
   isLoading,
   isError,
+  onRetry,
 }: Props) {
   if (isLoading) {
     return (
@@ -75,6 +78,8 @@ export default function ProjectInsightsDashboard({
     );
   }
 
+  if (isError && onRetry)
+    return <QueryFailure label="insights" onRetry={onRetry} />;
   if (isError || !insights) {
     return (
       <Card className="border-border/60 bg-background/92">

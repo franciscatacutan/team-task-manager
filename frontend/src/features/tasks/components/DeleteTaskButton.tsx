@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { requestError } from "@/common/utils/requestError";
 import { Archive } from "lucide-react";
 import { useDeleteTask } from "../hooks/useDeleteTask";
 import { useNavigate } from "react-router";
@@ -30,11 +32,13 @@ export default function DeleteTaskButton({
   onTaskDeleted,
 }: Props) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const deleteTaskMutation = useDeleteTask(teamKey, projectKey);
 
   const handleDelete = () => {
     deleteTaskMutation.mutate(taskNumber, {
       onSuccess: () => {
+        setOpen(false);
         if (onTaskDeleted) {
           onTaskDeleted();
         }
@@ -44,7 +48,15 @@ export default function DeleteTaskButton({
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!deleteTaskMutation.isPending) {
+          if (value) deleteTaskMutation.reset();
+          setOpen(value);
+        }
+      }}
+    >
       <AlertDialogTrigger asChild>
         <Button
           aria-label="Archive task"
@@ -72,13 +84,25 @@ export default function DeleteTaskButton({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {deleteTaskMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {requestError(deleteTaskMutation.error)}
+          </p>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel size="sm" variant="outline">
+          <AlertDialogCancel
+            disabled={deleteTaskMutation.isPending}
+            size="sm"
+            variant="outline"
+          >
             Cancel
           </AlertDialogCancel>
 
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={(event) => {
+              event.preventDefault();
+              handleDelete();
+            }}
             disabled={deleteTaskMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             variant="destructive"

@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import { useUpdateAccountEmail } from "@/features/settings/hooks/useUpdateAccountEmail";
 import { useUpdatePassword } from "@/features/settings/hooks/useUpdatePassword";
@@ -78,7 +77,6 @@ const themeOptions = [
 ] as const;
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
   const { data: user, isLoading } = useCurrentUser();
   const updateEmail = useUpdateAccountEmail();
   const updatePassword = useUpdatePassword(user?.id ?? "");
@@ -129,7 +127,6 @@ export default function SettingsPage() {
         newEmail: values.newEmail.trim(),
         currentPassword: values.currentPassword,
       });
-      await logout();
     } catch (error) {
       setEmailError(
         getErrorMessage(error, "Unable to update your email right now."),
@@ -147,7 +144,6 @@ export default function SettingsPage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       });
-      await logout();
     } catch (error) {
       setPasswordError(
         getErrorMessage(error, "Unable to update your password right now."),

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { requestError } from "@/common/utils/requestError";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
@@ -28,11 +30,13 @@ export function DeleteProjectButton({
   onProjectDeleted,
 }: Props) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const deleteProjectMutation = useDeleteProject(teamKey);
 
   const handleDelete = () => {
     deleteProjectMutation.mutate(projectKey, {
       onSuccess: () => {
+        setOpen(false);
         if (onProjectDeleted) {
           onProjectDeleted();
         }
@@ -42,7 +46,15 @@ export function DeleteProjectButton({
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!deleteProjectMutation.isPending) {
+          if (value) deleteProjectMutation.reset();
+          setOpen(value);
+        }
+      }}
+    >
       <AlertDialogTrigger asChild>
         <Button
           aria-label="Archive project"
@@ -73,13 +85,25 @@ export function DeleteProjectButton({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {deleteProjectMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {requestError(deleteProjectMutation.error)}
+          </p>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel size="sm" variant="outline">
+          <AlertDialogCancel
+            disabled={deleteProjectMutation.isPending}
+            size="sm"
+            variant="outline"
+          >
             Cancel
           </AlertDialogCancel>
 
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={(event) => {
+              event.preventDefault();
+              handleDelete();
+            }}
             disabled={deleteProjectMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             variant="destructive"
