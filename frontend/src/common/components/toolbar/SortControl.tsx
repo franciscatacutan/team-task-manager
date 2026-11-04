@@ -53,6 +53,7 @@ export function SortControl<T extends string>({
         <Button
           type="button"
           variant="ghost"
+          aria-label={order === "asc" ? "Sort descending" : "Sort ascending"}
           onClick={onToggleOrder}
           className="h-full px-3 rounded-none border-r border-border/60 hover:bg-muted/50"
         >

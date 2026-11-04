@@ -178,6 +178,8 @@ export default function ProjectsPage() {
     onClear: handleClearFilters,
   };
 
+  if (!teamKey) return <div role="alert">Invalid workspace</div>;
+
   return (
     <div className="space-y-6 flex flex-1 flex-col min-h-0 h-full">
       <ProjectsHeader
@@ -256,7 +258,7 @@ export default function ProjectsPage() {
             <ProjectsBoard
               projects={projects}
               isLoading={isLoading}
-              openProject={openProject}
+              teamKey={teamKey}
               onCreateProject={() => setOpen(true)}
               onClearFilters={handleClearFilters}
               canCreateProject={permissions.canCreateProject}
@@ -269,6 +271,7 @@ export default function ProjectsPage() {
             className="flex flex-col flex-1 min-h-0 gap-3"
           >
             <ProjectsList
+              teamKey={teamKey}
               projects={projects}
               isLoading={isLoading}
               openProject={openProject}

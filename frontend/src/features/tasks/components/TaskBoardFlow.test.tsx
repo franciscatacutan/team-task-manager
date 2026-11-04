@@ -79,6 +79,7 @@ function drop(
 ) {
   act(() =>
     state.end?.({
+      activatorEvent: new MouseEvent("pointerdown"),
       active: { id: source.taskNumber, data: { current: { task: source } } },
       over: { id: overId, data: { current: { status: destination } } },
     } as unknown as DragEndEvent),

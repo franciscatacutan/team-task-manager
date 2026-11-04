@@ -1,3 +1,4 @@
+import { SortHeader } from "@/common/components/toolbar/SortHeader";
 import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
@@ -134,30 +135,21 @@ export default function MembersList({
         <Table className="overflow-auto">
           <TableHeader className="sticky top-0 z-30 rounded-2xl bg-background/85 px-4 backdrop-blur supports-backdrop-filter:bg-background/75">
             <TableRow>
-              <TableHead
-                onClick={() => handleSort("user.lastName")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Name
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("role")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Role
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("user.email")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Email
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("joinedAt")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Joined Date
-              </TableHead>
+              {[
+                ["user.lastName", "Name"],
+                ["role", "Role"],
+                ["user.email", "Email"],
+                ["joinedAt", "Joined Date"],
+              ].map(([field, label]) => (
+                <SortHeader
+                  key={field}
+                  label={label}
+                  field={field}
+                  sortField={sort.split(",")[0]}
+                  order={sort.endsWith(",asc") ? "asc" : "desc"}
+                  onSort={handleSort}
+                />
+              ))}
               {canShowActions && (
                 <TableHead className="px-4 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Actions
@@ -274,6 +266,7 @@ export default function MembersList({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
+                                aria-label={`Actions for ${member.firstName} ${member.lastName}`}
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 rounded-full p-0"

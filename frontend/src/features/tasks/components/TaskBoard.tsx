@@ -1,5 +1,6 @@
+import { GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Task } from "../types/task.types";
 import TaskCard from "./TaskCard";
@@ -39,6 +40,14 @@ import { cn } from "../../../lib/utils";
 import { useInfiniteTasks } from "../hooks/useInfiniteTasks";
 import type { DeletedFilter } from "@/common/types/deletedFilter.types";
 
+interface KeyboardDropFocus {
+  root: HTMLDivElement;
+  scope: string;
+  request: number;
+  taskNumber: number;
+  activator: EventTarget | null;
+}
+
 interface Params {
   search?: string;
   status?: TaskStatus[];
@@ -46,15 +55,20 @@ interface Params {
   deletedFilter: DeletedFilter;
 }
 interface Props {
+  isUpdating?: boolean;
   teamKey: string;
   projectKey: string;
   params: Params;
-  onStatusChange: (taskNumber: number, status: TaskStatus) => void;
+  onStatusChange: (
+    taskNumber: number,
+    status: TaskStatus,
+  ) => void | Promise<unknown>;
   onOpenTask: (task: Task) => void;
   canChangeTaskStatus: (task: Task) => boolean;
 }
 
 export default function TaskBoard({
+  isUpdating = false,
   teamKey,
   projectKey,
   params,
@@ -63,6 +77,37 @@ export default function TaskBoard({
   canChangeTaskStatus,
 }: Props) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const focusRequest = useRef(0);
+  const [focusJob, setFocusJob] = useState<KeyboardDropFocus | null>(null);
+  const handledFocusRequest = useRef(0);
+  useEffect(() => {
+    if (!focusJob || isUpdating) return;
+    const frame = requestAnimationFrame(() => {
+      const { root, scope, request, taskNumber, activator } = focusJob;
+      if (
+        boardRef.current !== root ||
+        root.dataset.boardScope !== scope ||
+        focusRequest.current !== request ||
+        handledFocusRequest.current === request
+      )
+        return;
+      handledFocusRequest.current = request;
+      if (
+        document.activeElement !== document.body &&
+        document.activeElement !== activator
+      )
+        return;
+      const handle = root.querySelector<HTMLButtonElement>(
+        `button[data-task-handle="${taskNumber}"]:not(:disabled)`,
+      );
+      const open = root.querySelector<HTMLButtonElement>(
+        `button[data-task-open="${taskNumber}"]`,
+      );
+      (handle ?? open)?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusJob, isUpdating, teamKey, projectKey]);
 
   const canMove = (task: Task) =>
     canChangeTaskStatus(task) &&
@@ -94,6 +139,7 @@ export default function TaskBoard({
   };
 
   function handleDragStart(event: DragStartEvent) {
+    focusRequest.current += 1;
     const task = event.active.data.current?.task;
 
     if (task && canMove(task)) {
@@ -124,7 +170,31 @@ export default function TaskBoard({
       );
       return;
     }
-    onStatusChange(task.taskNumber, destination);
+    const root = boardRef.current;
+    const scope = root?.dataset.boardScope ?? "";
+    const request = ++focusRequest.current;
+    const keyboard = event.activatorEvent instanceof KeyboardEvent;
+    const activator = event.activatorEvent.target;
+    // Wait for confirmed cache refreshes and the rendered mutation state before restoring focus.
+    void Promise.resolve(onStatusChange(task.taskNumber, destination))
+      .catch(() => {})
+      .then(() => {
+        if (
+          keyboard &&
+          root &&
+          boardRef.current === root &&
+          root.dataset.boardScope === scope &&
+          focusRequest.current === request
+        ) {
+          setFocusJob({
+            root,
+            scope,
+            request,
+            taskNumber: task.taskNumber,
+            activator,
+          });
+        }
+      });
   }
 
   const commonProps = {
@@ -147,7 +217,12 @@ export default function TaskBoard({
       ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div
+      ref={boardRef}
+      data-board-scope={JSON.stringify([teamKey, projectKey])}
+      aria-busy={isUpdating}
+      className="flex h-full min-h-0 flex-col gap-2"
+    >
       {movementError && (
         <p role="alert" className="text-sm text-destructive">
           {movementError}
@@ -166,7 +241,9 @@ export default function TaskBoard({
           ))}
           <DragOverlay dropAnimation={dropAnimation}>
             {activeTask ? (
-              <TaskCard task={activeTask} onOpen={onOpenTask} />
+              <div aria-hidden="true">
+                <TaskCard task={activeTask} />
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>
@@ -320,6 +397,7 @@ function SortableTask({
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -333,7 +411,6 @@ function SortableTask({
     transform: CSS.Transform.toString(transform),
     transition,
     willChange: "transform",
-    touchAction: "none" as const,
     zIndex: isDragging ? 20 : "auto",
   };
 
@@ -343,11 +420,27 @@ function SortableTask({
       data-task-number={task.taskNumber}
       style={style}
       className={cn("origin-center", isDragging && "scale-[1.015] opacity-95")}
-      {...attributes}
-      {...listeners}
-      aria-label={`Move task #${task.taskNumber}: ${task.name}`}
     >
-      <TaskCard task={task} onOpen={onOpenTask} />
+      <TaskCard
+        task={task}
+        onOpen={onOpenTask}
+        dragHandle={
+          <Button
+            ref={setActivatorNodeRef}
+            data-task-handle={task.taskNumber}
+            {...attributes}
+            {...listeners}
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={!canChangeTaskStatus(task)}
+            aria-label={`Move task #${task.taskNumber}: ${task.name}`}
+            className="touch-none cursor-grab active:cursor-grabbing disabled:cursor-default"
+          >
+            <GripVertical aria-hidden="true" className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { ArrowUpDown, Plus } from "lucide-react";
 import type { Team } from "../types/team.type";
@@ -90,6 +91,7 @@ export default function TeamsList({
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -109,7 +111,13 @@ export default function TeamsList({
                   >
                     <TableCell className="px-4 py-3">
                       <div className="font-medium truncate group-hover:text-primary transition-colors">
-                        {team.name}
+                        <Link
+                          to={`/teams/${team.key}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {team.name}
+                        </Link>
                         <ArchiveBadge archived={Boolean(team.deletedAt)} />
                       </div>
                     </TableCell>

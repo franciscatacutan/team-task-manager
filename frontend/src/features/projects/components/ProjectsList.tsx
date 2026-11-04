@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { ArrowUpDown, Plus } from "lucide-react";
 import type { SortField } from "@/common/types/sort.types";
@@ -21,6 +22,7 @@ import {
 } from "../utils/project.constants";
 
 interface Props {
+  teamKey: string;
   projects: Project[];
   isLoading: boolean;
   openProject: (projectKey: string) => void;
@@ -43,6 +45,7 @@ const SORT_COLUMNS = [
 ];
 
 export default function ProjectsList({
+  teamKey,
   projects,
   isLoading,
   openProject,
@@ -95,6 +98,7 @@ export default function ProjectsList({
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -114,7 +118,13 @@ export default function ProjectsList({
                   >
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
-                        {project.name}
+                        <Link
+                          to={`/teams/${teamKey}/projects/${project.key}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {project.name}
+                        </Link>
                         <ArchiveBadge
                           archived={Boolean(
                             project.deletedAt || project.readOnly,

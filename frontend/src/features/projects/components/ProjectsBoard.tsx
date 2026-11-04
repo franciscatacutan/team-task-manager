@@ -8,7 +8,7 @@ import ProjectCard from "./ProjectCard";
 interface Props {
   projects: Project[];
   isLoading: boolean;
-  openProject: (projectKey: string) => void;
+  teamKey: string;
   onCreateProject: () => void;
   onClearFilters: () => void;
   canCreateProject: boolean;
@@ -18,7 +18,7 @@ interface Props {
 export default function ProjectsBoard({
   projects,
   isLoading,
-  openProject,
+  teamKey,
   onCreateProject,
   onClearFilters,
   canCreateProject,
@@ -44,7 +44,7 @@ export default function ProjectsBoard({
               <ProjectCard
                 key={project.key}
                 project={project}
-                onClick={() => openProject(project.key)}
+                teamKey={teamKey}
               />
             ))}
           </div>

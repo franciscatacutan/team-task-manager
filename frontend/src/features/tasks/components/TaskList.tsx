@@ -1,5 +1,5 @@
 import ArchiveBadge from "@/common/components/ArchiveBadge";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ArrowUpDown, Plus } from "lucide-react";
 
 import type { Task } from "../types/task.types";
@@ -112,6 +112,7 @@ export default function TaskList({
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -136,7 +137,13 @@ export default function TaskList({
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
-                        {task.name}
+                        <Link
+                          to={`/teams/${teamKey}/projects/${projectKey}/tasks/${task.taskNumber}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {task.name}
+                        </Link>
                         <ArchiveBadge
                           archived={Boolean(task.deletedAt || task.readOnly)}
                         />

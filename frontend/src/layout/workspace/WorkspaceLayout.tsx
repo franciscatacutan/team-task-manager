@@ -27,14 +27,17 @@ export default function WorkspaceLayout() {
   }
 
   return (
-    <div className="flex h-full w-full min-h-0">
+    <div className="flex h-full w-full min-h-0 flex-col md:flex-row">
       <Sidebar teamKey={teamKey} team={team} />
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-auto">
+      <section
+        aria-label="Workspace content"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+      >
         <div className="flex-1 min-h-0 p-4 sm:p-5 lg:p-6">
           <Outlet context={{ team }} />
         </div>
-      </main>
+      </section>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
 import PriorityBadge from "../../../common/components/PriorityBadge";
 import { formatDate } from "../../../common/utils/dateFormatter";
@@ -9,19 +10,22 @@ import type { Task } from "../types/task.types";
 
 interface Props {
   task: Task;
-  onOpen: (task: Task) => void;
+  onOpen?: (task: Task) => void;
+  dragHandle?: ReactNode;
 }
 
-export default function TaskCard({ task, onOpen }: Props) {
+export default function TaskCard({ task, onOpen, dragHandle }: Props) {
   return (
-    <Card
-      onClick={() => onOpen(task)}
-      className="group cursor-pointer rounded-xl border border-border/70 bg-background/96 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background hover:shadow-md"
-    >
+    <Card className="group rounded-xl border border-border/70 bg-background/96 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background hover:shadow-md">
       <CardContent className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <GripVertical className="h-3.5 w-3.5 opacity-55 transition-opacity group-hover:opacity-100" />
+            {dragHandle ?? (
+              <GripVertical
+                aria-hidden="true"
+                className="h-3.5 w-3.5 opacity-55"
+              />
+            )}
             <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 font-medium">
               #{task.taskNumber}
             </span>
@@ -35,7 +39,19 @@ export default function TaskCard({ task, onOpen }: Props) {
 
         <div className="space-y-1.5">
           <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-            {task.name}
+            {onOpen ? (
+              <button
+                type="button"
+                data-task-open={task.taskNumber}
+                aria-label={`Open task #${task.taskNumber}: ${task.name}`}
+                onClick={() => onOpen(task)}
+                className="block w-full rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {task.name}
+              </button>
+            ) : (
+              task.name
+            )}
           </h3>
 
           {task.description && (

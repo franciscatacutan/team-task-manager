@@ -201,7 +201,7 @@ export default function ProjectDetails() {
   };
 
   function handleStatusChange(taskNumber: number, status: TaskStatus) {
-    updateStatus.mutate({
+    return updateStatus.mutateAsync({
       taskNumber,
       status,
     });
@@ -342,6 +342,7 @@ export default function ProjectDetails() {
             className="flex flex-col flex-1 min-h-0 gap-3"
           >
             <TaskBoard
+              isUpdating={updateStatus.isPending}
               teamKey={teamKey}
               projectKey={projectKey}
               params={{

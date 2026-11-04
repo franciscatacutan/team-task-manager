@@ -227,7 +227,6 @@ export default function TeamSelectionPage() {
               <TeamsBoard
                 teams={teams}
                 isLoading={isLoading}
-                openTeam={openTeam}
                 onCreateTeam={() => setOpen(true)}
                 onClearFilters={handleClearFilters}
                 canCreateTeam={permissions.canCreateTeam}

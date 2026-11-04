@@ -111,6 +111,7 @@ export default function UsersList({
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -165,6 +166,7 @@ export default function UsersList({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
+                                aria-label={`Actions for ${user.firstName} ${user.lastName}`}
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 rounded-full p-0"
@@ -174,7 +176,6 @@ export default function UsersList({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-fit">
                               <DropdownMenuItem
-                                key={user.id}
                                 onClick={() => {
                                   editUser(user);
                                   onEditUser();
@@ -187,7 +188,6 @@ export default function UsersList({
                               <DropdownMenuSeparator />
 
                               <DropdownMenuItem
-                                key={user.id}
                                 onClick={() => {
                                   resetPassword(user);
                                   onResetPassword();

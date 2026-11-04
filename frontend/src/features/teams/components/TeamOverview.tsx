@@ -158,7 +158,7 @@ export default function TeamOverview() {
           value={String(projectCount)}
           description="View and manage project work."
           icon={FolderKanban}
-          onClick={() => navigate(`/teams/${team.key}/projects`)}
+          to={`/teams/${team.key}/projects`}
         />
 
         <TeamOverviewCard
@@ -167,7 +167,7 @@ export default function TeamOverview() {
           value={String(activeProjectCount)}
           description="See what work is moving now."
           icon={Sparkles}
-          onClick={() => navigate(`/teams/${team.key}/projects`)}
+          to={`/teams/${team.key}/projects`}
         />
 
         <TeamOverviewCard
@@ -176,7 +176,7 @@ export default function TeamOverview() {
           value={String(memberCount)}
           description="Review team roles and people."
           icon={Users}
-          onClick={() => navigate(`/teams/${team.key}/members`)}
+          to={`/teams/${team.key}/members`}
         />
 
         <TeamOverviewCard
@@ -185,7 +185,7 @@ export default function TeamOverview() {
           value={String(activityCount)}
           description="Open the full team history."
           icon={Activity}
-          onClick={() => navigate(`/teams/${team.key}/activity`)}
+          to={`/teams/${team.key}/activity`}
         />
       </section>
 

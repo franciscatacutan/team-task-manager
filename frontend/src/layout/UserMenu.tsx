@@ -24,7 +24,11 @@ export default function UserMenu({ onLogout, isLoggingOut }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-9 px-2 flex items-center gap-2">
+        <Button
+          aria-label={`Open user menu for ${user.firstName} ${user.lastName}`}
+          variant="ghost"
+          className="h-9 px-2 flex items-center gap-2"
+        >
           <Avatar className="h-5 w-5">
             <AvatarFallback>
               {user.lastName?.[0]}

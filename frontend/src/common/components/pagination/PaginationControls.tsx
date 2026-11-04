@@ -16,6 +16,8 @@ export function PaginationControls({ page, totalPages, onPageChange }: Props) {
       <Button
         variant="ghost"
         size="sm"
+        type="button"
+        aria-label="Previous page"
         disabled={page === 0}
         onClick={() => onPageChange(page - 1)}
       >
@@ -33,6 +35,8 @@ export function PaginationControls({ page, totalPages, onPageChange }: Props) {
             )}
 
             <Button
+              type="button"
+              aria-current={p === page ? "page" : undefined}
               variant={p === page ? "default" : "ghost"}
               size="icon"
               className="h-8 w-8"
@@ -48,6 +52,8 @@ export function PaginationControls({ page, totalPages, onPageChange }: Props) {
       <Button
         variant="ghost"
         size="sm"
+        type="button"
+        aria-label="Next page"
         disabled={page + 1 >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >
