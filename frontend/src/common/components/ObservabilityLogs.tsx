@@ -253,8 +253,7 @@ function AuditLogList({
                   getActivityTypeLabel({
                     message: log.summary,
                   }),
-                  log.projectKey ? `Project ${shortId(log.projectKey)}` : null,
-                  log.taskNumber ? `Task ${shortId(log.taskNumber)}` : null,
+                  ...scopeMetadata(log),
                 ]}
               />
             ))}
@@ -327,10 +326,7 @@ function SystemEventList({
                     message: event.eventName,
                   }),
                   event.source,
-                  event.projectKey
-                    ? `Project ${shortId(event.projectKey)}`
-                    : null,
-                  event.taskNumber ? `Task ${shortId(event.taskNumber)}` : null,
+                  ...scopeMetadata(event),
                 ]}
               />
             ))}
@@ -410,9 +406,12 @@ function LogRow({
             <div className="flex flex-wrap items-center gap-y-1 text-[11px] text-muted-foreground">
               <span>{formatDateTimeShort(occurredAt)}</span>
               {cleanedMeta.map((item) => (
-                <span key={item} className="inline-flex items-center">
-                  <Dot className="h-3 w-3" />
-                  <span className="rounded-md bg-muted/25 px-1.5 py-0.5">
+                <span
+                  key={item}
+                  className="inline-flex min-w-0 max-w-full items-center"
+                >
+                  <Dot className="h-3 w-3 shrink-0" />
+                  <span className="min-w-0 rounded-md bg-muted/25 px-1.5 py-0.5 [overflow-wrap:anywhere]">
                     {item}
                   </span>
                 </span>
@@ -530,8 +529,17 @@ function formatConstant(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function shortId(value: string) {
-  return value.slice(0, 8);
+/** Internal UUID context is distinct from navigable public keys/task numbers. */
+function scopeMetadata({
+  teamId,
+  projectId,
+  taskId,
+}: Pick<ObservabilityAuditLog, "teamId" | "projectId" | "taskId">) {
+  return [
+    teamId ? `Team ID: ${teamId}` : null,
+    projectId ? `Project ID: ${projectId}` : null,
+    taskId ? `Task ID: ${taskId}` : null,
+  ];
 }
 
 function groupByDate<T extends { occurredAt: string }>(items: T[]) {

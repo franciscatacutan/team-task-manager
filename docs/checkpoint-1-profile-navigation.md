@@ -1,6 +1,6 @@
 # Checkpoint 1 — profile navigation
 
-Verified November 5, 2026 against user commit `ec1fabc`. The user approved the finite [v1 checklist](v1-completion-checklist.md), profile navigation first, and conservative links in archived/unconfirmed contexts. This checkpoint is verified and awaiting user review/commit. Seven checkpoints remain; later implementation still needs separate approval.
+Verified November 5, 2026 against user commit `ec1fabc`. The user approved the finite [v1 checklist](v1-completion-checklist.md), profile navigation first, and conservative links in archived/unconfirmed contexts. The user committed this checkpoint as `f1a53b0`. Checkpoint 2 is now verified and uncommitted; six checkpoints remain. Later implementation still needs separate approval.
 
 ## Behavior and purpose
 

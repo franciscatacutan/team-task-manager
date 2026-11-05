@@ -1,7 +1,20 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import type {
+  ObservabilityAuditLog,
+  ObservabilitySystemEvent,
+} from "../types/observability.types";
 import TeamObservabilityLogs from "@/features/teams/components/TeamObservabilityLogs";
 import ProjectObservabilityLogs from "@/features/projects/components/ProjectObservabilityLogs";
 import {
@@ -35,23 +48,28 @@ const page = (
 });
 const auditRow = {
   id: "audit",
-  teamId: "uuid-team",
-  projectId: "uuid-project",
-  taskId: null,
+  teamId: "11000000-0000-4000-8000-000000000001",
+  projectId: "22000000-0000-4000-8000-000000000002",
+  taskId: "33000000-0000-4000-8000-000000000003",
   entityType: "TEAM",
-  entityId: "uuid-team",
+  entityId: "11000000-0000-4000-8000-000000000001",
   action: "UPDATE",
   eventType: "TEAM_UPDATED",
   summary: "Audit record loaded",
-  actor: null,
+  actor: {
+    id: "44000000-0000-4000-8000-000000000004",
+    firstName: "Audit",
+    lastName: "Actor",
+    email: "audit@example.test",
+  },
   metadata: null,
   occurredAt: "2026-11-04T00:00:00Z",
-};
+} satisfies ObservabilityAuditLog;
 const systemRow = {
   id: "system",
-  teamId: "uuid-team",
-  projectId: "uuid-project",
-  taskId: null,
+  teamId: "11000000-0000-4000-8000-000000000001",
+  projectId: "22000000-0000-4000-8000-000000000002",
+  taskId: "33000000-0000-4000-8000-000000000003",
   severity: "INFO",
   category: "TEAM",
   eventName: "TEAM_UPDATED",
@@ -60,10 +78,18 @@ const systemRow = {
   actor: null,
   context: null,
   occurredAt: "2026-11-04T00:00:00Z",
-};
+} satisfies ObservabilitySystemEvent;
 const denied = (status: number) => ({
   isAxiosError: true,
   response: { status },
+});
+const originalScroll = HTMLElement.prototype.scrollIntoView;
+beforeAll(() => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+});
+afterAll(() => {
+  if (originalScroll) HTMLElement.prototype.scrollIntoView = originalScroll;
+  else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
 });
 let client: QueryClient;
 beforeEach(() => {
@@ -93,6 +119,120 @@ describe.each([
       <QueryClientProvider client={client}>{component}</QueryClientProvider>,
     );
   }
+  it("renders backend UUID context without treating it as public keys or task numbers", async () => {
+    audit.mockResolvedValue(page([auditRow]) as never);
+    system.mockResolvedValue(page([systemRow]) as never);
+    mount();
+    await screen.findByText("Audit record loaded");
+    const assertContext = () => {
+      for (const [label, id] of [
+        ["Team", auditRow.teamId],
+        ["Project", auditRow.projectId],
+        ["Task", auditRow.taskId],
+      ]) {
+        expect(screen.getByText(`${label} ID: ${id}`)).toBeVisible();
+      }
+      expect(
+        screen.queryByText(/Project key|Task number/i),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    };
+    assertContext();
+    expect(screen.getByText("Audit Actor")).toBeVisible();
+    await userEvent.click(screen.getByRole("tab", { name: "System Events" }));
+    await screen.findByText("System record loaded");
+    assertContext();
+    expect(screen.getByText("System")).toBeVisible();
+  });
+
+  it.each([
+    { name: "all context absent", teamId: null, projectId: null, taskId: null },
+    {
+      name: "team only",
+      teamId: "11000000-0000-4000-8000-000000000001",
+      projectId: null,
+      taskId: null,
+    },
+    {
+      name: "task without project context",
+      teamId: null,
+      projectId: null,
+      taskId: "33000000-0000-4000-8000-000000000003",
+    },
+  ])(
+    "omits missing UUID context: $name",
+    async ({ teamId, projectId, taskId }) => {
+      const context = { teamId, projectId, taskId };
+      audit.mockResolvedValue(page([{ ...auditRow, ...context }]) as never);
+      system.mockResolvedValue(page([{ ...systemRow, ...context }]) as never);
+      mount();
+      await screen.findByText("Audit record loaded");
+      const assertContext = () => {
+        for (const [label, id] of [
+          ["Team", teamId],
+          ["Project", projectId],
+          ["Task", taskId],
+        ]) {
+          if (id) expect(screen.getByText(`${label} ID: ${id}`)).toBeVisible();
+          else
+            expect(
+              screen.queryByText(new RegExp(`^${label} ID:`)),
+            ).not.toBeInTheDocument();
+        }
+        expect(screen.queryByText(/null|undefined/)).not.toBeInTheDocument();
+      };
+      assertContext();
+      await userEvent.click(screen.getByRole("tab", { name: "System Events" }));
+      await screen.findByText("System record loaded");
+      assertContext();
+    },
+  );
+
+  it("keeps independent stream pages and resets both when sort changes", async () => {
+    audit.mockImplementation(
+      async (...args) =>
+        page([auditRow], (args.at(-1) as { page: number }).page, 2) as never,
+    );
+    system.mockImplementation(
+      async (...args) =>
+        page([systemRow], (args.at(-1) as { page: number }).page, 2) as never,
+    );
+    mount();
+    const user = userEvent.setup();
+    await screen.findByText("Audit record loaded");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("Page 2 of 2");
+    expect(system.mock.calls.at(-1)?.at(-1)).toEqual({
+      page: 0,
+      size: 10,
+      sort: "occurredAt,desc",
+    });
+    await user.click(screen.getByRole("tab", { name: "System Events" }));
+    await screen.findByText("Page 1 of 2");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("Page 2 of 2");
+    screen.getByRole("combobox", { name: "Sort operational logs" }).focus();
+    await user.keyboard("{ArrowDown}");
+    await user.click(
+      await screen.findByRole("option", { name: "Oldest first" }),
+    );
+    await waitFor(() => {
+      expect(audit.mock.calls.at(-1)?.at(-1)).toEqual({
+        page: 0,
+        size: 10,
+        sort: "occurredAt,asc",
+      });
+      expect(system.mock.calls.at(-1)?.at(-1)).toEqual({
+        page: 0,
+        size: 10,
+        sort: "occurredAt,asc",
+      });
+    });
+    await screen.findByText("Page 1 of 2");
+    await user.click(screen.getByRole("tab", { name: "Audit Logs" }));
+    await screen.findByText("Page 1 of 2");
+  });
+
   it("shows errors instead of empty histories and retries only the selected stream", async () => {
     audit
       .mockRejectedValueOnce(new Error("offline"))
