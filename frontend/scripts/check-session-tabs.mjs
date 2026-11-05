@@ -28,8 +28,10 @@ let logoutStarted;
 const logoutGate = new Promise((resolve) => {
   logoutStarted = resolve;
 });
+const encode = (value) =>
+  Buffer.from(JSON.stringify(value)).toString("base64url");
 const payload = () => ({
-  token: `token-${account}-${cookie}`,
+  token: `${encode({ alg: "HS256" })}.${encode({ sub: `${account}@example.test`, userId: account, role: "USER", exp: Math.floor(Date.now() / 1000) + 900 })}.token-${account}-${cookie}`,
   expiresInSeconds: 900,
   user: {
     userId: account,
@@ -131,7 +133,8 @@ await context.route("http://127.0.0.1:4187/api/**", async (route) => {
       },
     });
   }
-  if (path.includes("unread-count")) return route.fulfill({ json: 0 });
+  if (path.includes("unread-count"))
+    return route.fulfill({ json: { unreadCount: 0 } });
   if (path === "/api/notifications")
     return route.fulfill({
       json: {
@@ -240,10 +243,8 @@ try {
     appA.goto("http://127.0.0.1:4187/login"),
     appB.goto("http://127.0.0.1:4187/login"),
   ]);
-  await appA
-    .getByPlaceholder("Email", { exact: true })
-    .fill("alpha@example.test");
-  await appA.getByPlaceholder("Password", { exact: true }).fill("Password1!");
+  await appA.getByLabel(/^Email/).fill("alpha@example.test");
+  await appA.getByLabel(/^Password/).fill("Password1!");
   await appA.getByRole("button", { name: "Sign in", exact: true }).click();
   await Promise.all([appA.waitForURL("**/teams"), appB.waitForURL("**/teams")]);
   await appA.getByText("alpha workspace", { exact: true }).first().waitFor();

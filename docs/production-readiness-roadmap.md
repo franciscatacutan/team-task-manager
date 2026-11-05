@@ -1,6 +1,6 @@
 # Production readiness roadmap
 
-Updated November 5, 2026 against user commit `f591667`; checklist checkpoint 4 is verified and uncommitted.
+Updated November 5, 2026 against user commit `a88f461`; checkpoint 5 UI close-out is verified and uncommitted.
 
 The objective remains to strengthen the existing v1, improve its structure/UI flows, and verify a production release before separately scoping more Jira-style capabilities. Implementation stays checkpoint-based, with scope/policy choices approved first and every commit made by the user.
 
@@ -10,25 +10,25 @@ The objective remains to strengthen the existing v1, improve its structure/UI fl
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phases 1–2I        | Completed: foundation/security/contracts, dependencies/formatting, membership/permissions, archives/sessions, task flows, cache/session consistency, notifications/activity and measured performance fixes |
 | Phase 2J parts 1–2 | Completed: shared task views/module boundaries and consistent creation forms                                                                                                                               |
-| Phase 2J part 3    | In progress: seven historical fix checkpoints and checklist checkpoints 1–3 committed; checkpoint 4 verified/uncommitted; checkpoint 5 remains                                                             |
+| Phase 2J part 3    | Verified complete: original UI findings and approved close-out corrections reconciled; checkpoint 5 awaits user review/commit                                                                              |
 | Phase 2K           | Proposed: database release path, deployment/operations and final release verification                                                                                                                      |
 
-The previous “four unfinished parts” estimate counted one broad UI-review part plus three release packages. It obscured the work still inside the UI part. The user approved an explicit **eight-checkpoint checklist** with completion criteria: four UI fix batches, one UI close-out verification and three release packages. **Checkpoints 1–3 are committed as `f1a53b0` / `b414860` / `f591667`; checkpoint 4 (labels, scrolling and contrast) is verified and awaiting user review/commit. Four remain.** Later implementation checkpoints require separate approval; the plan does not authorize deployment.
+The previous “four unfinished parts” estimate counted one broad UI-review part plus three release packages. It obscured the work still inside the UI part. The user approved an explicit **eight-checkpoint checklist** with completion criteria: four UI fix batches, one UI close-out verification and three release packages. **Checkpoints 1–4 are committed as `f1a53b0` / `b414860` / `f591667` / `a88f461`; checkpoint 5 UI close-out is verified and awaiting user review/commit. Three release-readiness checkpoints remain (6–8).** Later implementation checkpoints require separate approval; the plan does not authorize deployment.
 
 See the [v1 completion checklist](v1-completion-checklist.md) for exact scope, source evidence, original-finding status, decisions and exit criteria.
 
 ## Approved checklist and implementation status
 
-| #   | Phase | Checkpoint                                                                  | Implementation status                                                    |
-| --- | ----- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 1   | 2J3   | Profile links from authorized directory/member contexts                     | User commit `f1a53b0` — [notes](checkpoint-1-profile-navigation.md)      |
-| 2   | 2J3   | Operational-log frontend/server contract alignment                          | User commit `b414860` — [notes](checkpoint-2-log-contracts.md)           |
-| 3   | 2J3   | Single-member removal and row-role pending/error feedback                   | User commit `f591667` — [notes](checkpoint-3-single-member-actions.md)   |
-| 4   | 2J3   | Listed search labels, list scrolling and original cross-module contrast     | Approved; verified, uncommitted — [notes](checkpoint-4-accessibility.md) |
-| 5   | 2J3   | Final original-finding/module verification and UI close-out                 | Proposed                                                                 |
-| 6   | 2K1   | Versioned database migrations, constraints/indexes and upgrade verification | Proposed; migration strategy needed                                      |
-| 7   | 2K2   | Agreed deployment environment, configuration, monitoring and recovery       | Proposed; environment/ownership decisions needed                         |
-| 8   | 2K3   | Real-stack end-to-end, security/load acceptance and release checklist       | Proposed; usage/acceptance targets needed                                |
+| #   | Phase | Checkpoint                                                                  | Implementation status                                                      |
+| --- | ----- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1   | 2J3   | Profile links from authorized directory/member contexts                     | User commit `f1a53b0` — [notes](checkpoint-1-profile-navigation.md)        |
+| 2   | 2J3   | Operational-log frontend/server contract alignment                          | User commit `b414860` — [notes](checkpoint-2-log-contracts.md)             |
+| 3   | 2J3   | Single-member removal and row-role pending/error feedback                   | User commit `f591667` — [notes](checkpoint-3-single-member-actions.md)     |
+| 4   | 2J3   | Listed search labels, list scrolling and original cross-module contrast     | User commit `a88f461` — [notes](checkpoint-4-accessibility.md)             |
+| 5   | 2J3   | Final original-finding/module verification and UI close-out                 | Approved; verified, uncommitted — [close-out](checkpoint-5-ui-closeout.md) |
+| 6   | 2K1   | Versioned database migrations, constraints/indexes and upgrade verification | Proposed; migration strategy needed                                        |
+| 7   | 2K2   | Agreed deployment environment, configuration, monitoring and recovery       | Proposed; environment/ownership decisions needed                           |
+| 8   | 2K3   | Real-stack end-to-end, security/load acceptance and release checklist       | Proposed; usage/acceptance targets needed                                  |
 
 Start the next implementation only after approval of its concrete scope. New findings require visible triage and an approved scope/count update; they do not silently become more lettered checkpoints. A checkpoint count is not a time estimate, required commit count or guarantee that verification will reveal no blocker.
 
@@ -55,6 +55,6 @@ Start the next implementation only after approval of its concrete scope. New fin
 | 2J3f    | `1573530`; [account/authentication](phase-2j-3f-account-feedback.md)                                                                                                                        |
 | 2J3g    | `ec1fabc`; [root crash recovery](phase-2j-3g-crash-recovery.md)                                                                                                                             |
 
-Two pre-existing observations from checkpoint 2 (event-label inference and narrow project-container scrolling) are recorded for explicit triage before UI close-out; see the checklist. They are not silently fixed or accepted deferrals.
+The two recorded observations were approved and corrected in checkpoint 5. The wider review also found and, after approval, corrected member page-size handling, names for page-size/project-status controls and unused KPI-response identity fields. All original findings have current evidence in the close-out record; no unresolved blocker remains in the agreed UI scope. No UI deferral was required.
 
-Restoration, additional Jira features, optional log enrichment, missing-page redesign and broad visual redesign remain separate decisions. Passing the UI close-out completes 2J3; production-readiness sign-off requires the agreed Phase 2K release checks.
+Restoration, additional Jira features, optional log enrichment, missing-page redesign and broad visual redesign remain separate decisions. UI close-out verifies completion of 2J3. Production-readiness sign-off still requires the agreed Phase 2K release checks; this is not deployment approval.

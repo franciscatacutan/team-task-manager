@@ -1,5 +1,5 @@
 export interface TeamInsights {
-  teamKey: string;
+  teamId: string;
   generatedAt: string;
   membership: MembershipMetrics;
   tasks: TaskMetrics;

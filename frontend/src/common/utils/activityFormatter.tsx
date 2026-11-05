@@ -135,49 +135,39 @@ function inferLegacyDetails(message: string): Partial<ActivityDetails> {
   return {};
 }
 
+const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+  TEAM_CREATED: "Created",
+  TEAM_UPDATED: "Updated",
+  TEAM_DELETED: "Archived",
+  PROJECT_CREATED: "Created",
+  PROJECT_UPDATED: "Updated",
+  PROJECT_DELETED: "Archived",
+  TEAM_MEMBER_ADDED: "Member",
+  TEAM_MEMBER_REMOVED: "Member",
+  TEAM_MEMBER_ROLE_CHANGED: "Role",
+  TEAM_OWNERSHIP_TRANSFERRED: "Owner",
+  PROJECT_STATUS_CHANGED: "Status",
+  TASK_CREATED: "Created",
+  TASK_UPDATED: "Updated",
+  TASK_DELETED: "Archived",
+  TASK_STATUS_CHANGED: "Status",
+  TASK_ASSIGNEE_CHANGED: "Assignee",
+  TASK_SUPPORT_ASSIGNED: "Support",
+  TASK_SUPPORT_CHANGED: "Support",
+  TASK_SUPPORT_REMOVED: "Support",
+  TASK_COMMENTED: "Comment",
+};
+
+/** Structured event names never fall back to interpreting message text. */
+export function getActivityEventLabel(eventType: string): string | undefined {
+  return Object.hasOwn(ACTIVITY_TYPE_LABELS, eventType)
+    ? ACTIVITY_TYPE_LABELS[eventType as ActivityType]
+    : undefined;
+}
+
 export function getActivityTypeLabel(activity: string | ActivityLike): string {
   const { type = "TASK_COMMENTED" } = normalizeActivity(activity);
-
-  switch (type) {
-    case "TEAM_CREATED":
-      return "Created";
-    case "TEAM_UPDATED":
-      return "Updated";
-    case "TEAM_DELETED":
-      return "Archived";
-    case "PROJECT_CREATED":
-      return "Created";
-    case "PROJECT_UPDATED":
-      return "Updated";
-    case "PROJECT_DELETED":
-      return "Archived";
-    case "TEAM_MEMBER_ADDED":
-      return "Member";
-    case "TEAM_MEMBER_REMOVED":
-      return "Member";
-    case "TEAM_MEMBER_ROLE_CHANGED":
-      return "Role";
-    case "TEAM_OWNERSHIP_TRANSFERRED":
-      return "Owner";
-    case "PROJECT_STATUS_CHANGED":
-      return "Status";
-    case "TASK_CREATED":
-      return "Created";
-    case "TASK_UPDATED":
-      return "Updated";
-    case "TASK_DELETED":
-      return "Archived";
-    case "TASK_STATUS_CHANGED":
-      return "Status";
-    case "TASK_ASSIGNEE_CHANGED":
-      return "Assignee";
-    case "TASK_SUPPORT_ASSIGNED":
-    case "TASK_SUPPORT_CHANGED":
-    case "TASK_SUPPORT_REMOVED":
-      return "Support";
-    default:
-      return "Comment";
-  }
+  return getActivityEventLabel(type) ?? "Comment";
 }
 
 export function getActivityVerb(activity: string | ActivityLike): string {

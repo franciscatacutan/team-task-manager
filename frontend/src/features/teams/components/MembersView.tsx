@@ -35,7 +35,7 @@ export default function MembersPage() {
 
   const membersQuery = useTeamMembers(teamKey || "", {
     page,
-    size: 10,
+    size,
     search: debouncedSearch,
     sort,
     roles: roleFilter,

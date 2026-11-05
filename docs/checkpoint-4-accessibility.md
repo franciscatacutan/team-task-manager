@@ -1,6 +1,6 @@
 # Checkpoint 4 — search labels, list scrolling and contrast
 
-Verified November 5, 2026 against user commit `f591667`. The user approved page scrolling on mobile/short screens with horizontal table scrolling where needed, retaining bounded table scrolling on larger screens. Search labels and the original contrast inventory preserve the existing design, business rules and permissions. This checkpoint is verified and awaiting user review/commit. Four [checklist](v1-completion-checklist.md) items remain: UI close-out, database release path, deployment/operations and real-stack release verification. Later implementation needs separate approval.
+Verified November 5, 2026 against user commit `f591667`. The user approved page scrolling on mobile/short screens with horizontal table scrolling where needed, retaining bounded table scrolling on larger screens. Search labels and the original contrast inventory preserve the existing design, business rules and permissions. The user committed this checkpoint as `a88f461`. See the [checklist](v1-completion-checklist.md) for current progress and later implementation approvals. Its verification below records the checkpoint-4 scope; checkpoint 5 performs the wider UI close-out.
 
 ## Changes and purpose
 

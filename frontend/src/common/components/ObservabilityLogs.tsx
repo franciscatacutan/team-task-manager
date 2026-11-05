@@ -41,7 +41,7 @@ import type {
 } from "../types/observability.types";
 import {
   activityFormatter,
-  getActivityTypeLabel,
+  getActivityEventLabel,
 } from "../utils/activityFormatter";
 import { formatDate, formatDateTimeShort } from "../utils/dateFormatter";
 
@@ -250,9 +250,8 @@ function AuditLogList({
                 })}
                 meta={[
                   formatConstant(log.entityType),
-                  getActivityTypeLabel({
-                    message: log.summary,
-                  }),
+                  getActivityEventLabel(log.eventType) ??
+                    formatConstant(log.eventType),
                   ...scopeMetadata(log),
                 ]}
               />
@@ -322,9 +321,8 @@ function SystemEventList({
                 })}
                 meta={[
                   event.category,
-                  getActivityTypeLabel({
-                    message: event.eventName,
-                  }),
+                  getActivityEventLabel(event.eventName) ??
+                    formatConstant(event.eventName),
                   event.source,
                   ...scopeMetadata(event),
                 ]}

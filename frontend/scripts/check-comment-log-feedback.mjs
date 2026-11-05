@@ -199,8 +199,6 @@ try {
     });
     const result = await new AxeBuilder({ page })
       .include("#feedback-scan")
-      // Existing avatar contrast is tracked in the separate usability audit.
-      .exclude('#feedback-scan [data-slot="avatar"]')
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();
     const violations = result.violations.map(({ id, nodes }) => ({
@@ -209,7 +207,6 @@ try {
     }));
     scans.push({
       name,
-      excluded: ['[data-slot="avatar"] (existing contrast finding)'],
       violations,
     });
     assert.deepEqual(violations, [], name);

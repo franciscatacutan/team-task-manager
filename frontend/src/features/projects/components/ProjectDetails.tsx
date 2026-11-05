@@ -300,9 +300,9 @@ export default function ProjectDetails() {
       <Tabs
         value={view}
         onValueChange={handleViewChange}
-        className="list-fill flex flex-col flex-1 min-h-0"
+        className="list-fill flex min-w-0 flex-col flex-1 min-h-0"
       >
-        <TabsList className="inline-flex gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm">
+        <TabsList className="grid group-data-horizontal/tabs:h-auto w-full grid-cols-2 gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm sm:inline-flex sm:w-fit">
           <TabsTrigger
             value="board"
             className=" flex items-center gap-2 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:bg-muted transition-all "
@@ -337,7 +337,7 @@ export default function ProjectDetails() {
             </TabsTrigger>
           )}
         </TabsList>
-        <div className="list-fill flex flex-col flex-1 min-h-0">
+        <div className="list-fill flex min-w-0 flex-col flex-1 min-h-0">
           <TabsContent
             value="board"
             className="list-fill flex flex-col flex-1 min-h-0 gap-3"
@@ -397,7 +397,7 @@ export default function ProjectDetails() {
           </TabsContent>
           <TabsContent
             value="activity"
-            className="list-fill flex flex-col flex-1 min-h-0"
+            className="list-fill flex min-w-0 flex-col flex-1 min-h-0"
           >
             <ProjectActivity
               teamKey={teamKey}

@@ -34,6 +34,7 @@ export default function ProjectStatusSelector({
       onValueChange={(v) => onChange(v as ProjectStatus)}
     >
       <SelectTrigger
+        aria-label="Project status"
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",
           className,

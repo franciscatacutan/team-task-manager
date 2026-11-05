@@ -317,8 +317,8 @@ describe("task/project observers", () => {
       );
       vi.mocked(projects.getProjectActivities).mockResolvedValue(page([]));
       vi.mocked(projects.getProjectInsights).mockResolvedValue({
-        teamKey: "TEAM",
-        projectKey: "PROJECT",
+        teamId: "11000000-0000-4000-8000-000000000001",
+        projectId: "22000000-0000-4000-8000-000000000002",
         status: "ACTIVE",
         generatedAt: "2026-01-01",
         tasks: {

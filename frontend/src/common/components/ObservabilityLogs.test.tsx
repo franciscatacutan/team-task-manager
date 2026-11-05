@@ -119,6 +119,39 @@ describe.each([
       <QueryClientProvider client={client}>{component}</QueryClientProvider>,
     );
   }
+  it.each([
+    { eventType: "TASK_UPDATED", label: "Updated" },
+    { eventType: "TASK_DELETED", label: "Archived" },
+    { eventType: "TASK_COMMENTED", label: "Comment" },
+  ] as const)(
+    "uses the supplied $eventType label without inferring it from the summary",
+    async ({ eventType, label }) => {
+      audit.mockResolvedValue(page([{ ...auditRow, eventType }]) as never);
+      system.mockResolvedValue(
+        page([{ ...systemRow, eventName: eventType }]) as never,
+      );
+      mount();
+      await screen.findByText("Audit record loaded");
+      expect(screen.getByText(label, { exact: true })).toBeVisible();
+      await userEvent.click(screen.getByRole("tab", { name: "System Events" }));
+      await screen.findByText("System record loaded");
+      expect(screen.getByText(label, { exact: true })).toBeVisible();
+    },
+  );
+  it("humanizes unknown system event names instead of inventing a comment label", async () => {
+    audit.mockResolvedValue(page([]) as never);
+    system.mockResolvedValue(
+      page([{ ...systemRow, eventName: "DELIVERY_RETRY_SCHEDULED" }]) as never,
+    );
+    mount();
+    await userEvent.click(screen.getByRole("tab", { name: "System Events" }));
+    await screen.findByText("System record loaded");
+    expect(screen.getByText("Delivery Retry Scheduled")).toBeVisible();
+    expect(
+      screen.queryByText("Comment", { exact: true }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders backend UUID context without treating it as public keys or task numbers", async () => {
     audit.mockResolvedValue(page([auditRow]) as never);
     system.mockResolvedValue(page([systemRow]) as never);

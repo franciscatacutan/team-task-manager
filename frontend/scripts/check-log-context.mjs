@@ -98,6 +98,64 @@ try {
     context: null,
     occurredAt: date,
   };
+  const tasks = {
+    total: 20,
+    todo: 6,
+    inProgress: 4,
+    inReview: 2,
+    onHold: 1,
+    done: 6,
+    cancelled: 1,
+    overdue: 1,
+    highPriority: 2,
+    criticalPriority: 1,
+  };
+  const flow = {
+    completedLast7Days: 3,
+    completionRatePercent: 30,
+    averageCycleTimeHours: 24.5,
+  };
+  const activity = {
+    activityEventsLast7Days: 5,
+    auditEventsLast7Days: 4,
+    systemEventsLast7Days: 2,
+  };
+  const projectSummary = {
+    teamId: ids.teamId,
+    projectId: ids.projectId,
+    generatedAt: date,
+    status: "ACTIVE",
+    plannedStartDate: date,
+    plannedDueDate: "2026-12-01T00:00:00Z",
+    actualStartDate: null,
+    actualCompletionDate: null,
+    tasks,
+    flow,
+    activity,
+    health: { overdue: false, daysUntilDue: 26, completedOnTime: false },
+  };
+  const teamSummary = {
+    teamId: ids.teamId,
+    generatedAt: date,
+    tasks,
+    flow,
+    activity,
+    membership: { total: 5, owners: 1, admins: 1, members: 3 },
+    projects: {
+      total: 5,
+      active: 3,
+      onHold: 1,
+      completed: 1,
+      completedLast7Days: 1,
+      completionRatePercent: 20,
+    },
+    health: {
+      openTasks: 13,
+      overdueTasks: 1,
+      openTasksPerMember: 2.6,
+      activeProjectsPerMember: 0.6,
+    },
+  };
   for (const config of [
     { scope: "team", width: 390, height: 844, dark: false },
     { scope: "team", width: 1440, height: 1000, dark: true },
@@ -109,6 +167,7 @@ try {
       viewport: { width: config.width, height: config.height },
     });
     const requests = [];
+    let summaryUnavailable = false;
     await context.route(`${base}/api/**`, async (route) => {
       const req = route.request(),
         url = new URL(req.url()),
@@ -160,7 +219,11 @@ try {
       if (path.endsWith("/projects"))
         return route.fulfill({ json: paged([project]) });
       if (path.endsWith("/insights/summary"))
-        return route.fulfill({ json: null });
+        return route.fulfill(
+          summaryUnavailable
+            ? { status: 500, json: { message: "Summary unavailable" } }
+            : { json: config.scope === "team" ? teamSummary : projectSummary },
+        );
       if (path === "/api/notifications/unread-count")
         return route.fulfill({ json: { unreadCount: 0 } });
       return route.fulfill({ json: paged([]) });
@@ -184,49 +247,92 @@ try {
       .locator('[data-slot="card"]')
       .filter({ has: page.getByText("Operational Logs", { exact: true }) });
     await card.getByText("Audit context loaded", { exact: true }).waitFor();
-    // Reproduce the pre-existing narrow-project overflow without UUID metadata.
+    await page
+      .getByText(config.scope === "team" ? "Task completion" : "Completion", {
+        exact: true,
+      })
+      .first()
+      .waitFor();
+    const summaryScan = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    const summaryViolations = summaryScan.violations.map(({ id, nodes }) => ({
+      id,
+      targets: nodes.map((node) => node.target),
+    }));
+    scans.push({
+      state: `${name}-populated-insights`,
+      scope: "populated page",
+      violations: summaryViolations,
+    });
+    assert.deepEqual(summaryViolations, []);
+
     if (config.scope === "project" && config.width === 320) {
-      const baseline = await card.evaluate((el) => {
-        const width = () => ({
-          viewport: innerWidth,
-          documentWidth: document.documentElement.scrollWidth,
-          cardWidth: el.getBoundingClientRect().width,
-          left: el.getBoundingClientRect().left,
-          ancestors: (() => {
-            const result = [];
-            for (let node = el; node; node = node.parentElement)
-              result.push({
-                tag: node.tagName,
-                className: node.className,
-                left: node.getBoundingClientRect().left,
-                width: node.getBoundingClientRect().width,
-                scrollWidth: node.scrollWidth,
-                clientWidth: node.clientWidth,
-                scrollLeft: node.scrollLeft,
-              });
-            return result;
-          })(),
-        });
-        const withIds = width();
-        const context = [...el.querySelectorAll("span")]
-          .filter(
-            (node) =>
-              /^(Team|Project|Task) ID:/.test(node.textContent) &&
-              node.children.length === 0,
-          )
-          .map((node) => node.parentElement);
-        for (const node of context) node.style.display = "none";
-        const withoutIds = width();
-        for (const node of context) node.style.removeProperty("display");
-        return { withIds, withoutIds };
+      const tablist = page.getByRole("tablist").filter({
+        has: page.getByRole("tab", { name: "Insights", exact: true }),
       });
-      assert.equal(
-        baseline.withIds.documentWidth,
-        baseline.withoutIds.documentWidth,
+      await page.getByRole("tab", { name: "Board", exact: true }).focus();
+      for (const label of ["List", "Activity", "Insights"]) {
+        await page.keyboard.press("ArrowRight");
+        await page.waitForFunction(
+          (label) =>
+            [...document.querySelectorAll('[role="tab"]')].some(
+              (tab) =>
+                tab.textContent.trim() === label &&
+                tab.getAttribute("data-state") === "active",
+            ),
+          label,
+        );
+        const tab = page.getByRole("tab", { name: label, exact: true });
+        assert.equal(await tab.getAttribute("data-state"), "active");
+        const bounds = await tab.boundingBox();
+        assert(
+          bounds &&
+            bounds.x >= 0 &&
+            bounds.x + bounds.width <= config.width + 1,
+          `Tab ${label} does not fit`,
+        );
+      }
+      await card.getByText("Audit context loaded", { exact: true }).waitFor();
+      const layout = await tablist.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          tabs: [...el.querySelectorAll('[role="tab"]')].map((tab) => {
+            const r = tab.getBoundingClientRect();
+            return {
+              left: r.left,
+              right: r.right,
+              top: r.top,
+              bottom: r.bottom,
+            };
+          }),
+          contentScrollLeft: document.querySelector(
+            '[aria-label="Workspace content"]',
+          ).scrollLeft,
+        };
+      });
+      const cardBounds = await card.boundingBox();
+      assert.equal(layout.contentScrollLeft, 0);
+      assert(
+        cardBounds &&
+          cardBounds.x >= 0 &&
+          cardBounds.x + cardBounds.width <= config.width + 1,
       );
+      for (const bounds of layout.tabs)
+        assert(
+          bounds.left >= layout.left - 1 &&
+            bounds.right <= layout.right + 1 &&
+            bounds.top >= layout.top - 1 &&
+            bounds.bottom <= layout.bottom + 1,
+        );
       layouts.push({
-        state: "existing-project-overflow-without-context",
-        ...baseline,
+        state: "project-tabs-fit-with-keyboard-navigation",
+        ...layout,
+        cardBounds,
       });
     }
     for (const stream of ["audit", "system"]) {
@@ -240,6 +346,8 @@ try {
           { exact: true },
         )
         .waitFor();
+      await card.getByText("Updated", { exact: true }).waitFor();
+      assert.equal(await card.getByText("Comment", { exact: true }).count(), 0);
       for (const [label, id] of [
         ["Team", ids.teamId],
         ["Project", ids.projectId],
@@ -354,6 +462,25 @@ try {
           r.sort === "occurredAt,asc",
       ),
     );
+    summaryUnavailable = true;
+    await page.reload();
+    if (config.scope === "project")
+      await page.getByRole("tab", { name: "Insights", exact: true }).click();
+    const summaryFailure = page
+      .getByRole("alert")
+      .filter({ hasText: "Unable to load insights." });
+    await summaryFailure.waitFor();
+    await card.getByText("Audit context loaded", { exact: true }).waitFor();
+    summaryUnavailable = false;
+    await summaryFailure
+      .getByRole("button", { name: "Retry", exact: true })
+      .click();
+    await page
+      .getByText(config.scope === "team" ? "Task completion" : "Completion", {
+        exact: true,
+      })
+      .first()
+      .waitFor();
     await context.close();
   }
   assert.deepEqual(errors, []);
@@ -362,6 +489,9 @@ try {
     JSON.stringify({
       browser: "Edge",
       fullUuidContext: true,
+      structuredEventLabels: true,
+      populatedSummariesAndIndependentRetry: true,
+      narrowProjectTabsFit: true,
       missingContextOmitted: true,
       noInventedLinks: true,
       pagingAndSortPreserved: true,

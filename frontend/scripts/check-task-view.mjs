@@ -162,7 +162,10 @@ try {
   await screenshot("phase2j1-task-page-desktop.png");
   await page.goto(projectUrl);
   await page
-    .getByRole("heading", { name: "Renamed from page", exact: true })
+    .getByRole("button", {
+      name: "Open task #7: Renamed from page",
+      exact: true,
+    })
     .click();
   let dialog = page.getByRole("dialog", { name: "Task #7", exact: true });
   await dialog.waitFor();
@@ -179,7 +182,10 @@ try {
   await screenshot("phase2j1-task-dialog-desktop.png");
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page
-    .getByRole("heading", { name: "Renamed from dialog", exact: true })
+    .getByRole("button", {
+      name: "Open task #7: Renamed from dialog",
+      exact: true,
+    })
     .click();
   dialog = page.getByRole("dialog", { name: "Task #7", exact: true });
   await dialog.waitFor();

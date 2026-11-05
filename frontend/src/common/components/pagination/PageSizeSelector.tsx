@@ -22,7 +22,7 @@ export function PageSizeSelector({
       <span className="text-sm text-muted-foreground">Rows</span>
 
       <Select value={String(size)} onValueChange={(v) => onChange(Number(v))}>
-        <SelectTrigger className="h-8 w-20">
+        <SelectTrigger aria-label="Rows per page" className="h-8 w-20">
           <SelectValue />
         </SelectTrigger>
 

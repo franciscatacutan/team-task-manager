@@ -133,6 +133,8 @@ try {
   const token = `${encode({ alg: "HS256" })}.${encode({ sub: viewer.email, userId: viewer.id, role: viewer.role, exp: Math.floor(Date.now() / 1000) + 3600 })}.mock`;
   const context = await browser.newContext();
   let fitMode = false;
+  const fullAccessibility = process.env.TTM_TEST_FULL_ACCESSIBILITY === "1";
+  const memberRequests = [];
   const paged = (rows, url) => {
     if (fitMode) rows = rows.slice(0, 1);
     const size = Math.max(1, Number(url.searchParams.get("size") ?? 10)),
@@ -172,8 +174,10 @@ try {
     if (path === "/api/teams/TEAM") return route.fulfill({ json: team });
     if (path === "/api/teams/TEAM/me")
       return route.fulfill({ json: { userId: viewer.id, role: "OWNER" } });
-    if (path.endsWith("/members"))
+    if (path.endsWith("/members")) {
+      memberRequests.push(Number(url.searchParams.get("size") ?? 10));
       return route.fulfill({ json: paged(members, url) });
+    }
     if (path.endsWith("/projects"))
       return route.fulfill({ json: paged(projects, url) });
     if (path === "/api/teams/TEAM/projects/PROJECT")
@@ -226,9 +230,12 @@ try {
   }
   async function contrast(name) {
     await settle();
-    const result = await new AxeBuilder({ page })
-      .withRules(["color-contrast"])
-      .analyze();
+    const builder = new AxeBuilder({ page });
+    const result = await (
+      fullAccessibility
+        ? builder.withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        : builder.withRules(["color-contrast"])
+    ).analyze();
     const violations = result.violations.map(({ id, nodes }) => ({
       id,
       nodes: nodes.map((n) => ({
@@ -238,7 +245,9 @@ try {
     }));
     scans.push({ state: name, viewport: page.viewportSize(), violations });
     if (violations.length)
-      failures.push(`${name}: ${violations.length} contrast rule failures`);
+      failures.push(
+        `${name}: ${violations.length} accessibility rule failures`,
+      );
   }
   async function shot(name) {
     if (process.env.TTM_TEST_SCREENSHOTS)
@@ -359,6 +368,33 @@ try {
       if (viewport.height === 320 || viewport.width === 1440) await shot(name);
     }
   }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await goto("/teams/TEAM/members", false);
+  await page.locator('[data-slot="table"] tbody tr').last().waitFor();
+  const rowsControl = page.getByRole("combobox", {
+    name: "Rows per page",
+    exact: true,
+  });
+  await rowsControl.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.getByRole("option", { name: "20", exact: true }).click();
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('[data-slot="table"] tbody tr').length === 20,
+  );
+  const selectedRows = await rowsControl.textContent();
+  const renderedRows = await page
+    .locator('[data-slot="table"] tbody tr')
+    .count();
+  assert.equal(selectedRows, "20");
+  assert.equal(renderedRows, 20);
+  assert.equal(memberRequests.at(-1), 20);
+  layouts.push({
+    state: "member-page-size-confirmed",
+    selected: selectedRows,
+    renderedRows,
+    requestedSize: memberRequests.at(-1),
+  });
   // A real fitting table must not add a redundant keyboard stop.
   fitMode = true;
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -442,6 +478,9 @@ try {
   console.log(
     JSON.stringify({
       browser: "Edge",
+      ruleScope: fullAccessibility
+        ? "WCAG 2 A/AA + 2.1 AA"
+        : "color-contrast only",
       layouts,
       scans,
       failures,
