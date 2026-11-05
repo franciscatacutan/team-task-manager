@@ -1,6 +1,6 @@
 # Checkpoint 2 — operational-log context contracts
 
-Verified November 5, 2026 against user commit `f1a53b0`. The user approved matching the existing API, clearly labeling internal IDs, omitting missing context and keeping this checkpoint frontend-only. It is verified and awaiting user review/commit. Six items remain in the approved [v1 completion checklist](v1-completion-checklist.md); later implementation needs separate approval.
+Verified November 5, 2026 against user commit `f1a53b0`. The user approved matching the existing API, clearly labeling internal IDs, omitting missing context and keeping this checkpoint frontend-only. The user committed it as `b414860`. See the approved [v1 completion checklist](v1-completion-checklist.md) for current progress and later implementation approvals.
 
 ## Behavior and purpose
 

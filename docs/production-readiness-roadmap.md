@@ -1,6 +1,6 @@
 # Production readiness roadmap
 
-Updated November 5, 2026 against user commit `f1a53b0`; checklist checkpoint 2 is verified and uncommitted.
+Updated November 5, 2026 against user commit `b414860`; checklist checkpoint 3 is verified and uncommitted.
 
 The objective remains to strengthen the existing v1, improve its structure/UI flows, and verify a production release before separately scoping more Jira-style capabilities. Implementation stays checkpoint-based, with scope/policy choices approved first and every commit made by the user.
 
@@ -10,25 +10,25 @@ The objective remains to strengthen the existing v1, improve its structure/UI fl
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phases 1–2I        | Completed: foundation/security/contracts, dependencies/formatting, membership/permissions, archives/sessions, task flows, cache/session consistency, notifications/activity and measured performance fixes |
 | Phase 2J parts 1–2 | Completed: shared task views/module boundaries and consistent creation forms                                                                                                                               |
-| Phase 2J part 3    | In progress: seven historical fix checkpoints and checklist checkpoint 1 committed; checkpoint 2 verified/uncommitted; checkpoints 3–5 remain                                                              |
+| Phase 2J part 3    | In progress: seven historical fix checkpoints and checklist checkpoints 1–2 committed; checkpoint 3 verified/uncommitted; checkpoints 4–5 remain                                                           |
 | Phase 2K           | Proposed: database release path, deployment/operations and final release verification                                                                                                                      |
 
-The previous “four unfinished parts” estimate counted one broad UI-review part plus three release packages. It obscured the work still inside the UI part. The user approved an explicit **eight-checkpoint checklist** with completion criteria: four UI fix batches, one UI close-out verification and three release packages. **Checkpoint 1 is committed as `f1a53b0`; checkpoint 2 (log UUID contracts) is verified and awaiting user review/commit. Six remain.** Later implementation checkpoints require separate approval; the plan does not authorize deployment.
+The previous “four unfinished parts” estimate counted one broad UI-review part plus three release packages. It obscured the work still inside the UI part. The user approved an explicit **eight-checkpoint checklist** with completion criteria: four UI fix batches, one UI close-out verification and three release packages. **Checkpoints 1–2 are committed as `f1a53b0` / `b414860`; checkpoint 3 (single-member safeguards) is verified and awaiting user review/commit. Five remain.** Later implementation checkpoints require separate approval; the plan does not authorize deployment.
 
 See the [v1 completion checklist](v1-completion-checklist.md) for exact scope, source evidence, original-finding status, decisions and exit criteria.
 
 ## Approved checklist and implementation status
 
-| #   | Phase | Checkpoint                                                                  | Implementation status                                                             |
-| --- | ----- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | 2J3   | Profile links from authorized directory/member contexts                     | User commit `f1a53b0` — [notes](checkpoint-1-profile-navigation.md)               |
-| 2   | 2J3   | Operational-log frontend/server contract alignment                          | Approved IDs-only; verified, uncommitted — [notes](checkpoint-2-log-contracts.md) |
-| 3   | 2J3   | Single-member removal and row-role pending/error feedback                   | Proposed; confirm dismissal/retry policy                                          |
-| 4   | 2J3   | Listed search labels, list scrolling and original cross-module contrast     | Proposed; bounded inventory in checklist                                          |
-| 5   | 2J3   | Final original-finding/module verification and UI close-out                 | Proposed                                                                          |
-| 6   | 2K1   | Versioned database migrations, constraints/indexes and upgrade verification | Proposed; migration strategy needed                                               |
-| 7   | 2K2   | Agreed deployment environment, configuration, monitoring and recovery       | Proposed; environment/ownership decisions needed                                  |
-| 8   | 2K3   | Real-stack end-to-end, security/load acceptance and release checklist       | Proposed; usage/acceptance targets needed                                         |
+| #   | Phase | Checkpoint                                                                  | Implementation status                                                            |
+| --- | ----- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | 2J3   | Profile links from authorized directory/member contexts                     | User commit `f1a53b0` — [notes](checkpoint-1-profile-navigation.md)              |
+| 2   | 2J3   | Operational-log frontend/server contract alignment                          | User commit `b414860` — [notes](checkpoint-2-log-contracts.md)                   |
+| 3   | 2J3   | Single-member removal and row-role pending/error feedback                   | Approved; verified, uncommitted — [notes](checkpoint-3-single-member-actions.md) |
+| 4   | 2J3   | Listed search labels, list scrolling and original cross-module contrast     | Proposed; bounded inventory in checklist                                         |
+| 5   | 2J3   | Final original-finding/module verification and UI close-out                 | Proposed                                                                         |
+| 6   | 2K1   | Versioned database migrations, constraints/indexes and upgrade verification | Proposed; migration strategy needed                                              |
+| 7   | 2K2   | Agreed deployment environment, configuration, monitoring and recovery       | Proposed; environment/ownership decisions needed                                 |
+| 8   | 2K3   | Real-stack end-to-end, security/load acceptance and release checklist       | Proposed; usage/acceptance targets needed                                        |
 
 Start the next implementation only after approval of its concrete scope. New findings require visible triage and an approved scope/count update; they do not silently become more lettered checkpoints. A checkpoint count is not a time estimate, required commit count or guarantee that verification will reveal no blocker.
 

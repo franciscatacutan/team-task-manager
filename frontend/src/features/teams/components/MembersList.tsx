@@ -26,21 +26,14 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 
-import { useUpdateMemberRole } from "../hooks/useUpdateMemberRole";
+import MemberRoleControl from "./MemberRoleControl";
 import RemoveMemberModal from "./RemoveMemberModal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select";
 import { TEAM_ROLE_STYLES, TEAM_ROLE_LABEL } from "../constants/team.constants";
 import { cn } from "../../../lib/utils";
 import TransferOwnershipModal from "./TransferOwnershipModal";
 import type { TeamPermissions } from "../../teams/utils/teamPermissions";
 import { useTeamMe } from "../../teams/hooks/useTeamMe";
-import type { TeamMember, TeamRole } from "../types/team.type";
+import type { TeamMember } from "../types/team.type";
 import {
   Pagination,
   type PaginationProps,
@@ -72,8 +65,6 @@ export default function MembersList({
   const [removeOpen, setRemoveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
-  const updateRole = useUpdateMemberRole(teamKey);
-
   const handleSort = (field: string) => {
     const [currentField, direction] = sort.split(",");
 
@@ -100,17 +91,6 @@ export default function MembersList({
   const isOwner = teamMe?.role === "OWNER";
   const canShowActions =
     permissions.canTransferOwnership || permissions.canRemoveMember;
-
-  type EditableRole = "ADMIN" | "MEMBER";
-
-  const handleRoleChange = (memberId: string, role: EditableRole) => {
-    updateRole.mutate({
-      memberId,
-      role: role as EditableRole,
-    });
-  };
-
-  const isUpdating = updateRole.isPending;
 
   if (isLoading) {
     return (
@@ -198,43 +178,11 @@ export default function MembersList({
                         {TEAM_ROLE_LABEL.OWNER}
                       </Badge>
                     ) : permissions.canChangeRole ? (
-                      <Select
-                        value={(member.teamRole ?? "MEMBER") as TeamRole}
-                        onValueChange={(value) =>
-                          handleRoleChange(member.id, value as EditableRole)
-                        }
-                        disabled={isUpdating || member.id === teamMe?.userId}
-                      >
-                        <SelectTrigger
-                          className={`h-9 w-34 rounded-xl border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] shadow-none ${TEAM_ROLE_STYLES[(member.teamRole ?? "MEMBER") as TeamRole]}`}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          <SelectItem value="ADMIN">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                                TEAM_ROLE_STYLES.ADMIN,
-                              )}
-                            >
-                              {TEAM_ROLE_LABEL.ADMIN}
-                            </span>
-                          </SelectItem>
-
-                          <SelectItem value="MEMBER">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                                TEAM_ROLE_STYLES.MEMBER,
-                              )}
-                            >
-                              {TEAM_ROLE_LABEL.MEMBER}
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <MemberRoleControl
+                        teamKey={teamKey}
+                        member={member}
+                        disabled={member.id === teamMe?.userId}
+                      />
                     ) : member.teamRole === "ADMIN" ? (
                       <span
                         className={cn(
