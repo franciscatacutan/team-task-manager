@@ -3,10 +3,6 @@ spring:
     activate:
       on-profile: local
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-
 auth:
   refresh-cookie-secure: false
   refresh-cookie-same-site: Lax

@@ -12,7 +12,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(
     classes = TeamTaskManagerApplication.class,
     properties = {
-      "spring.jpa.hibernate.ddl-auto=create-drop",
       "auth.jwt.secret=phase-one-test-only-secret-at-least-thirty-two-bytes-long",
       "auth.jwt.issuer=team-task-manager-tests",
       "auth.refresh-cookie-secure=false",

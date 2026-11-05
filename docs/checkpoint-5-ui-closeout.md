@@ -2,7 +2,7 @@
 
 Verified November 5, 2026 against user commit `a88f461`. The user approved the final UI review, then explicitly approved correcting both recorded observations, the additional pagination/control-name gaps and the type-only KPI response mismatch within this checkpoint. No checkpoint was added.
 
-**Result: Phase 2J is verified complete in the agreed UI-hardening scope, awaiting user review/commit of this checkpoint. No known in-scope UI blocker or accepted UI deferral remains. Three release-readiness checkpoints remain (6–8).** This is not production release sign-off or deployment authorization.
+**Result: Phase 2J is verified complete in the agreed UI-hardening scope; the user committed this checkpoint as `187d103`. This record retains its checkpoint-5 verification baseline; see the [current checklist](v1-completion-checklist.md) for later progress. No known in-scope UI blocker or accepted UI deferral remains. Three release-readiness checkpoints remain (6–8).** This is not production release sign-off or deployment authorization.
 
 ## Approved corrections
 

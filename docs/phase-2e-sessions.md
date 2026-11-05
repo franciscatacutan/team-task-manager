@@ -66,6 +66,8 @@ To change which actions revoke all sessions, update the service transaction and 
 
 Existing refresh-token rows already contain family and user identities, so no rows are reset or rewritten. Old access tokens without `sid` are rejected. A still-valid refresh cookie can obtain a new bound access token automatically; otherwise the user signs in again. There is no legacy JWT bypass.
 
+**Historical Phase 2E deployment instructions:** the fresh Flyway baseline now versions this index in V2; see [checkpoint 6](checkpoint-6-database-migrations.md). Local Hibernate `update` is retired. The legacy script below is not the current managed-baseline workflow.
+
 `backend/schema/phase-2e-session-index.sql` adds the lookup index for an existing PostgreSQL database. It has been prepared, not run against the development database. The local Hibernate `update` profile creates the equivalent index when the backend starts. A production database using `ddl-auto=validate` needs the script applied as a deployment step. Run it directly, outside a transaction; PostgreSQL concurrent index creation avoids blocking normal writes. Verify successful index creation before treating deployment as complete.
 
 Deploy the backend consistently: older application instances do not enforce the new active-session check. Do not assume immediate revocation while requests can still reach older instances. This phase changes no signing secrets or cookie policies.
