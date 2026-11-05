@@ -398,11 +398,11 @@ function NotificationItem({
               <span className="truncate text-sm font-medium text-foreground">
                 {notification.title}
               </span>
-              <span className="shrink-0 rounded-full border border-border/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              <span className="shrink-0 rounded-full border border-border/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-foreground/75">
                 {eventLabel}
               </span>
             </span>
-            <span className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">
+            <span className="mt-0.5 line-clamp-2 text-xs leading-5 text-foreground/75">
               {notification.body}
             </span>
           </span>
@@ -417,7 +417,7 @@ function NotificationItem({
           )}
         </span>
 
-        <span className="mt-2 block text-[11px] text-muted-foreground">
+        <span className="mt-2 block text-[11px] text-foreground/75">
           {formatRelativeTime(notification.createdAt)}
         </span>
       </span>

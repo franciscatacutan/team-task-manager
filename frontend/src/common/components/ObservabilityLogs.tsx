@@ -384,7 +384,7 @@ function LogRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2.5">
           <Avatar size="sm" className="mt-0.5 h-7 w-7 shrink-0">
-            <AvatarFallback className="bg-muted text-[11px] font-semibold text-muted-foreground">
+            <AvatarFallback className="bg-muted text-[11px] font-semibold text-foreground/75">
               {actorInitials(actor)}
             </AvatarFallback>
           </Avatar>

@@ -113,9 +113,9 @@ export default function MembersList({
     );
   }
   return (
-    <section className="flex flex-col h-full min-h-0 gap-6">
-      <div className="flex h-full min-h-0 rounded-2xl border border-border/60 bg-background/92 shadow-sm overflow-hidden">
-        <Table className="overflow-auto">
+    <section className="list-fill flex flex-col h-full min-h-0 gap-6">
+      <div className="list-frame flex flex-1 min-h-0 min-w-0 rounded-2xl border border-border/60 bg-background/92 shadow-sm overflow-hidden">
+        <Table scrollLabel="Team members table">
           <TableHeader className="sticky top-0 z-30 rounded-2xl bg-background/85 px-4 backdrop-blur supports-backdrop-filter:bg-background/75">
             <TableRow>
               {[

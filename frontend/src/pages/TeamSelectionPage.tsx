@@ -153,8 +153,8 @@ export default function TeamSelectionPage() {
     : undefined;
 
   return (
-    <div className="min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
+    <div className="list-page min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="list-layout flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
         <TeamSelectionHeader
           totalTeam={totalElements}
           canCreateTeam={permissions.canCreateTeam}
@@ -165,6 +165,7 @@ export default function TeamSelectionPage() {
 
         <Toolbar
           search={{
+            label: "Search teams",
             value: search,
             onChange: handleSearchChange,
           }}
@@ -202,7 +203,7 @@ export default function TeamSelectionPage() {
           <Tabs
             value={view}
             onValueChange={handleViewChange}
-            className="flex flex-col flex-1 min-h-0"
+            className="list-fill flex flex-col flex-1 min-h-0"
           >
             <TabsList className="inline-flex gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm">
               <TabsTrigger
@@ -222,7 +223,7 @@ export default function TeamSelectionPage() {
             </TabsList>
             <TabsContent
               value="board"
-              className="flex flex-col flex-1 min-h-0 gap-3"
+              className="list-fill flex flex-col flex-1 min-h-0 gap-3"
             >
               <TeamsBoard
                 teams={teams}
@@ -236,7 +237,7 @@ export default function TeamSelectionPage() {
 
             <TabsContent
               value="list"
-              className="flex flex-col flex-1 min-h-0 gap-3"
+              className="list-fill flex flex-col flex-1 min-h-0 gap-3"
             >
               <TeamsList
                 teams={teams}

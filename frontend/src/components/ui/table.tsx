@@ -2,11 +2,48 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+interface TableProps extends React.ComponentProps<"table"> {
+  scrollLabel?: string;
+}
+
+/** Add a named keyboard stop only while this container actually scrolls. */
+function Table({
+  className,
+  scrollLabel = "Table content",
+  ...props
+}: TableProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [scrollable, setScrollable] = React.useState(false);
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () =>
+      setScrollable(
+        container.scrollWidth > container.clientWidth + 1 ||
+          container.scrollHeight > container.clientHeight + 1,
+      );
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(measure);
+    observer?.observe(container);
+    if (container.firstElementChild)
+      observer?.observe(container.firstElementChild);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [props.children]);
   return (
     <div
+      ref={containerRef}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      role={scrollable ? "region" : undefined}
+      aria-label={scrollable ? scrollLabel : undefined}
+      tabIndex={scrollable ? 0 : undefined}
+      className="relative min-h-0 min-w-0 w-full flex-1 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
       <table
         data-slot="table"

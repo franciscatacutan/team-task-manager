@@ -71,9 +71,9 @@ export default function TaskList({
   return (
     <>
       {isLoading ? (
-        <div className="flex flex-col">
-          <div className="flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col">
+          <div className="list-frame flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Tasks table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
@@ -105,9 +105,9 @@ export default function TaskList({
           </div>
         </div>
       ) : tasks.length > 0 ? (
-        <div className="flex flex-col h-full min-h-0">
-          <div className="flex flex-1 overflow-auto rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col h-full min-h-0">
+          <div className="list-frame flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Tasks table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (

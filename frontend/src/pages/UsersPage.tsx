@@ -130,8 +130,8 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
+    <div className="list-page min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="list-layout flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
         <UsersHeader users={users} />
 
         <Toolbar

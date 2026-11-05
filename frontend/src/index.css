@@ -176,3 +176,29 @@
     @apply bg-primary/20 text-foreground;
   }
 }
+
+/* Keep the audited lists in page flow on narrow or short screens. Larger screens
+   retain their existing bounded flex layout and table scrolling. */
+@media (width < 48rem), (height < 48rem) {
+  .list-page {
+    height: auto;
+    min-height: 100%;
+  }
+  .list-layout,
+  .list-fill {
+    height: auto;
+    min-height: 0;
+    flex: none;
+  }
+  .list-layout > * {
+    flex-shrink: 0;
+  }
+  .list-frame {
+    height: auto;
+    flex: none;
+  }
+  .list-frame > [data-slot="table-container"] {
+    flex: none;
+    overflow-y: hidden;
+  }
+}

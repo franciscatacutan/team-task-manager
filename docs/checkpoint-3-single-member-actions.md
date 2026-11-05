@@ -1,6 +1,6 @@
 # Checkpoint 3 — single-member action safeguards
 
-Verified November 5, 2026 against user commit `b414860`. The user approved consistent single-removal pending locks, reachable short-screen actions, named member-role controls and visible save/error/exact-retry feedback. This checkpoint is verified and awaiting user review/commit. Five approved [checklist](v1-completion-checklist.md) items remain; later implementation requires separate approval.
+Verified November 5, 2026 against user commit `b414860`. The user approved consistent single-removal pending locks, reachable short-screen actions, named member-role controls and visible save/error/exact-retry feedback. The user committed this checkpoint as `f591667`. See the [checklist](v1-completion-checklist.md) for current progress and later approvals. The short-member-list limitation recorded below is historical; checkpoint 4 addresses it.
 
 ## Behavior and purpose
 

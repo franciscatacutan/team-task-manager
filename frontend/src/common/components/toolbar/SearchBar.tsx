@@ -3,15 +3,11 @@ import { Search } from "lucide-react";
 
 interface Props {
   search: string;
-  label?: string;
+  label: string;
   searchChange: (search: string) => void;
 }
 
-export default function SearchBar({
-  search,
-  searchChange,
-  label = "Search teams",
-}: Props) {
+export default function SearchBar({ search, searchChange, label }: Props) {
   return (
     <div className="relative w-full">
       <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

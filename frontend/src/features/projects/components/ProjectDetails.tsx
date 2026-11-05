@@ -254,7 +254,7 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-6 ">
+    <div className="list-layout flex flex-col h-full min-h-0 gap-6 ">
       <ProjectHeader
         teamKey={teamKey}
         project={project}
@@ -271,6 +271,7 @@ export default function ProjectDetails() {
       {(view == "board" || view == "list") && (
         <Toolbar
           search={{
+            label: "Search tasks",
             value: search,
             onChange: handleSearchChange,
           }}
@@ -299,7 +300,7 @@ export default function ProjectDetails() {
       <Tabs
         value={view}
         onValueChange={handleViewChange}
-        className="flex flex-col flex-1 min-h-0"
+        className="list-fill flex flex-col flex-1 min-h-0"
       >
         <TabsList className="inline-flex gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm">
           <TabsTrigger
@@ -336,10 +337,10 @@ export default function ProjectDetails() {
             </TabsTrigger>
           )}
         </TabsList>
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="list-fill flex flex-col flex-1 min-h-0">
           <TabsContent
             value="board"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
             <TaskBoard
               isUpdating={updateStatus.isPending}
@@ -370,7 +371,7 @@ export default function ProjectDetails() {
           </TabsContent>
           <TabsContent
             value="list"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
             {tasksError ? (
               <QueryFailure
@@ -396,7 +397,7 @@ export default function ProjectDetails() {
           </TabsContent>
           <TabsContent
             value="activity"
-            className="flex flex-col flex-1 min-h-0"
+            className="list-fill flex flex-col flex-1 min-h-0"
           >
             <ProjectActivity
               teamKey={teamKey}

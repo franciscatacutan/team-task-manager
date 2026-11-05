@@ -184,8 +184,8 @@ export default function ProfilePage() {
     );
 
   return (
-    <div className="min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
+    <div className="list-page min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="list-layout flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
         <ProfileHeader
           user={profileUser}
           isLoading={isLoading}
@@ -211,6 +211,7 @@ export default function ProfilePage() {
 
         <Toolbar
           search={{
+            label: "Search teams",
             value: search,
             onChange: handleSearchChange,
           }}
@@ -224,7 +225,7 @@ export default function ProfilePage() {
             onToggleOrder: handleToggleSortOrder,
           }}
         />
-        <section className="flex min-h-0 h-full flex-col gap-3 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">
+        <section className="list-fill flex min-h-0 h-full flex-col gap-3 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="text-lg">Teams</div>

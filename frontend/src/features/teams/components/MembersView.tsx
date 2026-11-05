@@ -81,7 +81,7 @@ export default function MembersPage() {
   if (!teamKey) return <div className="p-6">Invalid team</div>;
 
   return (
-    <section className="flex flex-col h-full min-h-0 gap-6">
+    <section className="list-layout flex flex-col h-full min-h-0 gap-6">
       <MembersHeader
         setAddMembersOpen={() => setAddMembersOpen(true)}
         setRemoveMembersOpen={() => setRemoveMembersOpen(true)}

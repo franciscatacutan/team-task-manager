@@ -9,7 +9,7 @@ type FilterValues = Record<string, string | string[] | undefined>;
 
 interface Props {
   search: {
-    label?: string;
+    label: string;
     value: string;
     onChange: (value: string) => void;
   };
