@@ -1,0 +1,112 @@
+# Use only through local.ps1: explicit project/env paths isolate this stack.
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?Initialize an isolated environment first}
+      APP_DB: ${APP_DB:?}
+      APP_USER: ttm_app
+      APP_PASSWORD: ${APP_PASSWORD:?}
+    volumes:
+      - database:/var/lib/postgresql/data
+      - backups:/backups
+      - ./init-database.sh:/docker-entrypoint-initdb.d/10-app-database.sh:ro
+      - ./restore-database.sh:/opt/ttm/restore-database.sh:ro
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d "$$APP_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+    logging: *bounded-logs
+    restart: unless-stopped
+
+  backend:
+    image: team-task-manager-backend:${RELEASE_TAG:?}
+    build:
+      context: ../../backend
+    environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE:?}
+      DB_URL: jdbc:postgresql://postgres:5432/${APP_DB:?}
+      DB_USERNAME: ttm_app
+      DB_PASSWORD: ${APP_PASSWORD:?}
+      JWT_SECRET: ${JWT_SECRET:?}
+      JWT_ISSUER: ttm-local-rehearsal
+      AUTH_REFRESH_COOKIE_NAME: ${TTM_PROJECT:?}_refresh
+      FRONTEND_URL: ${PUBLIC_ORIGIN:?}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [application, data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, --spider, -q, http://localhost:8080/actuator/health]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+    logging: *bounded-logs
+    restart: unless-stopped
+
+  frontend:
+    profiles: [rehearsal]
+    image: team-task-manager-frontend:${RELEASE_TAG:?}
+    build:
+      context: ../../frontend
+      args:
+        VITE_API_URL: ""
+    networks: [application]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, --spider, -q, http://127.0.0.1/]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *bounded-logs
+    restart: unless-stopped
+
+  edge:
+    profiles: [rehearsal]
+    image: caddy:2.11.9-alpine
+    environment:
+      APP_HOST: ${APP_HOST:?}
+      APP_PORT: ${APP_PORT:?}
+    ports:
+      - "${BIND_ADDRESS:?}:${APP_PORT:?}:${APP_PORT:?}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - edge_config:/config
+    networks: [edge, application]
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    security_opt: [no-new-privileges:true]
+    logging: *bounded-logs
+    restart: unless-stopped
+
+networks:
+  edge:
+  application:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  database:
+  backups:
+  certificates:
+  edge_config:

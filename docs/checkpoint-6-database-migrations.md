@@ -2,7 +2,7 @@
 
 Implemented November 5, 2026 against user commit `187d103` (checkpoint 5). The user chose **Flyway with SQL migrations** and **a fresh baseline in separate databases**, keeping the existing test database untouched and planning local cutover separately.
 
-**Checkpoint 6 is verified in that approved scope, awaiting user review/commit. Two release-readiness checkpoints remain (7–8).** Existing unmanaged-database adoption was not selected or certified; production deployment and local cutover were not performed.
+**Checkpoint 6 is verified in that approved scope and user-committed as `b764366`. This record retains its checkpoint-6 baseline; see the [current checklist](v1-completion-checklist.md) for later progress. Two release-readiness checkpoints remain (7–8).** Existing unmanaged-database adoption was not selected or certified; production deployment and local cutover were not performed.
 
 ## What changed and why
 

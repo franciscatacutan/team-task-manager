@@ -4,6 +4,7 @@ import {
 } from "@/features/auth/utils/sessionCoordinator";
 export { AuthSessionChangedError } from "@/features/auth/utils/sessionCoordinator";
 import axios from "axios";
+import { apiBaseURL } from "./apiConfig";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -17,10 +18,9 @@ import type { AuthResponse } from "../features/auth/types/auth.types";
 /*
  * Create an Axios instance with a base URL
  */
-const API_URL = import.meta.env.VITE_API_URL;
 
 export const apiClient = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: apiBaseURL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
