@@ -177,18 +177,25 @@ frontend/
 
 Schema startup uses Flyway followed by Hibernate validation. Existing nonempty databases without migration history are deliberately refused. Use a separate empty database for this fresh baseline; keep the old database/volume intact. See the [migration and local-cutover guide](docs/checkpoint-6-database-migrations.md) before starting an existing installation. No local cutover has been performed automatically.
 
-```bash
-cd backend
-mvn spring-boot:run
+For Windows native development, use the [native Maven guide](docs/native-development.md). It creates a separate database and pins configuration so stale terminal variables do not select the old unmanaged database. The current machine is already initialized; on another checkout, follow the guide's first-time Init instructions.
+
+From the repository root, in terminal 1:
+
+```powershell
+pwsh -File ./deploy/native/native.ps1 -Action Backend
 ```
+
+The launcher runs `backend/mvnw.cmd spring-boot:run` using the dedicated development settings. PostgreSQL stays in the existing Docker container.
 
 ### Frontend
 
-```bash
-cd frontend
-npm install
-npm run dev
+From the repository root, in terminal 2:
+
+```powershell
+pwsh -File ./deploy/native/native.ps1 -Action Frontend
 ```
+
+Open `http://localhost:5173`. If frontend dependencies are missing, run `npm ci` in `frontend` first. Read the generated `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` in ignored `deploy/native/state/environment.env` for the fresh database's login; no legacy data was imported.
 
 ---
 
@@ -260,7 +267,11 @@ On Linux/macOS, use `bash ./mvnw -B -ntp verify`. Set `JAVA_HOME` to your JDK if
 
 Application integration tests use a Spring-managed, disposable PostgreSQL 17 container and the `test` profile. Flyway creates the schema and Hibernate validates it. Dedicated migration tests also use their own disposable PostgreSQL 17 container and isolated databases, including real production-profile startup and an HTTP health check. They do not use the development database, local `.env`, or real bootstrap credentials. Docker must be available; integration tests fail rather than silently skip when it is missing.
 
-CI runs backend verification, frontend tests, strict lint, production compilation, and Docker image builds. See [Phase 1 notes](docs/phase-1.md), [Phase 2A notes](docs/phase-2a.md), [Phase 2B access fixes](docs/phase-2b-membership-access.md), [Phase 2C permissions](docs/phase-2c-permissions.md), [Phase 2D archiving](docs/phase-2d-archiving.md), [Phase 2E sessions](docs/phase-2e-sessions.md), [Phase 2F membership batches](docs/phase-2f-membership-batches.md), [Phase 2G task flows](docs/phase-2g-task-flows.md), [Phase 2H part 1 cache consistency](docs/phase-2h-1-cache-consistency.md), [Phase 2H part 2 user editing/privacy](docs/phase-2h-2-user-editing-and-privacy.md), [Phase 2H part 3 sessions/feedback](docs/phase-2h-3-sessions-and-feedback.md), [Phase 2I part 1 notification inbox](docs/phase-2i-1-notification-inbox.md), [Phase 2I part 2 activity/navigation](docs/phase-2i-2-activity-and-navigation.md), the [Phase 2I part 3 measured baseline](docs/phase-2i-3-performance-baseline.md), [Phase 2I part 3 performance fixes](docs/phase-2i-3-performance.md), [Phase 2J part 1 shared task view](docs/phase-2j-1-task-view-structure.md), [Phase 2J part 2 creation forms](docs/phase-2j-2-creation-forms.md), [Phase 2J part 3 password-reset/directory fixes](docs/phase-2j-3a-user-directory.md), [Phase 2J part 3 mobile/keyboard navigation](docs/phase-2j-3b-workspace-navigation.md), [Phase 2J part 3 comment/log feedback](docs/phase-2j-3c-comment-log-feedback.md), [Phase 2J part 3 edit/ownership dialogs](docs/phase-2j-3d-edit-ownership-dialogs.md), [Phase 2J part 3 member batch dialogs](docs/phase-2j-3e-member-batches.md), [Phase 2J part 3 account/authentication feedback](docs/phase-2j-3f-account-feedback.md), and [Phase 2J part 3 root crash recovery](docs/phase-2j-3g-crash-recovery.md) for scope and remaining work. See the [production readiness roadmap](docs/production-readiness-roadmap.md) and approved [v1 completion checklist](docs/v1-completion-checklist.md) for remaining scope, decisions and completion criteria. [Checkpoint 1 profile navigation](docs/checkpoint-1-profile-navigation.md) is committed as `f1a53b0`; [checkpoint 2 log contracts](docs/checkpoint-2-log-contracts.md) is committed as `b414860`. [Checkpoint 3 single-member actions](docs/checkpoint-3-single-member-actions.md) is committed as `f591667`; [checkpoint 4 labels, scrolling and contrast](docs/checkpoint-4-accessibility.md) is committed as `a88f461`. [Checkpoint 5 UI close-out](docs/checkpoint-5-ui-closeout.md) is user-committed as `187d103`. [Checkpoint 6 database migrations](docs/checkpoint-6-database-migrations.md) is user-committed as `b764366`. [Checkpoint 7 local preparation](docs/checkpoint-7-local-rehearsal.md) is verified and awaiting user review/commit; checkpoint 7 remains open for hosting-specific acceptance. Phase 2J is complete; two release-readiness checkpoints remain before production sign-off. Existing local database cutover remains a separate explicit action.
+CI runs backend verification, frontend tests, strict lint, production compilation, and Docker image builds. See [Phase 1 notes](docs/phase-1.md), [Phase 2A notes](docs/phase-2a.md), [Phase 2B access fixes](docs/phase-2b-membership-access.md), [Phase 2C permissions](docs/phase-2c-permissions.md), [Phase 2D archiving](docs/phase-2d-archiving.md), [Phase 2E sessions](docs/phase-2e-sessions.md), [Phase 2F membership batches](docs/phase-2f-membership-batches.md), [Phase 2G task flows](docs/phase-2g-task-flows.md), [Phase 2H part 1 cache consistency](docs/phase-2h-1-cache-consistency.md), [Phase 2H part 2 user editing/privacy](docs/phase-2h-2-user-editing-and-privacy.md), [Phase 2H part 3 sessions/feedback](docs/phase-2h-3-sessions-and-feedback.md), [Phase 2I part 1 notification inbox](docs/phase-2i-1-notification-inbox.md), [Phase 2I part 2 activity/navigation](docs/phase-2i-2-activity-and-navigation.md), the [Phase 2I part 3 measured baseline](docs/phase-2i-3-performance-baseline.md), [Phase 2I part 3 performance fixes](docs/phase-2i-3-performance.md), [Phase 2J part 1 shared task view](docs/phase-2j-1-task-view-structure.md), [Phase 2J part 2 creation forms](docs/phase-2j-2-creation-forms.md), [Phase 2J part 3 password-reset/directory fixes](docs/phase-2j-3a-user-directory.md), [Phase 2J part 3 mobile/keyboard navigation](docs/phase-2j-3b-workspace-navigation.md), [Phase 2J part 3 comment/log feedback](docs/phase-2j-3c-comment-log-feedback.md), [Phase 2J part 3 edit/ownership dialogs](docs/phase-2j-3d-edit-ownership-dialogs.md), [Phase 2J part 3 member batch dialogs](docs/phase-2j-3e-member-batches.md), [Phase 2J part 3 account/authentication feedback](docs/phase-2j-3f-account-feedback.md), and [Phase 2J part 3 root crash recovery](docs/phase-2j-3g-crash-recovery.md) for scope and remaining work. See the [production readiness roadmap](docs/production-readiness-roadmap.md) and approved [v1 completion checklist](docs/v1-completion-checklist.md) for remaining scope, decisions and completion criteria. [Checkpoint 1 profile navigation](docs/checkpoint-1-profile-navigation.md) is committed as `f1a53b0`; [checkpoint 2 log contracts](docs/checkpoint-2-log-contracts.md) is committed as `b414860`. [Checkpoint 3 single-member actions](docs/checkpoint-3-single-member-actions.md) is committed as `f591667`; [checkpoint 4 labels, scrolling and contrast](docs/checkpoint-4-accessibility.md) is committed as `a88f461`. [Checkpoint 5 UI close-out](docs/checkpoint-5-ui-closeout.md) is user-committed as `187d103`. [Checkpoint 6 database migrations](docs/checkpoint-6-database-migrations.md) is user-committed as `b764366`. [Checkpoint 7 local preparation](docs/checkpoint-7-local-rehearsal.md) is user-committed as `055e0f8`; checkpoint 7 remains open for hosting-specific acceptance. Phase 2J is complete; two release-readiness checkpoints remain before production sign-off. Existing local database cutover remains a separate explicit action.
+
+The user approved a separate [task-board status-movement follow-up](docs/task-board-status-movement.md) after the interaction review: confirmed drop animation, valid targets, stable save/retry feedback, keyboard column movement and reduced-motion support. It preserves selected sorting and existing workflow/permissions. This does not add a ninth checkpoint or close release checkpoints 7–8. Wider design/flow findings await the user's next choice.
+
+The approved [mobile navigation and creation-controls follow-up](docs/mobile-navigation-and-creation.md) fixes narrow-screen navbar overlap, standardizes entity-specific creation actions and touch targets, and aligns the global menu with existing archived/read-only rules. The existing eight-checkpoint release plan and pending checkpoints 7–8 remain unchanged.
 
 ---
 

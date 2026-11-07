@@ -22,3 +22,6 @@ deploy/local/state/
 backend/target/
 frontend/node_modules/
 frontend/dist/
+
+# Native development credentials and provisioning state
+deploy/native/state/

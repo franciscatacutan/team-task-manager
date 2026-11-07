@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Sparkles, Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   totalTeam: number;
@@ -31,8 +31,8 @@ export default function TeamSelectionHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 rounded-xl border px-4 py-2 text-sm">
+        <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
+          <div className="flex shrink-0 items-center gap-3 rounded-xl border px-4 py-2 text-sm">
             <div className="text-xl font-semibold tracking-tight text-foreground">
               {totalTeam}
             </div>
@@ -42,10 +42,11 @@ export default function TeamSelectionHeader({
           </div>
 
           {canCreateTeam && (
-            <Button className="rounded-xl" onClick={() => setOpen()}>
-              <Plus className="h-4 w-4" />
-              Create
-            </Button>
+            <CreateButton
+              entity="team"
+              className="flex-1 sm:flex-none"
+              onClick={setOpen}
+            />
           )}
         </div>
       </div>

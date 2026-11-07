@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
 import TeamCard from "./TeamCard";
 import { Button } from "@/components/ui/button";
 import type { Team } from "../types/team.type";
@@ -61,10 +61,11 @@ export default function TeamsBoard({
               Clear filters
             </Button>
           ) : canCreateTeam ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateTeam}>
-              <Plus className="h-4 w-4" />
-              Create team
-            </Button>
+            <CreateButton
+              entity="team"
+              className="mt-6"
+              onClick={onCreateTeam}
+            />
           ) : null}
         </div>
       )}

@@ -1,6 +1,7 @@
+import CreateButton from "@/common/components/CreateButton";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
 import { Link, useNavigate } from "react-router";
-import { ArrowUpDown, Plus } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
 import type { Task } from "../types/task.types";
 import {
@@ -224,10 +225,11 @@ export default function TaskList({
               Clear filters
             </Button>
           ) : canCreateTask ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateTask}>
-              <Plus className="h-4 w-4" />
-              Create task
-            </Button>
+            <CreateButton
+              entity="task"
+              className="mt-6"
+              onClick={onCreateTask}
+            />
           ) : null}
         </div>
       )}

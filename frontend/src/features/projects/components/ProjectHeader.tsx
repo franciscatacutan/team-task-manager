@@ -2,7 +2,7 @@ import { requestError } from "@/common/utils/requestError";
 import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
 
 import EditableField from "../../../common/components/EditableField";
-import { Button } from "../../../components/ui/button";
+import CreateButton from "@/common/components/CreateButton";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
 import { formatDate } from "../../../common/utils/dateFormatter";
 import { useUpdateProject } from "../hooks/useUpdateProject";
@@ -114,14 +114,13 @@ export default function ProjectHeader({
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 pt-1">
+          <div className="flex w-full shrink-0 items-center gap-2 pt-1 sm:w-auto">
             {permissions.canCreateTask && (
-              <Button
+              <CreateButton
+                entity="task"
+                className="flex-1 sm:flex-none"
                 onClick={onCreateTask}
-                className="h-9 rounded-lg px-3 text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5"
-              >
-                Create Task
-              </Button>
+              />
             )}
 
             {permissions.canDeleteProject && (

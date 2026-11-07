@@ -59,7 +59,7 @@ export function DeleteProjectButton({
         <Button
           aria-label="Archive project"
           variant="ghost"
-          className=" hover:text-destructive hover:bg-destructive/10"
+          className="h-11 w-11 rounded-xl hover:text-destructive hover:bg-destructive/10 sm:h-9 sm:w-9"
         >
           <Archive className="h-4 w-4" />
         </Button>

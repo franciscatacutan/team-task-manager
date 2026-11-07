@@ -55,16 +55,16 @@ describe("task creation form submission", () => {
       </QueryClientProvider>,
     );
     const user = userEvent.setup();
-    expect(screen.getByRole("button", { name: "Create Task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create task" })).toBeDisabled();
     await user.type(screen.getByPlaceholderText("Enter task name..."), " X ");
     await user.click(screen.getByRole("button", { name: "Choose Critical" }));
     await user.click(screen.getByRole("button", { name: "Select assignee" }));
     for (const date of screen.getAllByRole("button", { name: "Choose date" }))
       await user.click(date);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Create Task" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Create task" })).toBeEnabled(),
     );
-    await user.click(screen.getByRole("button", { name: "Create Task" }));
+    await user.click(screen.getByRole("button", { name: "Create task" }));
     await waitFor(() =>
       expect(createTask).toHaveBeenCalledExactlyOnceWith(
         "TEAM",

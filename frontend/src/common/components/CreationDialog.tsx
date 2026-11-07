@@ -44,7 +44,7 @@ export default function CreationDialog({
           if (pending) event.preventDefault();
         }}
       >
-        <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
+        <DialogHeader className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-14">
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription className="text-foreground/75">
             {description}
@@ -57,7 +57,7 @@ export default function CreationDialog({
             variant="ghost"
             size="icon-sm"
             disabled={pending}
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 h-11 w-11 rounded-xl sm:h-9 sm:w-9"
           >
             <XIcon aria-hidden="true" />
             <span className="sr-only">Close</span>

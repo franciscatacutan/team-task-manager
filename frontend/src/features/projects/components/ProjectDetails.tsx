@@ -1,5 +1,4 @@
 import QueryFailure from "@/common/components/QueryFailure";
-import { taskMutationError } from "../../tasks/utils/taskMutationError";
 import { useNavigate, useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 
@@ -200,10 +199,15 @@ export default function ProjectDetails() {
     setPage(0);
   };
 
-  function handleStatusChange(taskNumber: number, status: TaskStatus) {
+  function handleStatusChange(
+    taskNumber: number,
+    status: TaskStatus,
+    checkCurrent = false,
+  ) {
     return updateStatus.mutateAsync({
       taskNumber,
       status,
+      ...(checkCurrent ? { checkCurrent: true } : {}),
     });
   }
 
@@ -287,16 +291,6 @@ export default function ProjectDetails() {
         />
       )}
 
-      {updateStatus.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {taskMutationError(updateStatus.error)}
-        </p>
-      )}
-      {updateStatus.isPending && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Updating task status...
-        </p>
-      )}
       <Tabs
         value={view}
         onValueChange={handleViewChange}

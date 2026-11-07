@@ -53,6 +53,7 @@ export default function TeamSidebar({
               type="button"
               variant="outline"
               aria-label="Open workspace navigation"
+              className="h-11 rounded-xl"
             >
               <Menu aria-hidden="true" className="h-4 w-4" />
               <span>Workspace</span>

@@ -174,7 +174,7 @@ describe("workspace drawer and sidebar", () => {
       );
       await user.click(screen.getByRole("combobox", { name: /Switch team/ }));
       expect(
-        Boolean(screen.queryByRole("button", { name: "Create Team" })),
+        Boolean(screen.queryByRole("button", { name: "Create team" })),
       ).toBe(canCreate);
     },
   );

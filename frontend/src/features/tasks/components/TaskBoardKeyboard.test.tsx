@@ -12,13 +12,29 @@ const task = {
   readOnly: false,
   deletedAt: null,
 } as Task;
+let populated = false;
 vi.mock("../hooks/useInfiniteTasks", () => ({
   useInfiniteTasks: (_team: string, _project: string, status: TaskStatus) => ({
     data: {
       pages: [
         {
-          content: status === task.status ? [task] : [],
-          totalElements: status === task.status ? 1 : 0,
+          content:
+            status === task.status
+              ? [task]
+              : populated && status === "IN_PROGRESS"
+                ? [
+                    {
+                      ...task,
+                      taskNumber: 18,
+                      name: "Destination task",
+                      status: "IN_PROGRESS",
+                    },
+                  ]
+                : [],
+          totalElements:
+            status === task.status || (populated && status === "IN_PROGRESS")
+              ? 1
+              : 0,
         },
       ],
     },
@@ -27,6 +43,7 @@ vi.mock("../hooks/useInfiniteTasks", () => ({
 }));
 beforeEach(() => {
   task.status = "TODO";
+  populated = false;
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -61,29 +78,33 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("board keyboard movement", () => {
-  it("moves a task into an empty adjacent column with Space, ArrowRight, Space", async () => {
-    const change = vi.fn();
-    render(
-      <TaskBoard
-        teamKey="TEAM"
-        projectKey="PROJECT"
-        params={{ deletedFilter: "ACTIVE", status: ["TODO", "IN_PROGRESS"] }}
-        canChangeTaskStatus={() => true}
-        onOpenTask={vi.fn()}
-        onStatusChange={change}
-      />,
-    );
-    const user = userEvent.setup();
-    const card = screen.getByRole("button", {
-      name: "Move task #17: Keyboard task",
-    });
-    card.focus();
-    await user.keyboard("[Space]");
-    await waitFor(() => expect(card).toHaveAttribute("aria-pressed", "true"));
-    await user.keyboard("[ArrowRight]");
-    await user.keyboard("[Space]");
-    expect(change).toHaveBeenCalledExactlyOnceWith(17, "IN_PROGRESS");
-  });
+  it.each([false, true])(
+    "moves between status columns with Space, ArrowRight, Space (destination populated: %s)",
+    async (hasTask) => {
+      populated = hasTask;
+      const change = vi.fn();
+      render(
+        <TaskBoard
+          teamKey="TEAM"
+          projectKey="PROJECT"
+          params={{ deletedFilter: "ACTIVE", status: ["TODO", "IN_PROGRESS"] }}
+          canChangeTaskStatus={() => true}
+          onOpenTask={vi.fn()}
+          onStatusChange={change}
+        />,
+      );
+      const user = userEvent.setup();
+      const card = screen.getByRole("button", {
+        name: "Move task #17: Keyboard task",
+      });
+      card.focus();
+      await user.keyboard("[Space]");
+      await waitFor(() => expect(card).toHaveAttribute("aria-pressed", "true"));
+      await user.keyboard("[ArrowRight]");
+      await user.keyboard("[Space]");
+      expect(change).toHaveBeenCalledExactlyOnceWith(17, "IN_PROGRESS");
+    },
+  );
   it("cancels keyboard dragging without a mutation", async () => {
     const change = vi.fn();
     render(
@@ -183,13 +204,15 @@ it.each([false, true])(
         requestAnimationFrame(() => requestAnimationFrame(done)),
       );
     });
-    expect(
-      screen.getByRole("button", {
-        name: focusElsewhere
-          ? "Another control"
-          : "Move task #17: Keyboard task",
-      }),
-    ).toHaveFocus();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: focusElsewhere
+            ? "Another control"
+            : "Move task #17: Keyboard task",
+        }),
+      ).toHaveFocus(),
+    );
   },
 );
 

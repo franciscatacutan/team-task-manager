@@ -1,6 +1,7 @@
+import CreateButton from "@/common/components/CreateButton";
 import { Link } from "react-router";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
-import { ArrowUpDown, Plus } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import type { Team } from "../types/team.type";
 import type { SortField } from "@/common/types/sort.types";
 
@@ -164,10 +165,11 @@ export default function TeamsList({
               Clear filters
             </Button>
           ) : canCreateTeam ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateTeam}>
-              <Plus className="h-4 w-4" />
-              Create team
-            </Button>
+            <CreateButton
+              entity="team"
+              className="mt-6"
+              onClick={onCreateTeam}
+            />
           ) : null}
         </div>
       )}

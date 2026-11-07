@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
 import PriorityBadge from "../../../common/components/PriorityBadge";
 import { formatDate } from "../../../common/utils/dateFormatter";
@@ -12,18 +13,32 @@ interface Props {
   task: Task;
   onOpen?: (task: Task) => void;
   dragHandle?: ReactNode;
+  movementActive?: boolean;
 }
 
-export default function TaskCard({ task, onOpen, dragHandle }: Props) {
+export default function TaskCard({
+  task,
+  onOpen,
+  dragHandle,
+  movementActive = false,
+}: Props) {
   return (
-    <Card className="group rounded-xl border border-border/70 bg-background/96 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-background hover:shadow-md">
+    <Card
+      className={cn(
+        "group rounded-xl border border-border/70 bg-background/96 shadow-sm",
+        movementActive && !onOpen && "bg-background",
+        onOpen &&
+          !movementActive &&
+          "motion-safe:transition-[transform,box-shadow,border-color,background-color] motion-safe:duration-150 motion-safe:hover:-translate-y-0.5 hover:border-border hover:bg-background hover:shadow-md",
+      )}
+    >
       <CardContent className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {dragHandle ?? (
               <GripVertical
                 aria-hidden="true"
-                className="h-3.5 w-3.5 opacity-55"
+                className="h-7 w-7 p-[7px] opacity-55"
               />
             )}
             <span className="rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 font-medium">

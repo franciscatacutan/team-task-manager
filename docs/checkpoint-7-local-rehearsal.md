@@ -2,7 +2,7 @@
 
 Prepared November 6, 2026 against user commit `b764366`. The user approved local preparation first, one canonical browser origin per running setup, local-IP HTTPS with manual certificate trust, and keeping the existing database untouched. The requested long-term modes are localhost development, LAN testing with multiple users, and later hosted production (provider not chosen).
 
-**Local preparation is verified and ready for review/commit. Checkpoint 7 remains open:** live hosting, domain/public TLS, off-host backups, alert delivery, operational ownership and hosting-specific recovery/rollback are not certified. Checkpoint 8's broader release/security/load acceptance is also still pending. No ninth checkpoint is added.
+**Local preparation is user-committed as `055e0f8`. Checkpoint 7 remains open:** live hosting, domain/public TLS, off-host backups, alert delivery, operational ownership and hosting-specific recovery/rollback are not certified. Checkpoint 8's broader release/security/load acceptance is also still pending. No ninth checkpoint is added.
 
 ## Choose a mode
 
@@ -45,7 +45,7 @@ npm run dev
 
 Ensure any existing frontend `.env`/`.env.local` has a blank `VITE_API_URL` for this mode. The launching environment normally takes priority, but an old explicit API URL must not silently keep pointing at a previous backend. `DEV_API_TARGET` is a **launching-shell** variable; it is not a client-exposed Vite variable or automatically read from `.env` by this config. `/api` is proxied without rewriting the browser Origin header.
 
-The configured trusted frontend origin defaults to `http://localhost:5173`; use that hostname consistently rather than alternating with `127.0.0.1`. Backend changes require another `Start` to rebuild the image; Vite updates the frontend during development. A native-JDK workflow can later use the loopback database with its isolated credentials, but do not point it at the old unmanaged database or leave competing backends running unintentionally.
+The configured trusted frontend origin defaults to `http://localhost:5173`; use that hostname consistently rather than alternating with `127.0.0.1`. Backend changes require another `Start` to rebuild the image; Vite updates the frontend during development. For a backend running directly through Maven instead of Docker, use the separately approved [native development setup](native-development.md). It provisions a fresh database and dedicated role in the existing PostgreSQL container, with explicit Maven/Vite settings. Stop competing backends before switching workflows; the original unmanaged database remains intact.
 
 If ports are occupied, choose them during `Init`:
 

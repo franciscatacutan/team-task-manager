@@ -1,6 +1,6 @@
-import { FolderKanban, Plus } from "lucide-react";
+import { FolderKanban } from "lucide-react";
 
-import { Button } from "../../../components/ui/button";
+import CreateButton from "@/common/components/CreateButton";
 
 interface Props {
   onCreateProject: () => void;
@@ -25,10 +25,7 @@ export function ProjectsHeader({ onCreateProject, canCreateProject }: Props) {
         </div>
 
         {canCreateProject && (
-          <Button className="rounded-xl" onClick={onCreateProject}>
-            <Plus className="h-4 w-4" />
-            Create
-          </Button>
+          <CreateButton entity="project" onClick={onCreateProject} />
         )}
       </div>
     </section>

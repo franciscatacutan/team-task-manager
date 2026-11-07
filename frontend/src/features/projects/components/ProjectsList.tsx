@@ -1,6 +1,7 @@
+import CreateButton from "@/common/components/CreateButton";
 import { Link } from "react-router";
 import ArchiveBadge from "@/common/components/ArchiveBadge";
-import { ArrowUpDown, Plus } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import type { SortField } from "@/common/types/sort.types";
 
 import {
@@ -186,10 +187,11 @@ export default function ProjectsList({
               Clear filters
             </Button>
           ) : canCreateProject ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateProject}>
-              <Plus className="h-4 w-4" />
-              Create project
-            </Button>
+            <CreateButton
+              entity="project"
+              className="mt-6"
+              onClick={onCreateProject}
+            />
           ) : null}
         </div>
       )}

@@ -1,5 +1,6 @@
+import CreateButton from "@/common/components/CreateButton";
 import { useNavigate } from "react-router";
-import { ChevronsUpDown, Plus, Check } from "lucide-react";
+import { ChevronsUpDown, Check } from "lucide-react";
 
 import { useAllTeams } from "../hooks/useAllTeams";
 import { Button } from "../../../components/ui/button";
@@ -147,15 +148,12 @@ export default function TeamSwitcher({
           {canCreateTeam && <Separator />}
 
           {canCreateTeam && (
-            <Button
+            <CreateButton
+              entity="team"
               variant="secondary"
-              size="sm"
-              className="mt-2 w-full justify-start gap-2 rounded-xl"
+              className="mt-2 w-full justify-start sm:w-full"
               onClick={handleCreate}
-            >
-              <Plus className="h-4 w-4" />
-              Create Team
-            </Button>
+            />
           )}
         </PopoverContent>
       </Popover>

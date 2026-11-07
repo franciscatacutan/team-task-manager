@@ -52,13 +52,13 @@ export default function CreationForm({
     >
       <div
         data-slot="creation-form-body"
-        className="min-h-0 overflow-y-auto px-6 py-5"
+        className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
       >
         <fieldset disabled={pending} className="min-w-0 space-y-5">
           {typeof children === "function" ? children(pending) : children}
         </fieldset>
       </div>
-      <div className="shrink-0 space-y-3 border-t bg-muted/30 px-6 py-4">
+      <div className="shrink-0 space-y-3 border-t bg-muted/30 px-4 py-4 sm:px-6">
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -74,17 +74,22 @@ export default function CreationForm({
             <Button
               type="button"
               variant="outline"
+              className="h-11 rounded-xl sm:h-9"
               disabled={pending}
               onClick={onCancel}
             >
               Cancel
             </Button>
           )}
-          <Button type="submit" disabled={pending || !canSubmit}>
+          <Button
+            type="submit"
+            className="h-11 rounded-xl sm:h-9"
+            disabled={pending || !canSubmit}
+          >
             {pending && (
               <LoaderCircle aria-hidden="true" className="animate-spin" />
             )}
-            {pending ? "Creating..." : `Create ${entity}`}
+            {pending ? "Creating..." : `Create ${entity.toLowerCase()}`}
           </Button>
         </div>
       </div>

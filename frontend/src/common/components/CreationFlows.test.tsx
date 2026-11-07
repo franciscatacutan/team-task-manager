@@ -223,7 +223,7 @@ async function fill(entity: Entity, user: ReturnType<typeof userEvent.setup>) {
   }
   await waitFor(() =>
     expect(
-      screen.getByRole("button", { name: `Create ${entity}` }),
+      screen.getByRole("button", { name: `Create ${entity.toLowerCase()}` }),
     ).toBeEnabled(),
   );
 }
@@ -263,7 +263,7 @@ describe.each(["Team", "Project", "Task"] as const)(
       const { user, closed } = setup(entity);
       await fill(entity, user);
       await user.dblClick(
-        screen.getByRole("button", { name: `Create ${entity}` }),
+        screen.getByRole("button", { name: `Create ${entity.toLowerCase()}` }),
       );
       await waitFor(() => expect(apiFor(entity)).toHaveBeenCalledTimes(1));
       expect(screen.getByRole("form")).toHaveAttribute("aria-busy", "true");
@@ -297,7 +297,7 @@ describe.each(["Team", "Project", "Task"] as const)(
       expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
       apiFor(entity).mockResolvedValue(result as never);
       await user.click(
-        screen.getByRole("button", { name: `Create ${entity}` }),
+        screen.getByRole("button", { name: `Create ${entity.toLowerCase()}` }),
       );
       await waitFor(() =>
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -316,7 +316,7 @@ describe.each(["Team", "Project", "Task"] as const)(
       const { user, closed, success } = setup(entity);
       await fill(entity, user);
       await user.click(
-        screen.getByRole("button", { name: `Create ${entity}` }),
+        screen.getByRole("button", { name: `Create ${entity.toLowerCase()}` }),
       );
       await waitFor(() => expect(apiFor(entity)).toHaveBeenCalledOnce());
       const args = apiFor(entity).mock.calls[0];

@@ -8,3 +8,6 @@
 !.env.example
 **/mvnw
 **/mvnw.cmd
+
+# Native development credentials and provisioning state
+deploy/native/state/

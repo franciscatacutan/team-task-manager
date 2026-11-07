@@ -178,7 +178,7 @@ export default function NotificationCenter() {
           type="button"
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-xl"
+          className="relative h-11 w-11 rounded-xl sm:h-9 sm:w-9"
           aria-label={
             unreadQuery.isError
               ? "Notifications (unread count unavailable)"
