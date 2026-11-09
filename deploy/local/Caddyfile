@@ -2,6 +2,7 @@
   admin off
   auto_https disable_redirects
   skip_install_trust
+  default_sni {$APP_HOST}
 }
 
 https://{$APP_HOST}:{$APP_PORT} {
