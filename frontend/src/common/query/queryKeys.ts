@@ -81,6 +81,9 @@ export const queryKeys = {
   },
   tasks: {
     listsRoot: ["tasks"] as const,
+    myWorkRoot: ["my-work"] as const,
+    myWork: (userId: string, page: number, includeClosed: boolean) =>
+      ["my-work", userId, page, includeClosed] as const,
     teamLists: (teamKey: string) => ["tasks", teamKey] as const,
     lists: (teamKey: string, projectKey: string) =>
       ["tasks", teamKey, projectKey] as const,

@@ -11,6 +11,7 @@ import ProfilePage from "../pages/ProfilePage";
 import SettingsPage from "../pages/SettingsPage";
 import UsersPage from "../pages/UsersPage";
 import TaskDetailsPage from "@/pages/TaskDetailsPage";
+import MyWorkPage from "@/pages/MyWorkPage";
 import ProjectDetails from "../features/projects/components/ProjectDetails";
 import ProjectsView from "../features/projects/components/ProjectsView";
 import WorkspaceLayout from "../layout/workspace/WorkspaceLayout";
@@ -50,6 +51,7 @@ export default function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route path="/my-work" element={<MyWorkPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/users" element={<UsersPage />} />

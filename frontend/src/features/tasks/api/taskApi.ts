@@ -3,12 +3,25 @@ import { apiClient } from "@/api/apiClients";
 import type { PageResponse } from "@/common/types/pageResponse.types";
 import type { CreateTaskInput } from "../types/createTaskSchema";
 import type {
+  MyWorkItem,
   Task,
   TaskActivity,
   UpdateTaskInput,
   TaskQueryParams,
 } from "../types/task.types";
 import type { TaskStatus } from "../utils/task.constants";
+
+export async function getMyWork(
+  page: number,
+  includeClosed: boolean,
+  signal?: AbortSignal,
+): Promise<PageResponse<MyWorkItem>> {
+  const { data } = await apiClient.get<PageResponse<MyWorkItem>>("/my-work", {
+    params: { page, includeClosed },
+    signal,
+  });
+  return data;
+}
 
 export const getTasks = async (
   teamKey: string,

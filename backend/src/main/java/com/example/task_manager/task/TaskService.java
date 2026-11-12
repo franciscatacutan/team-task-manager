@@ -18,6 +18,7 @@ import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.dto.ChangeStatusRequest;
 import com.example.task_manager.task.dto.CreateTaskCommentRequest;
 import com.example.task_manager.task.dto.CreateTaskRequest;
+import com.example.task_manager.task.dto.MyWorkItem;
 import com.example.task_manager.task.dto.TaskActivityResponse;
 import com.example.task_manager.task.dto.TaskResponse;
 import com.example.task_manager.task.dto.TaskSearchRequest;
@@ -333,6 +334,37 @@ public class TaskService {
         taskRepository.findMyTasksByProject(
             project.getId(), requester.getId(), requireSortable(pageable));
     return toPageResponse(page, this::mapToResponse);
+  }
+
+  /** Lists current assignments across the signed-in user's active teams. */
+  @Transactional(readOnly = true)
+  public PageResponse<MyWorkItem> getMyWork(
+      String requesterEmail, boolean includeClosed, Pageable pageable) {
+    var requester = globalAuthorizationService.getUserByEmail(requesterEmail);
+    int size = Math.min(pageable.getPageSize(), 50);
+    if ((long) pageable.getPageNumber() * size > Integer.MAX_VALUE) {
+      throw new BadRequestInputException("Page offset is too large.");
+    }
+    var page =
+        taskRepository.findMyWork(
+            requester.getId(),
+            includeClosed,
+            TaskPlanningCalendar.CLOSED_STATUSES,
+            PageRequest.of(pageable.getPageNumber(), size));
+    return toPageResponse(
+        page,
+        row ->
+            new MyWorkItem(
+                row.getTaskNumber(),
+                row.getName(),
+                row.getStatus(),
+                row.getPriority(),
+                planningCalendar.day(row.getPlannedDueDate()),
+                row.getTeamKey(),
+                row.getTeamName(),
+                row.getProjectKey(),
+                row.getProjectName(),
+                row.getAssigned()));
   }
 
   /** Returns all activity in a task */

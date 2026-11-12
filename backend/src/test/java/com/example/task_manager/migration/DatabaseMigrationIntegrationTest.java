@@ -76,7 +76,7 @@ class DatabaseMigrationIntegrationTest {
       assertThat(managed.getConfiguration().isCleanDisabled()).isTrue();
       assertThat(managed.getConfiguration().isValidateOnMigrate()).isTrue();
       assertThat(managed.getConfiguration().isValidateMigrationNaming()).isTrue();
-      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("3");
+      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("4");
       assertThat(managed.migrate().migrationsExecuted).isZero();
       assertThat(database.jdbc().queryForObject("select count(*) from users", Integer.class))
           .isZero();
@@ -131,7 +131,7 @@ class DatabaseMigrationIntegrationTest {
     assertThat(latest.info().applied()).hasSize(2);
     latest.validate();
 
-    Flyway accountArchive = flyway(database, null);
+    Flyway accountArchive = flyway(database, "3");
     assertThat(accountArchive.migrate().migrationsExecuted).isEqualTo(1);
     assertThat(
             database
@@ -141,6 +141,18 @@ class DatabaseMigrationIntegrationTest {
         .isEqualTo(1);
     assertThat(snapshot(database)).isEqualTo(original);
     accountArchive.validate();
+
+    Flyway myWork = flyway(database, null);
+    assertThat(myWork.migrate().migrationsExecuted).isEqualTo(1);
+    assertThat(snapshot(database)).isEqualTo(original);
+    assertThat(
+            database
+                .jdbc()
+                .queryForObject(
+                    "select indexdef from pg_indexes where indexname = 'idx_task_support_deleted'",
+                    String.class))
+        .contains("(support_id, deleted_at)");
+    myWork.validate();
   }
 
   @Test
@@ -216,7 +228,7 @@ class DatabaseMigrationIntegrationTest {
     seed(database);
     var original = snapshot(database);
     Files.writeString(
-        temporary.resolve("V4__deliberate_test_failure.sql"),
+        temporary.resolve("V5__deliberate_test_failure.sql"),
         """
         CREATE TABLE should_rollback (id integer PRIMARY KEY);
         INSERT INTO deliberately_missing_table VALUES (1);
@@ -229,7 +241,7 @@ class DatabaseMigrationIntegrationTest {
             database.jdbc().queryForObject("select to_regclass('should_rollback')", String.class))
         .isNull();
     assertThat(snapshot(database)).isEqualTo(original);
-    assertThat(valid.info().applied()).hasSize(3);
+    assertThat(valid.info().applied()).hasSize(4);
     valid.validate();
   }
 
@@ -279,7 +291,7 @@ class DatabaseMigrationIntegrationTest {
             .contains("(" + index.columnList().replace(" ", "") + ")");
       }
     }
-    assertThat(expectedIndexes).isEqualTo(30);
+    assertThat(expectedIndexes).isEqualTo(31);
     // Counts exclude Flyway's own history table; Hibernate validation alone does not cover these.
     for (var expected : Map.of("p", 12, "u", 6, "f", 25, "c", 15).entrySet()) {
       assertThat(

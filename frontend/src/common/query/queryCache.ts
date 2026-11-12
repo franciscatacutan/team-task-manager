@@ -28,6 +28,7 @@ async function invalidate(client: QueryClient, queryKeys: readonly QueryKey[]) {
   );
 }
 const teamChangeKeys = (teamKey: string) => [
+  keys.tasks.myWorkRoot,
   keys.teams.lists,
   keys.teams.detail(teamKey),
   keys.teams.activities(teamKey),

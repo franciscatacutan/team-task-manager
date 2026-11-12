@@ -27,6 +27,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
     indexes = {
       @Index(name = "idx_task_project_deleted", columnList = "project_id, deleted_at"),
       @Index(name = "idx_task_assignee_deleted", columnList = "assignee_id, deleted_at"),
+      @Index(name = "idx_task_support_deleted", columnList = "support_id, deleted_at"),
       @Index(name = "idx_task_team_status_due", columnList = "status, planned_due_date, deleted_at")
     })
 @EntityListeners(AuditingEntityListener.class)

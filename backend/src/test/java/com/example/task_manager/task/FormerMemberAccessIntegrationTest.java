@@ -14,6 +14,7 @@ import com.example.task_manager.support.TestFixtures;
 import com.example.task_manager.support.TestFixtures.Workspace;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
+import com.example.task_manager.task.entity.TaskStatus;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
@@ -23,6 +24,7 @@ import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -171,6 +173,121 @@ class FormerMemberAccessIntegrationTest extends PostgresIntegrationTest {
         });
     mvc.perform(get(feedPath(route)).header("Authorization", memberAuthorization))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void myWorkCombinesAssignmentsAndSupportOnlyWhileMembershipAndParentsAreActive()
+      throws Exception {
+    mvc.perform(get("/api/my-work")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/my-work").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
+
+    var other =
+        transactions.execute(
+            status -> {
+              var user = em.find(UserEntity.class, member.getId());
+              var owner = em.find(UserEntity.class, workspace.owner().getId());
+              var team = em.find(TeamEntity.class, workspace.team().getId());
+              var project = em.find(ProjectEntity.class, workspace.project().getId());
+              var original = em.find(TaskEntity.class, workspace.task().getId());
+              original.setAssignee(user);
+              original.setLastActivityAt(Instant.parse("2026-01-03T00:00:00Z"));
+
+              var anotherProject = new ProjectEntity();
+              anotherProject.setTeam(team);
+              anotherProject.setOwner(owner);
+              anotherProject.setCreatedBy(owner);
+              anotherProject.setName("Second project");
+              anotherProject.setKey("SECOND-" + UUID.randomUUID());
+              em.persist(anotherProject);
+              var supported = task(anotherProject, owner, 1, "Supported work");
+              supported.setSupport(user);
+              supported.setLastActivityAt(Instant.parse("2026-01-02T00:00:00Z"));
+              em.persist(supported);
+
+              var done = task(project, user, 2, "Finished work");
+              done.setStatus(TaskStatus.DONE);
+              em.persist(done);
+              var archived = task(project, user, 3, "Archived work");
+              archived.setDeletedAt(Instant.now());
+              em.persist(archived);
+              var legacyDeleted = task(project, user, 4, "Legacy deleted work");
+              legacyDeleted.setStatus(TaskStatus.DELETED);
+              em.persist(legacyDeleted);
+              em.persist(task(project, owner, 5, "Someone else's work"));
+
+              var otherWorkspace = TestFixtures.workspace(em);
+              var membership = new TeamMemberEntity();
+              membership.setTeam(otherWorkspace.team());
+              membership.setUser(user);
+              membership.setAddedBy(otherWorkspace.owner());
+              membership.setRole(TeamRole.MEMBER);
+              em.persist(membership);
+              otherWorkspace.task().setAssignee(user);
+              otherWorkspace.task().setName("Other team work");
+              otherWorkspace.task().setLastActivityAt(Instant.parse("2026-01-01T00:00:00Z"));
+
+              var foreign = TestFixtures.workspace(em);
+              foreign.task().setSupport(user);
+              foreign.task().setName("No membership");
+              return otherWorkspace;
+            });
+
+    mvc.perform(get("/api/my-work?size=2").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(3))
+        .andExpect(jsonPath("$.totalPages").value(2))
+        .andExpect(jsonPath("$.content[0].name").value("Original task"))
+        .andExpect(jsonPath("$.content[0].assigned").value(true))
+        .andExpect(jsonPath("$.content[0].taskNumber").value(1))
+        .andExpect(jsonPath("$.content[0].projectKey").value(workspace.project().getKey()))
+        .andExpect(jsonPath("$.content[1].name").value("Supported work"))
+        .andExpect(jsonPath("$.content[1].assigned").value(false))
+        .andExpect(jsonPath("$.content[1].taskNumber").value(1))
+        .andExpect(jsonPath("$.content[1].projectName").value("Second project"));
+    mvc.perform(get("/api/my-work?size=2&page=1").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].name").value("Other team work"))
+        .andExpect(jsonPath("$.content[0].teamKey").value(other.team().getKey()));
+    mvc.perform(
+            get("/api/my-work?includeClosed=true&size=1000")
+                .header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(50))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(
+            jsonPath(
+                "$.content[*].name",
+                containsInAnyOrder(
+                    "Original task", "Supported work", "Other team work", "Finished work")));
+
+    mvc.perform(
+            delete("/api/teams/" + workspace.team().getKey() + "/members")
+                .header("Authorization", ownerAuthorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userIds\":[\"" + member.getId() + "\"]}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success[0]").value(member.getId().toString()));
+    mvc.perform(get("/api/my-work").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].name").value("Other team work"));
+
+    transactions.executeWithoutResult(
+        status ->
+            em.find(ProjectEntity.class, other.project().getId()).setDeletedAt(Instant.now()));
+    mvc.perform(get("/api/my-work?includeClosed=true").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
+    transactions.executeWithoutResult(
+        status -> {
+          em.find(ProjectEntity.class, other.project().getId()).setDeletedAt(null);
+          em.find(TeamEntity.class, other.team().getId()).setDeletedAt(Instant.now());
+        });
+    mvc.perform(get("/api/my-work").header("Authorization", memberAuthorization))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
   }
 
   private UserEntity addMember(Workspace workspace) {

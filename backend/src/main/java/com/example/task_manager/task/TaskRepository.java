@@ -87,6 +87,57 @@ public interface TaskRepository
   Page<TaskEntity> findOpenWorkForAccount(
       UUID userId, List<TaskStatus> closedStatuses, Pageable pageable);
 
+  String MY_WORK_SCOPE =
+      """
+      FROM TaskEntity t
+      JOIN t.project p
+      JOIN p.team tm
+      WHERE t.deletedAt IS NULL AND p.deletedAt IS NULL AND tm.deletedAt IS NULL
+        AND t.status <> com.example.task_manager.task.entity.TaskStatus.DELETED
+        AND (:includeClosed = true OR t.status NOT IN :closedStatuses)
+        AND (t.assignee.id = :userId OR t.support.id = :userId)
+        AND EXISTS (
+          SELECT m.id FROM TeamMemberEntity m
+          WHERE m.team.id = tm.id AND m.user.id = :userId
+        )
+      """;
+
+  @Query(
+      value =
+          """
+          SELECT t.taskNumber AS taskNumber, t.name AS name, t.status AS status,
+            t.priority AS priority, t.plannedDueDate AS plannedDueDate,
+            tm.key AS teamKey, tm.name AS teamName, p.key AS projectKey, p.name AS projectName,
+            CASE WHEN t.assignee.id = :userId THEN true ELSE false END AS assigned
+          """
+              + MY_WORK_SCOPE
+              + "ORDER BY coalesce(t.lastActivityAt, t.createdAt) DESC, t.id",
+      countQuery = "SELECT count(t) " + MY_WORK_SCOPE)
+  Page<MyWorkRow> findMyWork(
+      UUID userId, boolean includeClosed, List<TaskStatus> closedStatuses, Pageable pageable);
+
+  interface MyWorkRow {
+    long getTaskNumber();
+
+    String getName();
+
+    TaskStatus getStatus();
+
+    TaskPriority getPriority();
+
+    Instant getPlannedDueDate();
+
+    String getTeamKey();
+
+    String getTeamName();
+
+    String getProjectKey();
+
+    String getProjectName();
+
+    boolean getAssigned();
+  }
+
   List<TaskEntity> findAllByProjectTeamIdAndDeletedAtIsNull(UUID teamId);
 
   List<TaskEntity> findAllByProjectIdAndDeletedAtIsNull(UUID projectId);

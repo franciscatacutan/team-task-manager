@@ -25,6 +25,17 @@ export type Task = {
   readOnly?: boolean;
 };
 
+export type MyWorkItem = Pick<
+  Task,
+  "taskNumber" | "name" | "status" | "priority" | "plannedDueDay"
+> & {
+  teamKey: string;
+  teamName: string;
+  projectKey: string;
+  projectName: string;
+  assigned: boolean;
+};
+
 export interface TaskUser {
   id: string;
   firstName: string;
