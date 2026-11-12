@@ -13,6 +13,8 @@ import com.example.task_manager.exception.api.AuthException;
 import com.example.task_manager.support.PostgresIntegrationTest;
 import com.example.task_manager.support.TestFixtures;
 import com.example.task_manager.support.TestFixtures.Workspace;
+import com.example.task_manager.team.entity.TeamEntity;
+import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.UserService;
 import com.example.task_manager.user.dto.AdminResetPasswordRequest;
 import com.example.task_manager.user.entity.UserEntity;
@@ -45,6 +47,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 class SessionRevocationIntegrationTest extends PostgresIntegrationTest {
   private static final String PASSWORD = "OldPassword123!";
@@ -386,6 +389,86 @@ class SessionRevocationIntegrationTest extends PostgresIntegrationTest {
     } finally {
       start.countDown();
     }
+  }
+
+  @Test
+  void archivedAccountLosesAllSessionsAndRestoresOnlyAfterReview() throws Exception {
+    var administrator = admin();
+    var adminHeader = TestFixtures.authorization(jwt, sessions, administrator);
+    var target = workspace.owner();
+    var original = login();
+    var second = login();
+    var accountPath = "/api/admin/users/" + target.getId();
+    mvc.perform(patch(accountPath + "/archive").header("Authorization", adminHeader))
+        .andExpect(status().isConflict());
+
+    transactions.executeWithoutResult(
+        status -> {
+          var team = em.find(TeamEntity.class, workspace.team().getId());
+          team.setOwner(em.getReference(UserEntity.class, administrator.getId()));
+          em.createQuery("update TeamMemberEntity m set m.role = :role where m.user.id = :id")
+              .setParameter("role", TeamRole.MEMBER)
+              .setParameter("id", target.getId())
+              .executeUpdate();
+        });
+
+    mvc.perform(patch(accountPath + "/archive").header("Authorization", adminHeader))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.archivedAt").isString());
+    me(original).andExpect(status().isUnauthorized());
+    me(second).andExpect(status().isUnauthorized());
+    refresh(original.refreshToken()).andExpect(status().isUnauthorized());
+    refresh(second.refreshToken()).andExpect(status().isUnauthorized());
+    httpLogin(PASSWORD).andExpect(status().isUnauthorized());
+
+    mvc.perform(
+            get("/api/users?visibility=DELETED&search=" + target.getEmail())
+                .header("Authorization", adminHeader))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1));
+
+    var response =
+        mvc.perform(get(accountPath + "/access-review").header("Authorization", adminHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.teams[0].role").value("MEMBER"))
+            .andExpect(jsonPath("$.openTasks.content[0].name").value("Original task"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    var review = new ObjectMapper().readTree(response);
+    var request =
+        """
+        {"archivedAt":"%s","role":"USER","teams":%s}
+        """
+            .formatted(review.get("archivedAt").asText(), review.get("teams").toString());
+    var stale = request.replace("MEMBER", "ADMIN");
+    mvc.perform(
+            patch(accountPath + "/restore")
+                .header("Authorization", adminHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(stale))
+        .andExpect(status().isConflict());
+    httpLogin(PASSWORD).andExpect(status().isUnauthorized());
+    mvc.perform(
+            patch(accountPath + "/restore")
+                .header("Authorization", adminHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.archivedAt").doesNotExist());
+    me(original).andExpect(status().isUnauthorized());
+    refresh(original.refreshToken()).andExpect(status().isUnauthorized());
+    me(login()).andExpect(status().isOk());
+  }
+
+  @Test
+  void archiveRequiresAnAuthorizedAdminAndRejectsSelfArchive() throws Exception {
+    var administrator = admin();
+    var adminHeader = TestFixtures.authorization(jwt, sessions, administrator);
+    var path = "/api/admin/users/" + administrator.getId() + "/archive";
+    mvc.perform(patch(path).header("Authorization", "Bearer " + login().response().token()))
+        .andExpect(status().isForbidden());
+    mvc.perform(patch(path).header("Authorization", adminHeader)).andExpect(status().isForbidden());
   }
 
   private AuthService.AuthSession login() {

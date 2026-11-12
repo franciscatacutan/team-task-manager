@@ -22,6 +22,7 @@ public class CustomUserPrincipal implements UserDetails {
   private final String email;
   private final String password;
   private final UserRole role;
+  private final boolean enabled;
 
   public CustomUserPrincipal(UserEntity user) {
     this.id = user.getId();
@@ -30,6 +31,7 @@ public class CustomUserPrincipal implements UserDetails {
     this.email = user.getEmail();
     this.password = user.getPassword();
     this.role = user.getRole();
+    this.enabled = !user.isArchived();
   }
 
   public UUID getId() {
@@ -80,6 +82,6 @@ public class CustomUserPrincipal implements UserDetails {
 
   @Override
   public boolean isEnabled() {
-    return true;
+    return enabled;
   }
 }

@@ -66,6 +66,27 @@ public interface TaskRepository
       """)
   Page<TaskEntity> findMyTasksByProject(UUID projectId, UUID userId, Pageable pageable);
 
+  @Query(
+      value =
+          """
+      SELECT t FROM TaskEntity t
+      JOIN FETCH t.project p
+      JOIN FETCH p.team tm
+      WHERE t.deletedAt IS NULL AND p.deletedAt IS NULL AND tm.deletedAt IS NULL
+        AND t.status NOT IN :closedStatuses
+        AND (t.assignee.id = :userId OR t.support.id = :userId)
+      ORDER BY t.id
+      """,
+      countQuery =
+          """
+      SELECT count(t) FROM TaskEntity t
+      WHERE t.deletedAt IS NULL AND t.project.deletedAt IS NULL AND t.project.team.deletedAt IS NULL
+        AND t.status NOT IN :closedStatuses
+        AND (t.assignee.id = :userId OR t.support.id = :userId)
+      """)
+  Page<TaskEntity> findOpenWorkForAccount(
+      UUID userId, List<TaskStatus> closedStatuses, Pageable pageable);
+
   List<TaskEntity> findAllByProjectTeamIdAndDeletedAtIsNull(UUID teamId);
 
   List<TaskEntity> findAllByProjectIdAndDeletedAtIsNull(UUID projectId);

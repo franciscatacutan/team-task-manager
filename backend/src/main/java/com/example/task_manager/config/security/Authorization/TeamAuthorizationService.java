@@ -8,6 +8,7 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
+import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
 import java.util.Set;
@@ -23,12 +24,35 @@ public class TeamAuthorizationService {
 
   private final TeamRepository teamRepository;
   private final TeamMemberRepository teamMemberRepository;
+  private final UserRepository users;
 
   /** Ensure team exists Returns active team */
   public TeamEntity requireActiveTeam(String teamKey) {
     return teamRepository
         .findByKeyAndDeletedAtIsNull(teamKey)
         .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+  }
+
+  public TeamEntity requireActiveTeamForUpdate(String teamKey) {
+    return teamRepository
+        .findByKeyForUpdate(teamKey)
+        .filter(team -> team.getDeletedAt() == null)
+        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+  }
+
+  public UserEntity requireEnabledAccountForUpdate(UUID id) {
+    UserEntity user =
+        users
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    if (user.isArchived()) throw new ConflictException("This account is archived.");
+    return user;
+  }
+
+  public TeamMemberEntity requireAssignableMember(UUID teamId, UUID userId) {
+    TeamMemberEntity member = requireActiveMembership(teamId, userId);
+    if (member.getUser().isArchived()) throw new ConflictException("This account is archived.");
+    return member;
   }
 
   /** Ensure team exists Returns team */

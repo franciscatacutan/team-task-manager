@@ -146,6 +146,7 @@ public class NotificationService {
   }
 
   private boolean canReceiveActivity(ActivityEventEntity event, UserEntity recipient) {
+    if (recipient.isArchived()) return false;
     // The removal notice must reach its subject after the membership is deleted.
     if (event.getEventType() == ActivityEventType.TEAM_MEMBER_REMOVED
         && isSubjectRecipient(event.getDetails(), recipient)) {

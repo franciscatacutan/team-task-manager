@@ -6,6 +6,8 @@ import type { User } from "../features/users/types/userType";
 import type { UserRole } from "../features/users/types/userRole";
 import EditUserDialog from "../features/users/components/EditUserDialog";
 import ResetUserPasswordDialog from "../features/users/components/ResetUserPasswordDialog";
+import AccountLifecycleDialog from "@/features/users/components/AccountLifecycleDialog";
+import type { DeletedFilter } from "@/common/types/deletedFilter.types";
 
 import Toolbar from "@/common/components/toolbar/ToolBar";
 import { useDebounce } from "@/common/hooks/useDebounce";
@@ -33,6 +35,8 @@ export default function UsersPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const [roleFilter, setRoleFilter] = useState<UserRole[]>([]);
+  const [visibility, setVisibility] = useState<DeletedFilter>("ALL");
+  const [lifecycleUser, setLifecycleUser] = useState<User | null>(null);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [passwordUser, setPasswordUser] = useState<User | null>(null);
@@ -44,10 +48,12 @@ export default function UsersPage() {
 
   const filterValues = {
     roleFilter,
+    visibility,
   };
 
   const sortOptions = USER_LIST_SORT_OPTIONS;
-  const hasActiveFilters = search.trim().length > 0 || roleFilter.length > 0;
+  const hasActiveFilters =
+    search.trim().length > 0 || roleFilter.length > 0 || visibility !== "ALL";
 
   // ---------------- DATA ----------------
 
@@ -59,6 +65,7 @@ export default function UsersPage() {
     search: debouncedSearch,
     sort,
     roles: roleFilter,
+    visibility,
   });
 
   const users = data?.content ?? [];
@@ -101,10 +108,12 @@ export default function UsersPage() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const handleFilterChange = (_key: string, value: string | string[]) => {
+  const handleFilterChange = (key: string, value: string | string[]) => {
     setPage(0);
-
-    // if (key === "deletedFilter") {
+    if (key === "visibility") {
+      setVisibility(value === "ACTIVE" || value === "DELETED" ? value : "ALL");
+      return;
+    }
     const roles = Array.isArray(value) ? value : value ? [value] : [];
 
     setRoleFilter(
@@ -112,12 +121,12 @@ export default function UsersPage() {
         ["USER", "ADMIN", "SUPER_ADMIN"].includes(role),
       ),
     );
-    // }
   };
 
   const handleClearFilters = () => {
     setSearch("");
     setRoleFilter([]);
+    setVisibility("ALL");
     setPage(0);
   };
 
@@ -173,7 +182,7 @@ export default function UsersPage() {
         ) : (
           <UsersList
             users={users}
-            currentUser={currentUser!}
+            currentUser={currentUser}
             isLoading={isLoading}
             onClearFilters={handleClearFilters}
             sortField={sortField}
@@ -184,6 +193,7 @@ export default function UsersPage() {
             resetPassword={(user) => setPasswordUser(user)}
             onEditUser={() => setEditOpen(true)}
             onResetPassword={() => setResetOpen(true)}
+            onAccountLifecycle={setLifecycleUser}
           />
         )}
 
@@ -208,6 +218,14 @@ export default function UsersPage() {
         onOpenChange={setEditOpen}
         user={editingUser}
       />
+
+      {lifecycleUser && (
+        <AccountLifecycleDialog
+          key={lifecycleUser.id}
+          user={lifecycleUser}
+          onClose={() => setLifecycleUser(null)}
+        />
+      )}
 
       <ResetUserPasswordDialog
         open={resetOpen}

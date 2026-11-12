@@ -16,6 +16,7 @@ export const getTeamMembers = async (
   params: Omit<BaseQueryParams, "sort"> & {
     sort?: string | string[];
     roles?: TeamRole[];
+    activeOnly?: boolean;
   },
   signal?: AbortSignal,
 ): Promise<PageResponse<TeamMember>> => {

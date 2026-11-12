@@ -5,7 +5,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "@/common/query/queryKeys";
 import type { User } from "@/features/users/types/userType";
-import { getUsers } from "@/features/users/api/userApi";
+import {
+  changeAccountArchive,
+  getAccountAccessReview,
+  getUsers,
+} from "@/features/users/api/userApi";
 import UsersPage from "./UsersPage";
 const admin: User = {
   id: "admin",
@@ -27,6 +31,8 @@ vi.mock("@/features/auth/hooks/useCurrentUser", () => ({
 vi.mock("@/features/users/api/userApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/users/api/userApi")>()),
   getUsers: vi.fn(),
+  getAccountAccessReview: vi.fn(),
+  changeAccountArchive: vi.fn(),
 }));
 let client: QueryClient, records: User[];
 beforeEach(() => {
@@ -70,6 +76,75 @@ const mount = () =>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+it("archives an account and requires a review before restoring its access", async () => {
+  const target = records[1];
+  const archivedAt = "2026-11-12T00:00:00Z";
+  const teams = [
+    { key: "TEAM", name: "Delivery", role: "MEMBER" as const, archived: false },
+  ];
+  vi.mocked(getAccountAccessReview).mockImplementation(async () => ({
+    archivedAt: target.archivedAt ?? null,
+    role: target.role,
+    teams,
+    openTasks: {
+      content: [
+        {
+          teamKey: "TEAM",
+          projectKey: "APP",
+          number: 12,
+          name: "Review invoices",
+          assignee: true,
+        },
+      ],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+      last: true,
+    },
+  }));
+  vi.mocked(changeAccountArchive).mockImplementation(async (_id, review) => {
+    target.archivedAt = review ? undefined : archivedAt;
+    return { ...target };
+  });
+
+  mount();
+  const user = userEvent.setup();
+  const actions = () =>
+    screen.getAllByRole("button", { name: "Actions for Ada User" })[0];
+  await screen.findByText(target.email);
+  await user.click(actions());
+  await user.click(
+    await screen.findByRole("menuitem", { name: "Archive user" }),
+  );
+  expect(
+    await screen.findByRole("link", { name: "#12 Review invoices" }),
+  ).toHaveAttribute("href", "/teams/TEAM/projects/APP/tasks/12");
+  await user.click(screen.getByRole("button", { name: "Archive user" }));
+  await screen.findByText("Archived", { exact: true });
+  expect(changeAccountArchive).toHaveBeenCalledWith(target.id);
+
+  await user.click(actions());
+  await user.click(
+    await screen.findByRole("menuitem", { name: "Restore user" }),
+  );
+  expect(await screen.findByRole("link", { name: "Delivery" })).toBeVisible();
+  const restore = screen.getByRole("button", { name: "Restore user" });
+  expect(restore).toBeDisabled();
+  await user.click(
+    screen.getByRole("checkbox", { name: /reviewed the global role/i }),
+  );
+  await user.click(restore);
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  expect(changeAccountArchive).toHaveBeenLastCalledWith(target.id, {
+    archivedAt,
+    role: "USER",
+    teams,
+  });
+});
+
 describe("directory paging and count scope", () => {
   it("searches from page zero after a later page and displays matching users", async () => {
     mount();

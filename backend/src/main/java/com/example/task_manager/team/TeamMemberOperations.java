@@ -45,10 +45,7 @@ public class TeamMemberOperations {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public TeamMemberResponse add(String teamKey, TeamMemberRequest request, String email) {
     var context = context(teamKey, email);
-    var user =
-        users
-            .findById(request.userId())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    var user = teamAuthorization.requireEnabledAccountForUpdate(request.userId());
     if (members.existsByTeamIdAndUserId(context.team().getId(), user.getId())) {
       throw new ConflictException("User is already a member of the team");
     }
@@ -76,6 +73,9 @@ public class TeamMemberOperations {
     if (context.membership().getRole() == TeamRole.ADMIN && member.getRole() != TeamRole.MEMBER) {
       throw new ForbiddenException("ADMIN can only remove MEMBER");
     }
+    users
+        .findByIdForUpdate(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     members.delete(member);
     members.flush();
     context.team().setMembershipChangedAt(Instant.now());

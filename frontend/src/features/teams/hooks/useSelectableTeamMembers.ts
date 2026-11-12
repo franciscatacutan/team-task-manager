@@ -15,6 +15,7 @@ export function useSelectableTeamMembers(
         {
           page: pageParam,
           size: 20,
+          activeOnly: true,
           search,
           sort: ["user.lastName,asc", "user.email,asc"],
         },

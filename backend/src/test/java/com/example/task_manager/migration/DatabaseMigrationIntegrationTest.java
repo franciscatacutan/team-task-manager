@@ -76,7 +76,7 @@ class DatabaseMigrationIntegrationTest {
       assertThat(managed.getConfiguration().isCleanDisabled()).isTrue();
       assertThat(managed.getConfiguration().isValidateOnMigrate()).isTrue();
       assertThat(managed.getConfiguration().isValidateMigrationNaming()).isTrue();
-      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("2");
+      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("3");
       assertThat(managed.migrate().migrationsExecuted).isZero();
       assertThat(database.jdbc().queryForObject("select count(*) from users", Integer.class))
           .isZero();
@@ -117,7 +117,7 @@ class DatabaseMigrationIntegrationTest {
                     "select count(*) from pg_indexes where indexname = 'idx_refresh_session_active'",
                     Integer.class))
         .isZero();
-    Flyway latest = flyway(database, null);
+    Flyway latest = flyway(database, "2");
     assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
     assertThat(snapshot(database)).isEqualTo(original);
     assertThat(
@@ -130,6 +130,17 @@ class DatabaseMigrationIntegrationTest {
     assertThat(latest.migrate().migrationsExecuted).isZero();
     assertThat(latest.info().applied()).hasSize(2);
     latest.validate();
+
+    Flyway accountArchive = flyway(database, null);
+    assertThat(accountArchive.migrate().migrationsExecuted).isEqualTo(1);
+    assertThat(
+            database
+                .jdbc()
+                .queryForObject(
+                    "select count(*) from users where archived_at is null", Integer.class))
+        .isEqualTo(1);
+    assertThat(snapshot(database)).isEqualTo(original);
+    accountArchive.validate();
   }
 
   @Test
@@ -205,7 +216,7 @@ class DatabaseMigrationIntegrationTest {
     seed(database);
     var original = snapshot(database);
     Files.writeString(
-        temporary.resolve("V3__deliberate_test_failure.sql"),
+        temporary.resolve("V4__deliberate_test_failure.sql"),
         """
         CREATE TABLE should_rollback (id integer PRIMARY KEY);
         INSERT INTO deliberately_missing_table VALUES (1);
@@ -218,7 +229,7 @@ class DatabaseMigrationIntegrationTest {
             database.jdbc().queryForObject("select to_regclass('should_rollback')", String.class))
         .isNull();
     assertThat(snapshot(database)).isEqualTo(original);
-    assertThat(valid.info().applied()).hasSize(2);
+    assertThat(valid.info().applied()).hasSize(3);
     valid.validate();
   }
 
@@ -346,7 +357,8 @@ class DatabaseMigrationIntegrationTest {
           database
               .jdbc()
               .queryForList(
-                  "select row_to_json(t)::text from " + table + " t order by id", String.class));
+                  "select (to_jsonb(t) - 'archived_at')::text from " + table + " t order by id",
+                  String.class));
     }
     return rows;
   }

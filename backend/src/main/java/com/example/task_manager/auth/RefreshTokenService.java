@@ -35,7 +35,7 @@ public class RefreshTokenService {
 
   @Transactional
   public RefreshTokenSession createSession(UserEntity user, String ipAddress, String userAgent) {
-    lockUser(user.getId());
+    requireEnabled(lockUser(user.getId()));
     String rawToken = generateRefreshToken();
     RefreshTokenEntity refreshToken = new RefreshTokenEntity();
     refreshToken.setUser(user);
@@ -62,7 +62,7 @@ public class RefreshTokenService {
             .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
     // Serialize the whole user's token family, including ancestor reuse racing
     // with a descendant rotation. Load token state only after acquiring the lock.
-    lockUser(userId);
+    requireEnabled(lockUser(userId));
     RefreshTokenEntity currentToken =
         refreshTokenRepository
             .findByTokenHash(tokenHash)
@@ -152,10 +152,14 @@ public class RefreshTokenService {
     return token.getUser();
   }
 
-  private void lockUser(UUID userId) {
-    userRepository
+  private UserEntity lockUser(UUID userId) {
+    return userRepository
         .findByIdForUpdate(userId)
         .orElseThrow(() -> new BadCredentialsException("Refresh token is invalid"));
+  }
+
+  private void requireEnabled(UserEntity user) {
+    if (user.isArchived()) throw new BadCredentialsException("Account is disabled");
   }
 
   private void revokeFamily(UUID familyId) {

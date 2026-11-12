@@ -4,6 +4,7 @@ import { getUsers } from "../api/userApi";
 import type { User } from "../types/userType";
 import type { PageResponse } from "@/common/types/pageResponse.types";
 import type { UserRole } from "../types/userRole";
+import type { DeletedFilter } from "@/common/types/deletedFilter.types";
 
 /*
  * Custom hook to fetch users using React Query
@@ -13,6 +14,7 @@ export const useUsers = (params: {
   size: number;
   search?: string;
   roles?: UserRole[];
+  visibility?: DeletedFilter;
   sort?: string;
 }) => {
   return useQuery<PageResponse<User>>({
@@ -24,6 +26,7 @@ export const useUsers = (params: {
         search: params.search,
         sort: params.sort,
         roles: params.roles,
+        visibility: params.visibility,
       }),
     placeholderData: keepPreviousData,
   });

@@ -7,4 +7,5 @@ import java.util.UUID;
 /*
  * DTO for fetching teams with search, filtering and sort
  */
-public record TeamMemberSearchRequest(String search, UUID memberId, Set<TeamRole> roles) {}
+public record TeamMemberSearchRequest(
+    String search, UUID memberId, Set<TeamRole> roles, Boolean activeOnly) {}

@@ -7,8 +7,11 @@ import type {
   UserProfile,
   UpdateUserProfileInput,
   AdminUpdateUserInput,
+  AccountAccessReview,
+  RestoreUserInput,
 } from "../types/userType";
 import { jwtDecode } from "jwt-decode";
+import type { DeletedFilter } from "@/common/types/deletedFilter.types";
 import type { PageResponse } from "@/common/types/pageResponse.types";
 
 /*
@@ -20,6 +23,7 @@ export const getUsers = async (params: {
   search?: string;
   sort?: string;
   roles?: UserRole[];
+  visibility?: DeletedFilter;
 }): Promise<PageResponse<User>> => {
   const response = await apiClient.get(`/users`, {
     params: {
@@ -78,6 +82,32 @@ export const resetUserPasswordByAdmin = async (
 ): Promise<void> => {
   await apiClient.patch(`/admin/users/${userId}/password`, payload);
 };
+
+export async function getAccountAccessReview(
+  userId: string,
+  page: number,
+  signal: AbortSignal,
+) {
+  const { data } = await apiClient.get<AccountAccessReview>(
+    `/admin/users/${userId}/access-review`,
+    {
+      params: { page },
+      signal,
+    },
+  );
+  return data;
+}
+
+export async function changeAccountArchive(
+  userId: string,
+  review?: RestoreUserInput,
+) {
+  const { data } = await apiClient.patch<User>(
+    `/admin/users/${userId}/${review ? "restore" : "archive"}`,
+    review,
+  );
+  return data;
+}
 
 type TokenPayload = {
   role: UserRole;

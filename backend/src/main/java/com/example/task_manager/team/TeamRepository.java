@@ -16,6 +16,8 @@ public interface TeamRepository
     extends JpaRepository<TeamEntity, UUID>, JpaSpecificationExecutor<TeamEntity> {
   boolean existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(UUID teamId, String name);
 
+  boolean existsByOwnerIdAndDeletedAtIsNull(UUID userId);
+
   Optional<TeamEntity> findByKey(String teamKey);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)

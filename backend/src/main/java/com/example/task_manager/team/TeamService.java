@@ -92,7 +92,12 @@ public class TeamService {
   @Transactional
   public TeamResponse createTeam(CreateTeamRequest request, String userEmail) {
 
-    UserEntity owner = globalAuthorizationService.getUserByEmail(userEmail);
+    UserEntity owner =
+        userRepository
+            .findByEmailForUpdate(userEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    if (owner.isArchived() || owner.getRole() == com.example.task_manager.user.entity.UserRole.USER)
+      throw new ForbiddenException("Only active global admins can create a team.");
 
     String trimmedName = normalizeTeamName(request.name());
 
@@ -292,7 +297,11 @@ public class TeamService {
     validateCanReadTeam(team, requester);
 
     Specification<TeamMemberEntity> spec =
-        TeamMemberSpecification.build(team.getId(), request.search(), request.roles());
+        TeamMemberSpecification.build(
+            team.getId(),
+            request.search(),
+            request.roles(),
+            Boolean.TRUE.equals(request.activeOnly()));
 
     pageable = requireSortable(pageable);
 
@@ -376,9 +385,10 @@ public class TeamService {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeamForUpdate(teamKey);
 
     teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.requireEnabledAccountForUpdate(targetUserId);
 
     TeamMemberEntity targetMember =
         teamAuthorizationService.requireActiveMembership(team.getId(), targetUserId);
@@ -426,8 +436,9 @@ public class TeamService {
 
     UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+    TeamEntity team = teamAuthorizationService.requireActiveTeamForUpdate(teamKey);
     teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.requireEnabledAccountForUpdate(newOwnerUserId);
     TeamMemberEntity owner = requireOwnerMembership(team.getId(), team.getOwner().getId());
 
     if (owner.getUser().getId().equals(newOwnerUserId)) {

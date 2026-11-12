@@ -5,6 +5,10 @@ export const queryKeys = {
     lists: ["users"] as const,
     list: (params: object) => ["users", params] as const,
     detail: (userId: string) => ["user", userId] as const,
+    accessReviews: (userId: string) =>
+      ["account-access-review", userId] as const,
+    accessReview: (userId: string, page: number) =>
+      ["account-access-review", userId, page] as const,
   },
   teams: {
     lists: ["teams"] as const,

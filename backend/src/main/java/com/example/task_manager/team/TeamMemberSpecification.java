@@ -16,9 +16,13 @@ public final class TeamMemberSpecification {
   private TeamMemberSpecification() {}
 
   public static Specification<TeamMemberEntity> build(
-      UUID teamId, String search, Set<TeamRole> roles) {
-
-    return Specification.where(belongsToTeam(teamId)).and(search(search)).and(hasRoles(roles));
+      UUID teamId, String search, Set<TeamRole> roles, boolean activeOnly) {
+    return Specification.where(belongsToTeam(teamId))
+        .and(search(search))
+        .and(hasRoles(roles))
+        .and(
+            (root, query, cb) ->
+                activeOnly ? cb.isNull(root.get("user").get("archivedAt")) : cb.conjunction());
   }
 
   private static Specification<TeamMemberEntity> belongsToTeam(UUID teamId) {

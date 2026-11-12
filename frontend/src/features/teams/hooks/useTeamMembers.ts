@@ -11,6 +11,7 @@ interface Params {
   search?: string;
   sort?: string;
   roles?: TeamRole[];
+  activeOnly?: boolean;
 }
 
 export const useTeamMembers = (teamKey: string, params?: Params) => {
@@ -23,6 +24,7 @@ export const useTeamMembers = (teamKey: string, params?: Params) => {
         search: params?.search,
         sort: params?.sort,
         roles: params?.roles,
+        activeOnly: params?.activeOnly,
       }),
     enabled: Boolean(teamKey),
     placeholderData: (data, previous) =>

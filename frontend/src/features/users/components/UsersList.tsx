@@ -2,6 +2,8 @@ import UserProfileLink from "./UserProfileLink";
 import { canLinkProfile } from "../utils/profileNavigation";
 import { canEditUser } from "../utils/userPermissions";
 import {
+  Archive,
+  ArchiveRestore,
   ArrowUpDown,
   KeyRound,
   MoreHorizontal,
@@ -32,7 +34,7 @@ import { USER_ROLE_LABEL, USER_ROLE_STYLES } from "../constants/user.constants";
 
 interface Props {
   users: User[];
-  currentUser: User;
+  currentUser?: User;
   isLoading: boolean;
 
   editUser: (user: User) => void;
@@ -40,6 +42,7 @@ interface Props {
 
   onEditUser: () => void;
   onResetPassword: () => void;
+  onAccountLifecycle?: (user: User) => void;
 
   sortField: SortField;
   sortOrder: "asc" | "desc";
@@ -67,6 +70,7 @@ export default function UsersList({
   resetPassword,
   onEditUser,
   onResetPassword,
+  onAccountLifecycle,
 
   sortField,
   sortOrder,
@@ -130,6 +134,7 @@ export default function UsersList({
               <TableBody>
                 {users.map((user) => {
                   const canManageUser =
+                    currentUser &&
                     user.id !== currentUser.id &&
                     canEditUser(currentUser, user);
 
@@ -156,6 +161,11 @@ export default function UsersList({
 
                       <TableCell className="px-4 py-3">
                         <div className="truncate">{user.email}</div>
+                        {user.archivedAt && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Archived
+                          </span>
+                        )}
                       </TableCell>
 
                       <TableCell className="px-4 py-3">
@@ -180,28 +190,56 @@ export default function UsersList({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-fit">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  editUser(user);
-                                  onEditUser();
-                                }}
-                                className="text-muted-foreground"
-                              >
-                                <PencilLine className="h-3.5 w-3.5" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              {!user.archivedAt && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      editUser(user);
+                                      onEditUser();
+                                    }}
+                                    className="text-muted-foreground"
+                                  >
+                                    <PencilLine className="h-3.5 w-3.5" />
+                                    Edit User
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
 
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  resetPassword(user);
-                                  onResetPassword();
-                                }}
-                                className="text-muted-foreground"
-                              >
-                                <KeyRound className="h-3.5 w-3.5" />
-                                Reset password
-                              </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      resetPassword(user);
+                                      onResetPassword();
+                                    }}
+                                    className="text-muted-foreground"
+                                  >
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                    Reset password
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {onAccountLifecycle && (
+                                <>
+                                  {!user.archivedAt && (
+                                    <DropdownMenuSeparator />
+                                  )}
+                                  <DropdownMenuItem
+                                    variant={
+                                      user.archivedAt
+                                        ? "default"
+                                        : "destructive"
+                                    }
+                                    onSelect={() => onAccountLifecycle(user)}
+                                  >
+                                    {user.archivedAt ? (
+                                      <ArchiveRestore />
+                                    ) : (
+                                      <Archive />
+                                    )}
+                                    {user.archivedAt
+                                      ? "Restore user"
+                                      : "Archive user"}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}

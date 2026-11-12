@@ -18,6 +18,7 @@ import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.dto.UserSearchRequest;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -52,7 +53,8 @@ public class UserService {
   @Transactional(readOnly = true)
   public PageResponse<UserResponse> getAllUsers(UserSearchRequest request, Pageable pageable) {
 
-    Specification<UserEntity> spec = UserSpecification.build(request.search(), request.roles());
+    Specification<UserEntity> spec =
+        UserSpecification.build(request.search(), request.roles(), request.visibility());
 
     pageable = validateSorting(pageable);
 
@@ -84,10 +86,9 @@ public class UserService {
   @Transactional
   public UserResponse updateUserByAdmin(
       UUID userId, AdminUpdateUserRequest request, String requesterEmail) {
-    UserEntity target =
-        userRepository.findByIdForUpdate(userId).orElseThrow(UserNotFoundException::new);
-    UserEntity requester = getUserByEmail(requesterEmail);
-    assertCanManageTargetUser(requester, target);
+    var accounts = lockManagedAccounts(userId, requesterEmail);
+    UserEntity target = accounts.target();
+    UserEntity requester = accounts.requester();
 
     // Validate every requested operation before changing any managed state.
     String firstName =
@@ -143,13 +144,13 @@ public class UserService {
   @Transactional
   public void updateUserRole(UUID targetUserId, UpdateUserRoleRequest request, String requester) {
 
-    UserEntity currentUser =
-        userRepository
-            .findByEmailIgnoreCase(normalizeEmail(requester))
-            .orElseThrow(UserNotFoundException::new);
+    var accounts = lockManagedAccounts(targetUserId, requester);
+    UserEntity currentUser = accounts.requester();
+    UserEntity targetUser = accounts.target();
 
-    UserEntity targetUser =
-        userRepository.findByIdForUpdate(targetUserId).orElseThrow(UserNotFoundException::new);
+    if (currentUser.getRole() != UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException("Only SUPER_ADMIN can update global roles.");
+    }
 
     if (currentUser.getId().equals(targetUserId) && request.role() != UserRole.SUPER_ADMIN) {
       throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
@@ -317,7 +318,32 @@ public class UserService {
         .orElseThrow(UserNotFoundException::new);
   }
 
-  private void assertCanManageTargetUser(UserEntity requester, UserEntity target) {
+  ManagedAccounts lockManagedAccounts(UUID targetId, String requesterEmail) {
+    String email = normalizeEmail(requesterEmail);
+    UUID requesterId = userRepository.findIdByEmail(email).orElseThrow(UserNotFoundException::new);
+    var accounts = userRepository.lockAccounts(Set.copyOf(List.of(requesterId, targetId)));
+    UserEntity requester =
+        accounts.stream()
+            .filter(account -> account.getId().equals(requesterId))
+            .findFirst()
+            .orElseThrow(UserNotFoundException::new);
+    if (requester.isArchived()
+        || !email.equalsIgnoreCase(requester.getEmail())
+        || requester.getRole() == UserRole.USER) {
+      throw new ForbiddenException("You do not have permission to manage accounts.");
+    }
+    UserEntity target =
+        accounts.stream()
+            .filter(account -> account.getId().equals(targetId))
+            .findFirst()
+            .orElseThrow(UserNotFoundException::new);
+    assertCanManageTargetUser(requester, target);
+    return new ManagedAccounts(requester, target);
+  }
+
+  record ManagedAccounts(UserEntity requester, UserEntity target) {}
+
+  void assertCanManageTargetUser(UserEntity requester, UserEntity target) {
     if (Objects.equals(requester.getId(), target.getId())) {
       return;
     }
@@ -345,7 +371,12 @@ public class UserService {
 
   private UserResponse mapToResponse(UserEntity user) {
     return new UserResponse(
-        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole());
+        user.getId(),
+        user.getFirstName(),
+        user.getLastName(),
+        user.getEmail(),
+        user.getRole(),
+        user.getArchivedAt());
   }
 
   private String normalizeEmail(String email) {

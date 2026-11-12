@@ -75,6 +75,7 @@ function TransferOwnershipForm({
   const candidates = useTeamMembers(teamKey, {
     page: 0,
     size: 20,
+    activeOnly: true,
     search: debouncedSearch,
     sort: "user.lastName,asc",
   });

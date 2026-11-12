@@ -2,6 +2,7 @@ package com.example.task_manager.user.dto;
 
 import com.example.task_manager.user.entity.UserRole;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
 import java.util.UUID;
 
 /*
@@ -12,4 +13,5 @@ public record UserResponse(
     String firstName,
     String lastName,
     String email,
-    @JsonInclude(JsonInclude.Include.NON_NULL) UserRole role) {}
+    @JsonInclude(JsonInclude.Include.NON_NULL) UserRole role,
+    @JsonInclude(JsonInclude.Include.NON_NULL) Instant archivedAt) {}

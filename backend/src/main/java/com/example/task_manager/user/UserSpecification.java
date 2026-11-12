@@ -1,5 +1,6 @@
 package com.example.task_manager.user;
 
+import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
@@ -9,9 +10,16 @@ import org.springframework.data.jpa.domain.Specification;
 
 public class UserSpecification {
 
-  public static Specification<UserEntity> build(String search, Set<UserRole> roles) {
-
-    return Specification.where(search(search)).and(hasRoles(roles));
+  public static Specification<UserEntity> build(
+      String search, Set<UserRole> roles, DeletedFilter visibility) {
+    return Specification.where(search(search))
+        .and(hasRoles(roles))
+        .and(
+            (root, query, cb) -> {
+              if (visibility == DeletedFilter.DELETED) return cb.isNotNull(root.get("archivedAt"));
+              if (visibility == DeletedFilter.ACTIVE) return cb.isNull(root.get("archivedAt"));
+              return cb.conjunction();
+            });
   }
 
   /** Search by user name or email */
@@ -42,7 +50,7 @@ public class UserSpecification {
 
   public static Specification<UserEntity> availableUsers(String teamKey, String search) {
     return (root, query, cb) -> {
-      var predicates = cb.conjunction();
+      var predicates = cb.isNull(root.get("archivedAt"));
 
       var subquery = query.subquery(UUID.class);
       var subRoot = subquery.from(TeamMemberEntity.class);

@@ -92,13 +92,13 @@ public class TaskService {
     validateDates(request.plannedStartDate(), request.plannedDueDate());
 
     TeamMemberEntity assigneeMember =
-        teamAuthorizationService.requireActiveMembership(team.getId(), request.assigneeId());
+        teamAuthorizationService.requireAssignableMember(team.getId(), request.assigneeId());
 
     TeamMemberEntity supportMember = new TeamMemberEntity();
 
     if (request.supportId() != null) {
       supportMember =
-          teamAuthorizationService.requireActiveMembership(team.getId(), request.supportId());
+          teamAuthorizationService.requireAssignableMember(team.getId(), request.supportId());
       validateAssignment(team.getId(), request.assigneeId(), request.supportId());
     }
 
@@ -442,7 +442,7 @@ public class TaskService {
     }
 
     UserEntity newAssignee =
-        teamAuthorizationService.requireActiveMembership(team.getId(), newAssigneeId).getUser();
+        teamAuthorizationService.requireAssignableMember(team.getId(), newAssigneeId).getUser();
 
     if (currentSupport != null && newAssignee.getId().equals(currentSupport.getId())) {
 
@@ -569,7 +569,7 @@ public class TaskService {
     }
 
     UserEntity newSupport =
-        teamAuthorizationService.requireActiveMembership(team.getId(), newSupportId).getUser();
+        teamAuthorizationService.requireAssignableMember(team.getId(), newSupportId).getUser();
 
     task.setSupport(newSupport);
 

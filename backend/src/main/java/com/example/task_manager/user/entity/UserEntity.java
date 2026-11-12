@@ -54,5 +54,11 @@ public class UserEntity {
   @Column(nullable = false)
   private UserRole role;
 
+  private Instant archivedAt;
+
+  public boolean isArchived() {
+    return archivedAt != null;
+  }
+
   @Version private Long version;
 }

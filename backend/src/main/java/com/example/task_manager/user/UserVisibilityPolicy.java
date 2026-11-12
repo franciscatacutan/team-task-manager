@@ -38,6 +38,7 @@ public class UserVisibilityPolicy {
         subject.getFirstName(),
         subject.getLastName(),
         subject.getEmail(),
-        visibleGlobalRole(viewer, subject));
+        visibleGlobalRole(viewer, subject),
+        canViewGlobalRole(viewer, subject) ? subject.getArchivedAt() : null);
   }
 }
