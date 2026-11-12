@@ -49,7 +49,9 @@ export default function TeamsBoard({
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             {hasActiveFilters
               ? "Try clearing the search or filters to see more teams."
-              : "Create a team to get started."}
+              : canCreateTeam
+                ? "Create a team to get started."
+                : "Ask a team owner or admin to add you using your sign-in email."}
           </p>
 
           {hasActiveFilters ? (

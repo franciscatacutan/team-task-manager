@@ -123,10 +123,12 @@ public interface TaskRepository
       FROM TaskEntity t
       WHERE t.project.team.id = :teamId
         AND t.deletedAt IS NULL
-        AND t.plannedDueDate < :now
+        AND t.project.deletedAt IS NULL
+        AND t.project.team.deletedAt IS NULL
+        AND t.plannedDueDate < :before
         AND t.status NOT IN :terminalStatuses
       """)
-  long countOverdueOpenTasks(UUID teamId, Instant now, List<TaskStatus> terminalStatuses);
+  long countOverdueOpenTasks(UUID teamId, Instant before, List<TaskStatus> terminalStatuses);
 
   @Query(
       """
@@ -134,11 +136,13 @@ public interface TaskRepository
       FROM TaskEntity t
       WHERE t.project.id = :projectId
         AND t.deletedAt IS NULL
-        AND t.plannedDueDate < :now
+        AND t.project.deletedAt IS NULL
+        AND t.project.team.deletedAt IS NULL
+        AND t.plannedDueDate < :before
         AND t.status NOT IN :terminalStatuses
       """)
   long countOverdueOpenTasksByProject(
-      UUID projectId, Instant now, List<TaskStatus> terminalStatuses);
+      UUID projectId, Instant before, List<TaskStatus> terminalStatuses);
 
   @Modifying
   @Query(

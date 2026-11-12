@@ -51,6 +51,7 @@ auth:
   refresh-cookie-name: refresh_token
 
 app:
+  planning-time-zone: ${APP_PLANNING_TIME_ZONE:Asia/Manila}
   bootstrap-admin:
     email: ${BOOTSTRAP_ADMIN_EMAIL}
     password: ${BOOTSTRAP_ADMIN_PASSWORD}

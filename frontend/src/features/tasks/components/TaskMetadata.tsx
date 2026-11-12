@@ -16,7 +16,7 @@ import {
   type TaskStatus,
 } from "../utils/task.constants";
 import { useUpdateTaskStatus } from "../hooks/useUpdateTaskStatus";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import type { TaskPermissions } from "../utils/taskPermissions";
 import { cn } from "../../../lib/utils";
@@ -54,6 +54,16 @@ export default function TaskMetadata({
   const mutationCallbacks = {
     onError: (error: unknown) => setMutationError(taskMutationError(error)),
   };
+  const startDay =
+    task.plannedStartDay ??
+    (task.plannedStartDate
+      ? format(parseISO(task.plannedStartDate), "yyyy-MM-dd")
+      : null);
+  const dueDay =
+    task.plannedDueDay ??
+    (task.plannedDueDate
+      ? format(parseISO(task.plannedDueDate), "yyyy-MM-dd")
+      : null);
   const currentAssigneeId = task.assignedUser?.id;
   const currentSupportId = task.supportUser?.id;
 
@@ -105,11 +115,8 @@ export default function TaskMetadata({
   }
 
   function handleUpdatePlannedStartDate(plannedStartDate: string | null) {
-    if (!plannedStartDate || plannedStartDate === task.plannedStartDate) return;
-    if (
-      task.plannedDueDate &&
-      new Date(plannedStartDate) > new Date(task.plannedDueDate)
-    ) {
+    if (!plannedStartDate || plannedStartDate === startDay) return;
+    if (dueDay && plannedStartDate > dueDay) {
       saveDetails({
         plannedStartDate,
         plannedDueDate: plannedStartDate,
@@ -123,7 +130,7 @@ export default function TaskMetadata({
   }
 
   function handleUpdatePlannedDueDate(plannedDueDate: string | null) {
-    if (!plannedDueDate || plannedDueDate === task.plannedDueDate) return;
+    if (!plannedDueDate || plannedDueDate === dueDay) return;
     saveDetails({
       plannedDueDate,
     });
@@ -268,22 +275,18 @@ export default function TaskMetadata({
           value={
             permissions.canChangeSchedule ? (
               <DatePicker
-                value={
-                  task.plannedStartDate
-                    ? new Date(task.plannedStartDate)
-                    : undefined
-                }
+                value={startDay ? parseISO(startDay) : undefined}
                 onChange={(date) =>
-                  handleUpdatePlannedStartDate(date ? date.toISOString() : null)
+                  handleUpdatePlannedStartDate(
+                    date ? format(date, "yyyy-MM-dd") : null,
+                  )
                 }
               />
             ) : (
               <span className="flex w-fit max-w-full flex-wrap items-center rounded-lg bg-muted/25 px-3 py-2 text-left text-muted-foreground">
                 <CalendarIcon className="mr-2 h-4 w-4" />
 
-                {task.plannedStartDate
-                  ? format(task.plannedStartDate, "MMM dd, yyyy")
-                  : "-"}
+                {startDay ? format(parseISO(startDay), "MMM dd, yyyy") : "-"}
               </span>
             )
           }
@@ -293,27 +296,21 @@ export default function TaskMetadata({
           value={
             permissions.canChangeSchedule ? (
               <DatePicker
-                value={
-                  task.plannedDueDate
-                    ? new Date(task.plannedDueDate)
-                    : undefined
-                }
+                value={dueDay ? parseISO(dueDay) : undefined}
                 onChange={(date) =>
-                  handleUpdatePlannedDueDate(date ? date.toISOString() : null)
+                  handleUpdatePlannedDueDate(
+                    date ? format(date, "yyyy-MM-dd") : null,
+                  )
                 }
                 disabled={(date) =>
-                  task.plannedStartDate
-                    ? date < new Date(task.plannedStartDate)
-                    : false
+                  Boolean(startDay && format(date, "yyyy-MM-dd") < startDay)
                 }
               />
             ) : (
               <span className="flex w-fit max-w-full flex-wrap items-center rounded-lg bg-muted/25 px-3 py-2 text-left text-muted-foreground">
                 <CalendarIcon className="mr-2 h-4 w-4" />
 
-                {task.plannedDueDate
-                  ? format(task.plannedDueDate, "MMM dd, yyyy")
-                  : "-"}
+                {dueDay ? format(parseISO(dueDay), "MMM dd, yyyy") : "-"}
               </span>
             )
           }

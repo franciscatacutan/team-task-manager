@@ -65,6 +65,7 @@ public class TaskService {
           "lastActivityAt");
 
   private final TaskRepository taskRepository;
+  private final TaskPlanningCalendar planningCalendar;
   private final TeamMemberRepository teamMemberRepository;
   private final ActivityHistoryQuery activityHistoryQuery;
   private final WorkspaceReadPolicy readPolicy;
@@ -89,7 +90,9 @@ public class TaskService {
         projectAuthorizationService.requireActiveProject(projectKey, team.getId());
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
-    validateDates(request.plannedStartDate(), request.plannedDueDate());
+    Instant plannedStart = planningCalendar.parse(request.plannedStartDate());
+    Instant plannedDue = planningCalendar.parse(request.plannedDueDate());
+    validateDates(plannedStart, plannedDue);
 
     TeamMemberEntity assigneeMember =
         teamAuthorizationService.requireAssignableMember(team.getId(), request.assigneeId());
@@ -111,8 +114,8 @@ public class TaskService {
     task.setDescription(request.description());
     task.setStatus(TaskStatus.TODO);
     task.setPriority(request.priority());
-    task.setPlannedStartDate(request.plannedStartDate());
-    task.setPlannedDueDate(request.plannedDueDate());
+    task.setPlannedStartDate(plannedStart);
+    task.setPlannedDueDate(plannedDue);
     task.setCreatedBy(requester);
     task.setStatusChangedAt(Instant.now());
 
@@ -181,11 +184,13 @@ public class TaskService {
 
     Instant newPlannedStart =
         request.plannedStartDate() != null
-            ? request.plannedStartDate()
+            ? planningCalendar.parse(request.plannedStartDate())
             : task.getPlannedStartDate();
 
     Instant newPlannedDue =
-        request.plannedDueDate() != null ? request.plannedDueDate() : task.getPlannedDueDate();
+        request.plannedDueDate() != null
+            ? planningCalendar.parse(request.plannedDueDate())
+            : task.getPlannedDueDate();
 
     validateDates(newPlannedStart, newPlannedDue);
 
@@ -278,7 +283,9 @@ public class TaskService {
             request.priority(),
             request.assigneeId(),
             request.supportId(),
-            request.overdue(),
+            Boolean.TRUE.equals(request.overdue())
+                ? planningCalendar.startOfToday(Instant.now())
+                : null,
             request.deletedFilter(),
             canViewDeleted);
 
@@ -684,6 +691,8 @@ public class TaskService {
         task.getTaskNumber(),
         task.getPlannedStartDate(),
         task.getPlannedDueDate(),
+        planningCalendar.day(task.getPlannedStartDate()),
+        planningCalendar.day(task.getPlannedDueDate()),
         task.getActualStartDate(),
         task.getActualCompletionDate(),
         task.getCreatedAt(),
@@ -743,13 +752,13 @@ public class TaskService {
         : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
   }
 
-  /** Checks if Start Date < Due Date */
+  /** The due day may be the start day, including for older timestamps with a time of day. */
   private void validateDates(Instant start, Instant due) {
     if (start == null || due == null) {
       throw new BadRequestInputException("Start date and due date are required");
     }
 
-    if (due.isBefore(start)) {
+    if (planningCalendar.day(due).isBefore(planningCalendar.day(start))) {
       throw new ConflictException("Due date must be after start date");
     }
   }

@@ -9,6 +9,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -22,7 +23,7 @@ public class TaskSpecification {
       List<TaskPriority> priorities,
       UUID assigneeId,
       UUID supportId,
-      Boolean overdue,
+      Instant overdueBefore,
       DeletedFilter deletedFilter,
       boolean canViewDeleted) {
 
@@ -32,7 +33,7 @@ public class TaskSpecification {
         .and(hasPriorities(priorities))
         .and(hasAssignee(assigneeId))
         .and(hasSupport(supportId))
-        .and(isOverdue(overdue))
+        .and(isOverdue(overdueBefore))
         .and(deletedFilter(deletedFilter, canViewDeleted));
   }
 
@@ -47,19 +48,34 @@ public class TaskSpecification {
         return cb.conjunction();
       }
 
-      String pattern = "%" + keyword.toLowerCase() + "%";
+      String term = keyword.strip();
+      String pattern = "%" + term.toLowerCase(Locale.ROOT) + "%";
+      Long number = parseTaskNumber(term);
 
       Join<TaskEntity, UserEntity> assigneeJoin = root.join("assignee", JoinType.LEFT);
       Join<TaskEntity, UserEntity> supportJoin = root.join("support", JoinType.LEFT);
 
-      return cb.or(
-          cb.like(cb.lower(root.get("name")), pattern),
-          cb.like(cb.lower(root.get("description")), pattern),
-          cb.like(cb.lower(assigneeJoin.get("firstName")), pattern),
-          cb.like(cb.lower(assigneeJoin.get("lastName")), pattern),
-          cb.like(cb.lower(supportJoin.get("firstName")), pattern),
-          cb.like(cb.lower(supportJoin.get("lastName")), pattern));
+      var textMatch =
+          cb.or(
+              cb.like(cb.lower(root.get("name")), pattern),
+              cb.like(cb.lower(root.get("description")), pattern),
+              cb.like(cb.lower(assigneeJoin.get("firstName")), pattern),
+              cb.like(cb.lower(assigneeJoin.get("lastName")), pattern),
+              cb.like(cb.lower(supportJoin.get("firstName")), pattern),
+              cb.like(cb.lower(supportJoin.get("lastName")), pattern));
+      return number == null
+          ? textMatch
+          : cb.or(textMatch, cb.equal(root.get("taskNumber"), number));
     };
+  }
+
+  private static Long parseTaskNumber(String term) {
+    if (!term.matches("#?[0-9]{1,19}")) return null;
+    try {
+      return Long.valueOf(term.startsWith("#") ? term.substring(1) : term);
+    } catch (NumberFormatException tooLarge) {
+      return null;
+    }
   }
 
   private static Specification<TaskEntity> hasStatuses(List<TaskStatus> statuses) {
@@ -98,18 +114,16 @@ public class TaskSpecification {
         supportId == null ? cb.conjunction() : cb.equal(root.get("support").get("id"), supportId);
   }
 
-  private static Specification<TaskEntity> isOverdue(Boolean overdue) {
-
-    return (root, query, cb) -> {
-      if (!Boolean.TRUE.equals(overdue)) {
-        return cb.conjunction();
-      }
-
-      return cb.and(
-          cb.lessThan(root.get("plannedDueDate"), Instant.now()),
-          cb.notEqual(root.get("status"), TaskStatus.DONE),
-          cb.notEqual(root.get("status"), TaskStatus.CANCELLED));
-    };
+  private static Specification<TaskEntity> isOverdue(Instant before) {
+    return (root, query, cb) ->
+        before == null
+            ? cb.conjunction()
+            : cb.and(
+                cb.lessThan(root.get("plannedDueDate"), before),
+                cb.not(root.get("status").in(TaskPlanningCalendar.CLOSED_STATUSES)),
+                cb.isNull(root.get("deletedAt")),
+                cb.isNull(root.get("project").get("deletedAt")),
+                cb.isNull(root.get("project").get("team").get("deletedAt")));
   }
 
   private static Specification<TaskEntity> deletedFilter(

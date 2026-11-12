@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "../types/project.types";
 import type { ProjectPermissions } from "../utils/projectPermissions";
@@ -10,12 +11,13 @@ const state = vi.hoisted(() => ({
   teamDeletedAt: null as string | null,
   boardPermission: undefined as undefined | ((task: Task) => boolean),
   taskFilter: "",
+  taskParams: {} as Record<string, unknown>,
   tasksError: false,
   retryTasks: vi.fn(),
 }));
-vi.mock("react-router", () => ({
+vi.mock("react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-router")>()),
   useParams: () => ({ teamKey: "TEAM", projectKey: "PROJECT" }),
-  useNavigate: () => vi.fn(),
   useOutletContext: () => ({ team: { deletedAt: state.teamDeletedAt } }),
 }));
 vi.mock("../hooks/useProject", () => ({
@@ -40,6 +42,7 @@ vi.mock("../../tasks/hooks/useTasks", () => ({
     params: { deletedFilter: string },
   ) => {
     state.taskFilter = params.deletedFilter;
+    state.taskParams = params;
     return {
       data: { content: [] },
       isError: state.tasksError,
@@ -75,7 +78,7 @@ vi.mock("../../tasks/components/CreateTaskModal", () => ({
 }));
 vi.mock("../../tasks/components/TaskModal", () => ({ default: () => null }));
 vi.mock("../../tasks/components/TaskList", () => ({
-  default: () => <div>Task list</div>,
+  default: () => <Link to="/tasks/1">Open task</Link>,
 }));
 vi.mock("../../projects/components/ProjectActivity", () => ({
   default: () => null,
@@ -87,6 +90,22 @@ vi.mock("../../projects/components/ProjectObservabilityLogs", () => ({
   default: () => null,
 }));
 vi.mock("@/common/components/toolbar/ToolBar", () => ({ default: () => null }));
+
+function TaskPage() {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate(-1)}>Back</button>;
+}
+
+function renderProject(path = "/project") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/project" element={<ProjectDetails />} />
+        <Route path="/tasks/1" element={<TaskPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 describe("project archive context", () => {
   beforeEach(() => {
@@ -115,7 +134,7 @@ describe("project archive context", () => {
       if (level === "project") state.project!.deletedAt = "2026-01-01";
       if (level === "parent") state.project!.readOnly = true;
       if (level === "team") state.teamDeletedAt = "2026-01-01";
-      render(<ProjectDetails />);
+      renderProject();
       for (const name of [
         "Edit project",
         "Change project status",
@@ -127,7 +146,7 @@ describe("project archive context", () => {
     },
   );
   it("allows active work but disables dragging archived tasks in an active project", () => {
-    render(<ProjectDetails />);
+    renderProject();
     expect(screen.getByRole("button", { name: "Create task" })).toBeEnabled();
     expect(state.taskFilter).toBe("ACTIVE");
     expect(state.boardPermission?.({ status: "TODO" } as Task)).toBe(true);
@@ -142,15 +161,37 @@ describe("project archive context", () => {
     ).toBe(false);
   });
 
+  it("restores List search, filters, sorting and pagination when returning from a task", () => {
+    renderProject(
+      "/project?view=list&q=%231&status=TODO&visibility=ALL&sort=priority&order=asc&page=1&size=20",
+    );
+    const expected = {
+      page: 1,
+      size: 20,
+      search: "#1",
+      status: ["TODO"],
+      deletedFilter: "ALL",
+      sort: "priority,asc",
+    };
+    expect(state.taskParams).toEqual(expected);
+    fireEvent.click(screen.getByRole("link", { name: "Open task" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("tab", { name: "List" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(state.taskParams).toEqual(expected);
+  });
+
   it("shows failed task-list reads with a retry instead of an empty list", () => {
     state.tasksError = true;
-    render(<ProjectDetails />);
+    renderProject();
     fireEvent.mouseDown(screen.getByRole("tab", { name: "List" }), {
       button: 0,
       ctrlKey: false,
     });
     expect(screen.getByRole("alert")).toHaveTextContent("tasks");
-    expect(screen.queryByText("Task list")).not.toBeInTheDocument();
+    expect(screen.queryByText("Open task")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(state.retryTasks).toHaveBeenCalledOnce();
   });

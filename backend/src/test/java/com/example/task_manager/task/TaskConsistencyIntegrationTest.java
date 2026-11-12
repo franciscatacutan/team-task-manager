@@ -45,6 +45,7 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
   @Autowired EntityManager em;
   @Autowired JdbcTemplate jdbc;
   @Autowired JwtService jwt;
+  @Autowired TaskPlanningCalendar planningCalendar;
   @Autowired RefreshTokenService sessions;
   private MockMvc mvc;
   private Workspace workspace;
@@ -61,6 +62,50 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
             });
     ownerAuth = TestFixtures.authorization(jwt, sessions, workspace.owner());
     mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"#1", "1", "  #1  ", "Original task"})
+  void findsTasksByProjectNumberOrText(String search) throws Exception {
+    mvc.perform(get(tasksPath()).header("Authorization", ownerAuth).param("search", search))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].taskNumber").value(1));
+  }
+
+  @Test
+  void dueTodayIsOnTimeInTaskFiltersAndBothInsightsViews() throws Exception {
+    var today = planningCalendar.day(Instant.now());
+    var yesterday = today.minusDays(1).toString();
+    transactions.executeWithoutResult(
+        status -> {
+          var task = em.find(TaskEntity.class, workspace.task().getId());
+          task.setPlannedStartDate(planningCalendar.parse(yesterday));
+          task.setPlannedDueDate(planningCalendar.parse(yesterday));
+        });
+    mvc.perform(
+            post(tasksPath())
+                .header("Authorization", ownerAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+              {"name":"Due today","priority":"MEDIUM","assigneeId":"%s",
+               "plannedStartDate":"%s","plannedDueDate":"%s"}
+              """
+                        .formatted(workspace.owner().getId(), today, today)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.plannedDueDay").value(today.toString()));
+    mvc.perform(get(tasksPath()).header("Authorization", ownerAuth).param("overdue", "true"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].taskNumber").value(1));
+
+    String team = "/api/teams/" + workspace.team().getKey();
+    for (String path : List.of(team, team + "/projects/" + workspace.project().getKey())) {
+      mvc.perform(get(path + "/insights/summary").header("Authorization", ownerAuth))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.tasks.overdue").value(1));
+    }
   }
 
   @ParameterizedTest

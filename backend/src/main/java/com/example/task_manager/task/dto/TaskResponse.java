@@ -3,6 +3,7 @@ package com.example.task_manager.task.dto;
 import com.example.task_manager.task.entity.TaskPriority;
 import com.example.task_manager.task.entity.TaskStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /** DTO for task response. */
@@ -16,6 +17,8 @@ public record TaskResponse(
     Long taskNumber,
     Instant plannedStartDate,
     Instant plannedDueDate,
+    LocalDate plannedStartDay,
+    LocalDate plannedDueDay,
     Instant actualStartDate,
     Instant actualCompletionDate,
     Instant createdAt,

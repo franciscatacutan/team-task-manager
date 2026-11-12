@@ -18,6 +18,7 @@ import com.example.task_manager.observability.entity.SystemEventSeverity;
 import com.example.task_manager.project.ProjectRepository;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.project.entity.ProjectStatus;
+import com.example.task_manager.task.TaskPlanningCalendar;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
@@ -52,6 +53,7 @@ public class ObservabilityService {
   private final SystemEventRepository systemEventRepository;
   private final ActivityEventRepository activityEventRepository;
   private final TaskRepository taskRepository;
+  private final TaskPlanningCalendar planningCalendar;
   private final ProjectRepository projectRepository;
   private final TeamRepository teamRepository;
   private final TeamMemberRepository teamMemberRepository;
@@ -136,7 +138,7 @@ public class ObservabilityService {
             teamId, TaskStatus.CANCELLED);
     long overdueTasks =
         taskRepository.countOverdueOpenTasks(
-            teamId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED));
+            teamId, planningCalendar.startOfToday(now), TaskPlanningCalendar.CLOSED_STATUSES);
     long totalMembers = teamMemberRepository.countByTeamId(teamId);
     long totalProjects = projectRepository.countByTeamIdAndDeletedAtIsNull(teamId);
     long activeProjects =
@@ -261,7 +263,9 @@ public class ObservabilityService {
             taskRepository.countByProjectIdAndStatusAndDeletedAtIsNull(
                 projectId, TaskStatus.CANCELLED),
             taskRepository.countOverdueOpenTasksByProject(
-                projectId, now, List.of(TaskStatus.DONE, TaskStatus.CANCELLED)),
+                projectId,
+                planningCalendar.startOfToday(now),
+                TaskPlanningCalendar.CLOSED_STATUSES),
             taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(
                 projectId, TaskPriority.HIGH),
             taskRepository.countByProjectIdAndPriorityAndDeletedAtIsNull(

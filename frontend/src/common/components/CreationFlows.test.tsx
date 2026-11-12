@@ -95,32 +95,37 @@ vi.mock("@/common/components/PrioritySelector", () => ({
     </select>
   ),
 }));
-vi.mock("@/common/components/DatePicker", () => ({
-  default: ({
-    value,
-    onChange,
-    disabled: _disabled,
-    triggerDisabled,
-    ...props
-  }: {
-    value?: Date;
-    onChange: (value: Date) => void;
-    disabled?: (date: Date) => boolean;
-    triggerDisabled?: boolean;
-    id?: string;
-  }) => (
-    <input
-      {...props}
-      data-calendar-disabled={Boolean(_disabled)}
-      type="date"
-      disabled={triggerDisabled}
-      value={value?.toISOString().slice(0, 10) ?? ""}
-      onChange={(event) =>
-        onChange(new Date(`${event.target.value}T00:00:00Z`))
-      }
-    />
-  ),
-}));
+vi.mock("@/common/components/DatePicker", async () => {
+  const { format, parseISO } = await import("date-fns");
+  return {
+    default: ({
+      value,
+      onChange,
+      disabled: _disabled,
+      triggerDisabled,
+      ...props
+    }: {
+      value?: Date;
+      onChange: (value: Date | undefined) => void;
+      disabled?: (date: Date) => boolean;
+      triggerDisabled?: boolean;
+      id?: string;
+    }) => (
+      <input
+        {...props}
+        data-calendar-disabled={Boolean(_disabled)}
+        type="date"
+        disabled={triggerDisabled}
+        value={value ? format(value, "yyyy-MM-dd") : ""}
+        onChange={(event) =>
+          onChange(
+            event.target.value ? parseISO(event.target.value) : undefined,
+          )
+        }
+      />
+    ),
+  };
+});
 
 type Entity = "Team" | "Project" | "Task";
 const name = "New work";
@@ -331,8 +336,8 @@ describe.each(["Team", "Project", "Task"] as const)(
           expect.objectContaining({
             priority: "CRITICAL",
             assigneeId: "00000000-0000-4000-8000-000000000001",
-            plannedStartDate: "2026-11-04T00:00:00.000Z",
-            plannedDueDate: "2026-11-05T00:00:00.000Z",
+            plannedStartDate: "2026-11-04",
+            plannedDueDate: "2026-11-05",
           }),
         );
       }

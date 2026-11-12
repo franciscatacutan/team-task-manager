@@ -1,5 +1,10 @@
 import QueryFailure from "@/common/components/QueryFailure";
-import { useNavigate, useOutletContext, useParams } from "react-router";
+import {
+  useNavigate,
+  useOutletContext,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { useState } from "react";
 
 import { useProject } from "../hooks/useProject";
@@ -46,6 +51,17 @@ import type { SortField, SortOrder } from "@/common/types/sort.types";
 import { Pagination } from "@/common/components/pagination/Pagination";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
+const projectViews = ["board", "list", "activity", "insights"] as const;
+type ProjectView = (typeof projectViews)[number];
+
+function isProjectView(value: string | null): value is ProjectView {
+  return projectViews.some((view) => view === value);
+}
+
+function getPaginationOptions(view: ProjectView) {
+  return view === "list" ? [10, 20, 40] : [12, 24, 36];
+}
+
 export default function ProjectDetails() {
   const { teamKey, projectKey } = useParams<{
     teamKey: string;
@@ -57,22 +73,31 @@ export default function ProjectDetails() {
   // ---------------- STATE ----------------
   const [open, setOpen] = useState(false);
 
-  const [view, setView] = useState<"board" | "list">("board");
-
-  const getPaginationOptions = (type: "board" | "list") =>
-    type === "board" ? [12, 24, 36] : [10, 20, 40];
-
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState<number>(getPaginationOptions("board")[0]);
-
-  const [search, setSearch] = useState("");
-
-  const [sortField, setSortField] = useState<SortField>("lastActivityAt");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  const [statusFilter, setStatusFilter] = useState<TaskStatus[]>([]);
-
-  const [deletedFilter, setDeletedFilter] = useState<DeletedFilter>("ACTIVE");
+  const [params, setParams] = useSearchParams();
+  const requestedView = params.get("view");
+  const view = isProjectView(requestedView) ? requestedView : "board";
+  const sizes = getPaginationOptions(view);
+  const requestedSize = Number(params.get("size"));
+  const size = sizes.includes(requestedSize) ? requestedSize : sizes[0];
+  const requestedPage = Number(params.get("page"));
+  const page =
+    Number.isInteger(requestedPage) &&
+    requestedPage >= 0 &&
+    requestedPage * size <= 2_147_483_647
+      ? requestedPage
+      : 0;
+  const search = params.get("q") ?? "";
+  const requestedSort = params.get("sort");
+  const sortField =
+    requestedSort === "taskNumber"
+      ? requestedSort
+      : (TASK_LIST_SORT_OPTIONS.find(({ value }) => value === requestedSort)
+          ?.value ?? "lastActivityAt");
+  const sortOrder: SortOrder = params.get("order") === "asc" ? "asc" : "desc";
+  const statusFilter = params.getAll("status").filter(isTaskStatus);
+  const visibility = params.get("visibility");
+  const deletedFilter: DeletedFilter =
+    visibility === "DELETED" || visibility === "ALL" ? visibility : "ACTIVE";
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -143,61 +168,56 @@ export default function ProjectDetails() {
 
   // ---------------- HANDLERS ----------------
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(0);
-  };
+  function updateView(values: Record<string, string | string[] | null>) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(values)) {
+          next.delete(key);
+          if (Array.isArray(value)) {
+            value.forEach((entry) => next.append(key, entry));
+          } else if (value) {
+            next.set(key, value);
+          }
+        }
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }
+
+  const handleSearchChange = (value: string) =>
+    updateView({ q: value, page: null });
 
   const handleViewChange = (value: string) => {
-    const nextView = value as "board" | "list";
-
-    setView(nextView);
-    setPage(0);
-    setSize(getPaginationOptions(nextView)[0]);
+    if (isProjectView(value))
+      updateView({ view: value, page: null, size: null });
   };
 
-  const handleSort = (field: SortField) => {
-    setSortField((prevField) => {
-      if (prevField === field) {
-        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-        return prevField;
-      }
-
-      setSortOrder("desc");
-      return field;
+  const handleSort = (field: SortField) =>
+    updateView({
+      sort: field,
+      order: sortField === field && sortOrder === "desc" ? "asc" : null,
+      page: null,
     });
 
-    setPage(0);
-  };
-
-  const handleToggleSortOrder = () => {
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    setPage(0);
-  };
+  const handleToggleSortOrder = () =>
+    updateView({ order: sortOrder === "desc" ? "asc" : null, page: null });
 
   const handleFilterChange = (key: string, value: string | string[]) => {
-    setPage(0);
-
     if (key === "statusFilter") {
       const statuses = Array.isArray(value) ? value : value ? [value] : [];
-      setStatusFilter(statuses.filter(isTaskStatus));
-    }
-
-    if (key === "deletedFilter") {
-      setDeletedFilter(
-        (typeof value === "string" && value
-          ? value
-          : "ACTIVE") as DeletedFilter,
-      );
+      updateView({ status: statuses.filter(isTaskStatus), page: null });
+    } else if (key === "deletedFilter") {
+      updateView({
+        visibility: value === "DELETED" || value === "ALL" ? value : null,
+        page: null,
+      });
     }
   };
 
-  const handleClearFilters = () => {
-    setSearch("");
-    setStatusFilter([]);
-    setDeletedFilter("ACTIVE");
-    setPage(0);
-  };
+  const handleClearFilters = () =>
+    updateView({ q: null, status: null, visibility: null, page: null });
 
   function handleStatusChange(
     taskNumber: number,
@@ -222,6 +242,9 @@ export default function ProjectDetails() {
     isReadOnly: isProjectReadOnly,
   });
 
+  const visibleView =
+    view === "insights" && !permissions.canManageProject ? "board" : view;
+
   // ------------------ FILTERS ------------------
   const filterConfig = permissions.canViewDeleteTask
     ? [...TASK_STATUS_FILTER, ...DELETED_FILTER]
@@ -231,7 +254,6 @@ export default function ProjectDetails() {
     config: filterConfig,
     values: filterValues,
     onChange: handleFilterChange,
-    onDeletedChange: setDeletedFilter,
     onClear: handleClearFilters,
   };
 
@@ -272,7 +294,7 @@ export default function ProjectDetails() {
         open={open && !isProjectReadOnly}
         onOpenChange={setOpen}
       />
-      {(view == "board" || view == "list") && (
+      {(visibleView === "board" || visibleView === "list") && (
         <Toolbar
           search={{
             label: "Search tasks",
@@ -280,7 +302,7 @@ export default function ProjectDetails() {
             onChange: handleSearchChange,
           }}
           filters={filters}
-          view={view}
+          view={visibleView}
           sort={{
             field: sortField,
             order: sortOrder,
@@ -292,7 +314,7 @@ export default function ProjectDetails() {
       )}
 
       <Tabs
-        value={view}
+        value={visibleView}
         onValueChange={handleViewChange}
         className="list-fill flex min-w-0 flex-col flex-1 min-h-0"
       >
@@ -423,12 +445,11 @@ export default function ProjectDetails() {
           size={size}
           totalPages={totalPages}
           totalElements={totalElements}
-          onPageChange={setPage}
-          onSizeChange={(size) => {
-            setPage(0);
-            setSize(size);
-          }}
-          options={getPaginationOptions(view)}
+          onPageChange={(nextPage) => updateView({ page: String(nextPage) })}
+          onSizeChange={(nextSize) =>
+            updateView({ page: null, size: String(nextSize) })
+          }
+          options={sizes}
         />
       )}
       {selectedTask && (

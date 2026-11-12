@@ -21,12 +21,10 @@ export const createTaskSchema = z
     assigneeId: z.uuid("Select a valid assignee"),
     supportId: z.uuid("Select a valid support user").optional(),
 
-    plannedStartDate: z.iso.datetime({
-      offset: true,
+    plannedStartDate: z.iso.date({
       error: "Start date is required and must be valid",
     }),
-    plannedDueDate: z.iso.datetime({
-      offset: true,
+    plannedDueDate: z.iso.date({
       error: "Due date is required and must be valid",
     }),
   })
@@ -38,7 +36,7 @@ export const createTaskSchema = z
     (data) => {
       if (!data.plannedStartDate || !data.plannedDueDate) return true;
 
-      return new Date(data.plannedStartDate) <= new Date(data.plannedDueDate);
+      return data.plannedStartDate <= data.plannedDueDate;
     },
     {
       message: "Due date must be after start date",

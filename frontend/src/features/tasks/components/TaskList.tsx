@@ -185,10 +185,12 @@ export default function TaskList({
                     </TableCell>
 
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(task.plannedStartDate)}
+                      {formatDate(
+                        task.plannedStartDay ?? task.plannedStartDate,
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(task.plannedDueDate)}
+                      {formatDate(task.plannedDueDay ?? task.plannedDueDate)}
                     </TableCell>
 
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">

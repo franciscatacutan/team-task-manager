@@ -7,8 +7,8 @@ const input = {
   name: "Task",
   priority: "LOW",
   assigneeId: "00000000-0000-4000-8000-000000000001",
-  plannedStartDate: "2026-11-01T00:00:00Z",
-  plannedDueDate: "2026-11-02T00:00:00Z",
+  plannedStartDate: "2026-11-01",
+  plannedDueDate: "2026-11-02",
 };
 describe("task creation contract", () => {
   it.each(TASK_PRIORITIES)("accepts %s priority", (priority) => {
@@ -51,7 +51,7 @@ describe("task creation contract", () => {
     expect(
       createTaskSchema.safeParse({
         ...input,
-        plannedDueDate: "2026-10-01T00:00:00Z",
+        plannedDueDate: "2026-10-01",
       }).success,
     ).toBe(false);
   });
@@ -74,7 +74,7 @@ describe("React Hook Form resolver compatibility", () => {
         name: " ",
         priority: "HIGH",
         assigneeId: "",
-        plannedDueDate: "2026-10-01T00:00:00Z",
+        plannedDueDate: "2026-10-01",
       },
       undefined,
       options,

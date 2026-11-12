@@ -153,7 +153,9 @@ export default function TeamsList({
               ? "Try clearing the search or filters to see more teams."
               : canCreateTeam
                 ? "Create a team to get started."
-                : "Join a team to get started"}
+                : canCreateTeam === false
+                  ? "Ask a team owner or admin to add you using your sign-in email."
+                  : "No team memberships to display."}
           </p>
 
           {hasActiveFilters ? (

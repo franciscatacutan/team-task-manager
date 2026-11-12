@@ -1,4 +1,5 @@
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { format, parseISO } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import CreationForm from "@/common/components/CreationForm";
@@ -234,20 +235,16 @@ export function CreateTaskForm({
                   aria-label="Planned Start"
                   triggerDisabled={pending}
                   value={
-                    plannedStartDate ? new Date(plannedStartDate) : undefined
+                    plannedStartDate ? parseISO(plannedStartDate) : undefined
                   }
                   onChange={(date) => {
-                    const iso = date ? date.toISOString() : "";
-                    form.setValue("plannedStartDate", iso, {
+                    const day = date ? format(date, "yyyy-MM-dd") : "";
+                    form.setValue("plannedStartDate", day, {
                       shouldValidate: true,
                       shouldDirty: true,
                     });
-                    if (
-                      plannedDueDate &&
-                      date &&
-                      new Date(iso) > new Date(plannedDueDate)
-                    )
-                      form.setValue("plannedDueDate", iso);
+                    if (plannedDueDate && date && day > plannedDueDate)
+                      form.setValue("plannedDueDate", day);
                     void form.trigger("plannedDueDate");
                   }}
                 />
@@ -264,16 +261,17 @@ export function CreateTaskForm({
                   {...control}
                   aria-label="Planned Due"
                   triggerDisabled={pending}
-                  value={plannedDueDate ? new Date(plannedDueDate) : undefined}
+                  value={plannedDueDate ? parseISO(plannedDueDate) : undefined}
                   onChange={(date) =>
                     form.setValue(
                       "plannedDueDate",
-                      date ? date.toISOString() : "",
+                      date ? format(date, "yyyy-MM-dd") : "",
                       { shouldValidate: true, shouldDirty: true },
                     )
                   }
                   disabled={(date) =>
-                    !plannedStartDate || date < new Date(plannedStartDate)
+                    !plannedStartDate ||
+                    format(date, "yyyy-MM-dd") < plannedStartDate
                   }
                 />
               )}
