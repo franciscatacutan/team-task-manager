@@ -93,6 +93,39 @@ describe("KPI response contracts", () => {
     expect(screen.getByText("20 total project tasks")).toBeVisible();
     expect(screen.queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
   });
+  it("displays the planning calendar date and keeps a project due today on time", () => {
+    render(
+      <ProjectInsightsDashboard
+        insights={{
+          ...project,
+          plannedDueDate: "2026-11-11T16:00:00Z",
+          plannedDueDay: "2026-11-12",
+        }}
+      />,
+    );
+    const expectedDate = new Date(2026, 10, 12).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    expect(screen.getByText(expectedDate)).toBeVisible();
+    expect(screen.getByText("Due today")).toBeVisible();
+  });
+
+  it("does not call a completed project late when it has no due date", () => {
+    render(
+      <ProjectInsightsDashboard
+        insights={{
+          ...project,
+          status: "COMPLETED",
+          actualCompletionDate: "2026-11-12T09:00:00Z",
+        }}
+      />,
+    );
+    expect(screen.queryByText("Completed late")).not.toBeInTheDocument();
+    expect(screen.queryByText("Completed on time")).not.toBeInTheDocument();
+  });
+
   it("handles an empty project summary without missing-value or divide-by-zero output", () => {
     const emptyTasks = {
       total: 0,

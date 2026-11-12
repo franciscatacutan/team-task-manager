@@ -164,8 +164,8 @@ export default function ProjectHeader({
             <HeaderDetail
               label="Planned"
               value={formatDateRange(
-                project.plannedStartDate,
-                project.plannedDueDate,
+                project.plannedStartDay ?? project.plannedStartDate,
+                project.plannedDueDay ?? project.plannedDueDate,
                 "TBD",
                 "TBD",
               )}

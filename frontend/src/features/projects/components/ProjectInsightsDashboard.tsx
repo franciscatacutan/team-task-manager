@@ -230,11 +230,15 @@ export default function ProjectInsightsDashboard({
             <div className="grid grid-cols-2 gap-2">
               <DetailMetric
                 label="Planned start"
-                value={formatDate(insights.plannedStartDate)}
+                value={formatDate(
+                  insights.plannedStartDay ?? insights.plannedStartDate,
+                )}
               />
               <DetailMetric
                 label="Planned due"
-                value={formatDate(insights.plannedDueDate)}
+                value={formatDate(
+                  insights.plannedDueDay ?? insights.plannedDueDate,
+                )}
               />
               <DetailMetric
                 label="Actual start"
@@ -293,7 +297,18 @@ export default function ProjectInsightsDashboard({
 }
 
 function getDueSignal(insights: ProjectInsights) {
-  if (insights.actualCompletionDate) {
+  const dueDate = insights.plannedDueDay ?? insights.plannedDueDate;
+  const completed =
+    insights.status === "COMPLETED" || Boolean(insights.actualCompletionDate);
+
+  if (completed && (!dueDate || !insights.actualCompletionDate)) {
+    return {
+      label: "Completed",
+      className: "border-slate-200 bg-slate-50 text-slate-700",
+    };
+  }
+
+  if (completed) {
     return {
       label: insights.health.completedOnTime
         ? "Completed on time"
@@ -304,16 +319,18 @@ function getDueSignal(insights: ProjectInsights) {
     };
   }
 
-  if (!insights.plannedDueDate) {
+  if (!dueDate) {
     return {
       label: "No due date",
       className: "border-slate-200 bg-slate-50 text-slate-700",
     };
   }
 
+  const days = Math.abs(insights.health.daysUntilDue);
+  const dayLabel = days === 1 ? "day" : "days";
   if (insights.health.overdue) {
     return {
-      label: `${Math.abs(insights.health.daysUntilDue)} days overdue`,
+      label: `${days} ${dayLabel} overdue`,
       className: "border-rose-200 bg-rose-50 text-rose-700",
     };
   }
@@ -326,7 +343,7 @@ function getDueSignal(insights: ProjectInsights) {
   }
 
   return {
-    label: `${insights.health.daysUntilDue} days remaining`,
+    label: `${days} ${dayLabel} remaining`,
     className: "border-sky-200 bg-sky-50 text-sky-700",
   };
 }

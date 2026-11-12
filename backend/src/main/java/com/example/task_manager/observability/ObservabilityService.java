@@ -287,17 +287,21 @@ public class ObservabilityService {
             auditLogRepository.countByProjectIdAndOccurredAtAfter(projectId, since),
             systemEventRepository.countByProjectIdAndOccurredAtAfter(projectId, since));
 
+    var plannedStartDay = planningCalendar.day(project.getPlannedStartDate());
+    var plannedDueDay = planningCalendar.day(project.getPlannedDueDate());
+    var completionDay = planningCalendar.day(project.getActualCompletionDate());
+    long daysUntilDue =
+        plannedDueDay == null
+            ? 0
+            : ChronoUnit.DAYS.between(planningCalendar.day(now), plannedDueDay);
+    boolean completed = project.getStatus() == ProjectStatus.COMPLETED || completionDay != null;
     ProjectInsightsResponse.HealthMetrics healthMetrics =
         new ProjectInsightsResponse.HealthMetrics(
-            project.getPlannedDueDate() != null
-                && project.getActualCompletionDate() == null
-                && project.getPlannedDueDate().isBefore(now),
-            project.getPlannedDueDate() == null
-                ? 0
-                : ChronoUnit.DAYS.between(now, project.getPlannedDueDate()),
-            project.getActualCompletionDate() != null
-                && project.getPlannedDueDate() != null
-                && !project.getActualCompletionDate().isAfter(project.getPlannedDueDate()));
+            !completed && daysUntilDue < 0,
+            daysUntilDue,
+            plannedDueDay != null
+                && completionDay != null
+                && !completionDay.isAfter(plannedDueDay));
 
     return new ProjectInsightsResponse(
         teamId,
@@ -305,6 +309,8 @@ public class ObservabilityService {
         project.getStatus(),
         project.getPlannedStartDate(),
         project.getPlannedDueDate(),
+        plannedStartDay,
+        plannedDueDay,
         project.getActualStartDate(),
         project.getActualCompletionDate(),
         now,

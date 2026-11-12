@@ -2,6 +2,7 @@ package com.example.task_manager.project.dto;
 
 import com.example.task_manager.project.entity.ProjectStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /** DTO for returning project information. */
@@ -17,6 +18,8 @@ public record ProjectResponse(
     ProjectUserSummary deletedBy,
     Instant plannedStartDate,
     Instant plannedDueDate,
+    LocalDate plannedStartDay,
+    LocalDate plannedDueDay,
     Instant actualStartDate,
     Instant actualCompletionDate,
     Instant createdAt,

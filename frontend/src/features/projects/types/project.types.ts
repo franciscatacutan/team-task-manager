@@ -14,6 +14,8 @@ export type Project = {
   lastActivityAt: string;
   plannedStartDate?: string;
   plannedDueDate?: string;
+  plannedStartDay?: string | null;
+  plannedDueDay?: string | null;
   actualStartDate?: string;
   actualCompletionDate?: string;
   createdAt: string;

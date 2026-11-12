@@ -2,6 +2,7 @@ package com.example.task_manager.observability.dto;
 
 import com.example.task_manager.project.entity.ProjectStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record ProjectInsightsResponse(
@@ -10,6 +11,8 @@ public record ProjectInsightsResponse(
     ProjectStatus status,
     Instant plannedStartDate,
     Instant plannedDueDate,
+    LocalDate plannedStartDay,
+    LocalDate plannedDueDay,
     Instant actualStartDate,
     Instant actualCompletionDate,
     Instant generatedAt,

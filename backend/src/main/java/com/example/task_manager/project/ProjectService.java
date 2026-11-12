@@ -22,6 +22,7 @@ import com.example.task_manager.project.dto.ProjectSearchRequest;
 import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.project.entity.ProjectStatus;
+import com.example.task_manager.task.TaskPlanningCalendar;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
@@ -67,6 +68,7 @@ public class ProjectService {
   private final ProjectRepository projectRepository;
   private final TeamMemberRepository teamMemberRepository;
   private final TaskRepository taskRepository;
+  private final TaskPlanningCalendar planningCalendar;
   private final ActivityHistoryQuery activityHistoryQuery;
   private final WorkspaceReadPolicy readPolicy;
   private final ActivityEventService activityEventService;
@@ -447,6 +449,8 @@ public class ProjectService {
         deletedBy,
         project.getPlannedStartDate(),
         project.getPlannedDueDate(),
+        planningCalendar.day(project.getPlannedStartDate()),
+        planningCalendar.day(project.getPlannedDueDate()),
         project.getActualStartDate(),
         project.getActualCompletionDate(),
         project.getCreatedAt(),
