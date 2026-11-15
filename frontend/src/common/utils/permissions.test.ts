@@ -50,7 +50,7 @@ describe("global viewing and team-scoped editing", () => {
 
   it("keeps a global admin outside the team read-only", () => {
     const team = getTeamPermissions({ globalRole: "ADMIN", teamRole: null });
-    expect(team.canAccessTeam).toBe(true);
+    expect(team.canViewInsights).toBe(true);
     expect(team.canViewDeleteTeam).toBe(true);
     expect(team.canEditTeamDetails).toBe(false);
     expect(team.canDeleteTeam).toBe(false);
@@ -64,7 +64,7 @@ describe("global viewing and team-scoped editing", () => {
     "does not grant project/task editing to nonmember %s",
     (globalRole) => {
       const project = getProjectPermissions({ globalRole, teamRole: null });
-      expect(project.canManageProject).toBe(true);
+      expect(project.canViewInsights).toBe(true);
       expect(project.canViewDeleteProject).toBe(true);
       expect(project.canChangeProjectStatus).toBe(false);
       expect(project.canEditProjectDetails).toBe(false);

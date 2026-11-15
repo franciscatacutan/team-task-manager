@@ -88,6 +88,8 @@ Receive notifications for:
 - Project insights
 - Task progress tracking
 
+Team owners and team admins can view Insights, overdue tasks, audit logs, and system events for their team. Global admins and super admins can view these across teams. Current team members can follow work through the Activity feeds for workspaces they can access.
+
 ---
 
 ## Technology Stack

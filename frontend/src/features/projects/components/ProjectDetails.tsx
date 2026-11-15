@@ -46,7 +46,7 @@ import {
   DELETED_FILTER,
   type DeletedFilter,
 } from "../../../common/types/deletedFilter.types";
-import { getUserFromToken } from "../../users/api/userApi";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useProjectInsights } from "../hooks/useProjectInsights";
 import { BASE_SORT_OPTIONS } from "@/common/constants/sort.constants";
 import Toolbar from "@/common/components/toolbar/ToolBar";
@@ -156,13 +156,6 @@ export default function ProjectDetails() {
     ...(assigneeId ? { assigneeId } : {}),
     ...(overdue ? { overdue: true } : {}),
   };
-
-  const {
-    data: projectInsights,
-    isLoading: isProjectInsightsLoading,
-    isError: isProjectInsightsError,
-    refetch: retryProjectInsights,
-  } = useProjectInsights(teamKey || "", projectKey || "");
 
   const {
     data: tasksData,
@@ -287,8 +280,9 @@ export default function ProjectDetails() {
 
   // ---------------- PERMISSIONS ----------------
 
-  const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamKey || "");
+  const { user } = useAuth();
+  const membership = useTeamMe(teamKey || "");
+  const teamMe = membership.isError ? undefined : membership.data;
 
   const permissions = getProjectPermissions({
     globalRole: user?.role,
@@ -297,7 +291,16 @@ export default function ProjectDetails() {
   });
 
   const visibleView =
-    view === "insights" && !permissions.canManageProject ? "board" : view;
+    view === "insights" && !permissions.canViewInsights ? "board" : view;
+  const showInsights = Boolean(
+    project && !isError && visibleView === "insights",
+  );
+  const {
+    data: projectInsights,
+    isLoading: isProjectInsightsLoading,
+    isError: isProjectInsightsError,
+    refetch: retryProjectInsights,
+  } = useProjectInsights(teamKey || "", projectKey || "", showInsights);
 
   // ------------------ FILTERS ------------------
   const filterConfig = permissions.canViewDeleteTask
@@ -406,7 +409,7 @@ export default function ProjectDetails() {
             Activity
           </TabsTrigger>
 
-          {permissions.canManageProject && (
+          {permissions.canViewInsights && (
             <TabsTrigger
               value="insights"
               className=" flex items-center gap-2 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:bg-muted transition-all "

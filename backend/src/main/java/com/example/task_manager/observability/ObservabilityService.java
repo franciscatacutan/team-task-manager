@@ -5,6 +5,8 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
+import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ForbiddenException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
@@ -28,9 +30,7 @@ import com.example.task_manager.task.entity.TaskStatus;
 import com.example.task_manager.team.TeamMemberRepository;
 import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
-import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
-import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import java.time.Duration;
 import java.time.Instant;
@@ -61,7 +61,8 @@ public class ObservabilityService {
   private final ProjectRepository projectRepository;
   private final TeamRepository teamRepository;
   private final TeamMemberRepository teamMemberRepository;
-  private final UserRepository userRepository;
+  private final GlobalAuthorizationService globalAuthorization;
+  private final TeamAuthorizationService teamAuthorization;
 
   @Transactional
   public void recordFromActivity(ActivityEventEntity event) {
@@ -458,60 +459,38 @@ public class ObservabilityService {
         teamRepository
             .findByKey(teamKey)
             .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-
-    if (isGlobalAdmin(authentication)) {
-      return team;
-    }
-
-    TeamMemberEntity membership = requireMembership(team.getId(), authentication);
-
-    if (team.getDeletedAt() != null
-        && membership.getRole() != TeamRole.OWNER
-        && membership.getRole() != TeamRole.ADMIN) {
-      throw new ResourceNotFoundException("Team not found");
-    }
-
+    requireObservabilityAccess(team, team.getDeletedAt() != null, "Team not found", authentication);
     return team;
   }
 
   private ProjectEntity validateCanReadProjectObservability(
       String teamKey, String projectKey, Authentication authentication) {
-
     ProjectEntity project =
         projectRepository
             .findByKeyAndTeamKey(projectKey, teamKey)
             .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-
-    validateCanReadTeamObservability(teamKey, authentication);
-
-    if ((project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null)
-        && !isGlobalAdmin(authentication)) {
-      TeamMemberEntity membership = requireMembership(project.getTeam().getId(), authentication);
-      if (membership.getRole() != TeamRole.OWNER && membership.getRole() != TeamRole.ADMIN) {
-        throw new ResourceNotFoundException("Project not found");
-      }
-    }
-
+    TeamEntity team = project.getTeam();
+    requireObservabilityAccess(
+        team,
+        project.getDeletedAt() != null || team.getDeletedAt() != null,
+        "Project not found",
+        authentication);
     return project;
   }
 
-  private boolean isGlobalAdmin(Authentication authentication) {
-    return authentication.getAuthorities().stream()
-        .anyMatch(
-            authority ->
-                authority.getAuthority().equals("ROLE_SUPER_ADMIN")
-                    || authority.getAuthority().equals("ROLE_ADMIN"));
-  }
+  private void requireObservabilityAccess(
+      TeamEntity team, boolean archived, String unavailableMessage, Authentication authentication) {
+    UserEntity requester = globalAuthorization.getUserByEmail(authentication.getName());
+    if (globalAuthorization.isGlobalAdmin(requester)) return;
 
-  private TeamMemberEntity requireMembership(UUID teamId, Authentication authentication) {
-    UserEntity requester =
-        userRepository
-            .findByEmail(authentication.getName())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    var membership =
+        teamMemberRepository
+            .findByTeamIdAndUserId(team.getId(), requester.getId())
+            .orElseThrow(() -> new ForbiddenException("User is not a team member"));
+    if (teamAuthorization.canManageTeam(membership)) return;
 
-    return teamMemberRepository
-        .findByTeamIdAndUserId(teamId, requester.getId())
-        .orElseThrow(() -> new ForbiddenException("User is not a team member"));
+    if (archived) throw new ResourceNotFoundException(unavailableMessage);
+    throw new ForbiddenException("Only team owners and admins can view Insights and logs");
   }
 
   private <T, R> PageResponse<R> toPageResponse(Page<T> page, Function<T, R> mapper) {

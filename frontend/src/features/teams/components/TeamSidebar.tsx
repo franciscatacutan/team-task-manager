@@ -31,10 +31,10 @@ export default function TeamSidebar({
   const mobile = useIsMobile();
   const [drawer, setDrawer] = useState({ open: false, location: location.key });
   const { user } = useAuth();
-  const { data: teamMe } = useTeamMe(teamKey);
+  const membership = useTeamMe(teamKey);
   const permissions = getTeamPermissions({
     globalRole: user?.role,
-    teamRole: teamMe?.role,
+    teamRole: membership.isError ? undefined : membership.data?.role,
     isReadOnly: Boolean(team.deletedAt),
   });
   // Route changes and desktop transitions must not resurrect a previously open drawer.
@@ -72,7 +72,7 @@ export default function TeamSidebar({
               </div>
               <TeamNavigation
                 teamKey={teamKey}
-                canAccessInsights={permissions.canAccessTeam}
+                canAccessInsights={permissions.canViewInsights}
                 onNavigate={close}
               />
             </div>
@@ -117,7 +117,7 @@ export default function TeamSidebar({
         <TeamNavigation
           teamKey={teamKey}
           collapsed={collapsed}
-          canAccessInsights={permissions.canAccessTeam}
+          canAccessInsights={permissions.canViewInsights}
         />
       </div>
     </aside>

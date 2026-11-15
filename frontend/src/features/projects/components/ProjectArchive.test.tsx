@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "../types/project.types";
+import type { UserRole } from "@/features/users/types/userRole";
+import type { NullableTeamRole } from "@/features/teams/types/team.type";
 import type { ProjectPermissions } from "../utils/projectPermissions";
 import type { Task } from "../../tasks/types/task.types";
 import ProjectDetails from "./ProjectDetails";
@@ -9,6 +11,9 @@ import ProjectDetails from "./ProjectDetails";
 const state = vi.hoisted(() => ({
   project: undefined as Project | undefined,
   teamDeletedAt: null as string | null,
+  globalRole: "USER" as UserRole,
+  teamRole: "OWNER" as NullableTeamRole,
+  insightsEnabled: false,
   boardPermission: undefined as undefined | ((task: Task) => boolean),
   taskFilter: "",
   taskParams: {} as Record<string, unknown>,
@@ -27,13 +32,16 @@ vi.mock("../hooks/useProject", () => ({
   useProject: () => ({ data: state.project, isLoading: false, isError: false }),
 }));
 vi.mock("../hooks/useProjectInsights", () => ({
-  useProjectInsights: () => ({}),
+  useProjectInsights: (_team: string, _project: string, enabled: boolean) => {
+    state.insightsEnabled = enabled;
+    return {};
+  },
 }));
 vi.mock("../../teams/hooks/useTeamMe", () => ({
-  useTeamMe: () => ({ data: { role: "OWNER", userId: "owner" } }),
+  useTeamMe: () => ({ data: { role: state.teamRole, userId: "owner" } }),
 }));
-vi.mock("../../users/api/userApi", () => ({
-  getUserFromToken: () => ({ role: "USER" }),
+vi.mock("@/features/auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { role: state.globalRole } }),
 }));
 vi.mock("../../tasks/hooks/useUpdateTaskStatus", () => ({
   useUpdateTaskStatus: () => ({ mutate: vi.fn() }),
@@ -137,6 +145,9 @@ describe("project archive context", () => {
       lastActivityAt: "2026-01-01",
     };
     state.teamDeletedAt = null;
+    state.globalRole = "USER";
+    state.teamRole = "OWNER";
+    state.insightsEnabled = false;
     state.boardPermission = undefined;
     state.tasksError = false;
     state.tasksTotalPages = 10;
@@ -199,6 +210,33 @@ describe("project archive context", () => {
       "true",
     );
     expect(state.taskParams).toEqual(expected);
+  });
+
+  it("does not request project insights for a member using the Insights URL", () => {
+    state.teamRole = "MEMBER";
+    renderProject("/project?view=insights");
+    expect(screen.getByRole("tab", { name: "Board" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.queryByRole("tab", { name: "Insights" })).toBeNull();
+    expect(state.insightsEnabled).toBe(false);
+  });
+
+  it("fetches project insights only while an authorized viewer opens the tab", () => {
+    const board = renderProject("/project");
+    expect(state.insightsEnabled).toBe(false);
+    board.unmount();
+
+    state.globalRole = "ADMIN";
+    state.teamRole = null;
+    renderProject("/project?view=insights");
+    expect(screen.getByRole("tab", { name: "Insights" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(state.insightsEnabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Edit project" })).toBeDisabled();
   });
 
   it("passes project filters to board columns and starts the Insights drill-down clean", () => {

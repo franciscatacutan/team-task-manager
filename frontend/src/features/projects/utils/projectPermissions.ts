@@ -3,7 +3,7 @@ import type { NullableTeamRole } from "../../teams/types/team.type";
 import type { UserRole } from "../../users/types/userRole";
 
 export interface ProjectPermissions {
-  canManageProject: boolean;
+  canViewInsights: boolean;
   canCreateProject: boolean;
   canEditProjectDetails: boolean;
   canDeleteProject: boolean;
@@ -34,7 +34,7 @@ export function getProjectPermissions({
   const canWrite = !isReadOnly;
 
   return {
-    canManageProject: isSystemAdmin || canManage,
+    canViewInsights: isSystemAdmin || canManage,
 
     canCreateProject: canWrite && canManage,
 

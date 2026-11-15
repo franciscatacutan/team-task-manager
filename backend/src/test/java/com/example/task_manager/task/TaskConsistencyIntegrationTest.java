@@ -239,9 +239,9 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
     var today = planningCalendar.day(Instant.now());
     var yesterday = planningCalendar.parse(today.minusDays(1).toString());
     var oldest = planningCalendar.parse(today.minusDays(2).toString());
-    var member = user(UserRole.USER, TeamRole.MEMBER);
+    var manager = user(UserRole.USER, TeamRole.ADMIN);
     var admin = user(UserRole.ADMIN, null);
-    String memberAuth = TestFixtures.authorization(jwt, sessions, member);
+    String managerAuth = TestFixtures.authorization(jwt, sessions, manager);
     String adminAuth = TestFixtures.authorization(jwt, sessions, admin);
     String secondProjectKey =
         transactions.execute(
@@ -267,12 +267,12 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
 
     String insights = "/api/teams/" + workspace.team().getKey() + "/insights";
     String path = insights + "/overdue-tasks";
-    mvc.perform(get(insights + "/summary").header("Authorization", memberAuth))
+    mvc.perform(get(insights + "/summary").header("Authorization", managerAuth))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.health.overdueTasks").value(21))
         .andExpect(jsonPath("$.tasks.overdue").value(21));
     String first =
-        mvc.perform(get(path).header("Authorization", memberAuth).param("size", "100"))
+        mvc.perform(get(path).header("Authorization", managerAuth).param("size", "100"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalElements").value(21))
             .andExpect(jsonPath("$.totalPages").value(2))
@@ -285,7 +285,7 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
             .getResponse()
             .getContentAsString();
     String second =
-        mvc.perform(get(path).header("Authorization", memberAuth).param("page", "1"))
+        mvc.perform(get(path).header("Authorization", managerAuth).param("page", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalElements").value(21))
             .andExpect(jsonPath("$.last").value(true))
@@ -300,14 +300,14 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
     mvc.perform(get(path).header("Authorization", adminAuth))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(21));
-    mvc.perform(get(path).header("Authorization", memberAuth).param("page", "2147483647"))
+    mvc.perform(get(path).header("Authorization", managerAuth).param("page", "2147483647"))
         .andExpect(status().isBadRequest());
 
     jdbc.update(
         "delete from team_members where team_id = ? and user_id = ?",
         workspace.team().getId(),
-        member.getId());
-    mvc.perform(get(path).header("Authorization", memberAuth)).andExpect(status().isForbidden());
+        manager.getId());
+    mvc.perform(get(path).header("Authorization", managerAuth)).andExpect(status().isForbidden());
     transactions.executeWithoutResult(
         status -> em.find(TeamEntity.class, workspace.team().getId()).setDeletedAt(Instant.now()));
     mvc.perform(get(path).header("Authorization", ownerAuth))
