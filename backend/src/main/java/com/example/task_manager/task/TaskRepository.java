@@ -196,18 +196,50 @@ public interface TaskRepository
       findTop500ByProjectIdAndStatusAndActualStartDateIsNotNullAndActualCompletionDateIsNotNullAndDeletedAtIsNullOrderByActualCompletionDateDesc(
           UUID projectId, TaskStatus status);
 
-  @Query(
+  String TEAM_OVERDUE_TASKS =
       """
-      SELECT COUNT(t)
       FROM TaskEntity t
-      WHERE t.project.team.id = :teamId
+      JOIN t.project p
+      JOIN p.team tm
+      WHERE tm.id = :teamId
         AND t.deletedAt IS NULL
-        AND t.project.deletedAt IS NULL
-        AND t.project.team.deletedAt IS NULL
+        AND p.deletedAt IS NULL
+        AND tm.deletedAt IS NULL
         AND t.plannedDueDate < :before
         AND t.status NOT IN :terminalStatuses
-      """)
+      """;
+
+  @Query("SELECT count(t) " + TEAM_OVERDUE_TASKS)
   long countOverdueOpenTasks(UUID teamId, Instant before, List<TaskStatus> terminalStatuses);
+
+  @Query(
+      value =
+          """
+          SELECT t.taskNumber AS taskNumber, t.name AS name, t.status AS status,
+            t.priority AS priority, t.plannedDueDate AS plannedDueDate,
+            p.key AS projectKey, p.name AS projectName
+          """
+              + TEAM_OVERDUE_TASKS
+              + "ORDER BY t.plannedDueDate ASC, t.id ASC",
+      countQuery = "SELECT count(t) " + TEAM_OVERDUE_TASKS)
+  Page<TeamOverdueTaskRow> findTeamOverdueTasks(
+      UUID teamId, Instant before, List<TaskStatus> terminalStatuses, Pageable pageable);
+
+  interface TeamOverdueTaskRow {
+    long getTaskNumber();
+
+    String getName();
+
+    TaskStatus getStatus();
+
+    TaskPriority getPriority();
+
+    Instant getPlannedDueDate();
+
+    String getProjectKey();
+
+    String getProjectName();
+  }
 
   @Query(
       """

@@ -20,6 +20,7 @@ import TeamMembersPage from "../features/teams/components/MembersView";
 import AppLayout from "../layout/AppLayout";
 import TeamActivity from "../features/teams/components/TeamActivity";
 import TeamInsightsPage from "../features/teams/components/TeamInsightsPage";
+import TeamOverdueTasksPage from "@/features/teams/components/TeamOverdueTasksPage";
 import { useThemePreference } from "../features/settings/hooks/useThemePreference";
 
 export default function AppRoutes() {
@@ -70,6 +71,7 @@ export default function AppRoutes() {
             <Route path="members" element={<TeamMembersPage />} />
             <Route path="activity" element={<TeamActivity />} />
             <Route path="insights" element={<TeamInsightsPage />} />
+            <Route path="insights/overdue" element={<TeamOverdueTasksPage />} />
             <Route path="projects/:projectKey" element={<ProjectDetails />} />
 
             <Route

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "@/api/apiClients";
 import { getTeamInsights } from "@/features/teams/api/teamApi";
@@ -82,6 +82,27 @@ describe("KPI response contracts", () => {
     expect(screen.getAllByText("30%")[0]).toBeVisible();
     expect(screen.queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
   });
+  it("links the team overdue count to the team-wide results", () => {
+    render(
+      <MemoryRouter initialEntries={["/teams/DELIVERY/insights"]}>
+        <Routes>
+          <Route
+            path="/teams/:teamKey/insights"
+            element={
+              <TeamInsightsDashboard
+                insights={team}
+                overdueTasksPath="overdue"
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole("link", { name: "View overdue tasks (1)" }),
+    ).toHaveAttribute("href", "/teams/DELIVERY/insights/overdue");
+  });
+
   it("renders a backend-shaped project summary while routes keep public team/project keys", async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({ data: project });
     const result = await getProjectInsights("DELIVERY", "PORTAL");

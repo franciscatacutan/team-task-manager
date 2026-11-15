@@ -4,6 +4,7 @@ import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.observability.dto.AuditLogResponse;
 import com.example.task_manager.observability.dto.SystemEventResponse;
 import com.example.task_manager.observability.dto.TeamInsightsResponse;
+import com.example.task_manager.observability.dto.TeamOverdueTask;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,6 +28,16 @@ public class ObservabilityController {
       @PathVariable String teamKey, Authentication authentication) {
 
     return ResponseEntity.ok(observabilityService.getTeamInsights(teamKey, authentication));
+  }
+
+  @GetMapping("/overdue-tasks")
+  public ResponseEntity<PageResponse<TeamOverdueTask>> getTeamOverdueTasks(
+      @PathVariable String teamKey,
+      @RequestParam(defaultValue = "0") int page,
+      Authentication authentication) {
+
+    return ResponseEntity.ok(
+        observabilityService.getTeamOverdueTasks(teamKey, page, authentication));
   }
 
   @GetMapping("/audit-logs")

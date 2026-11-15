@@ -5,12 +5,14 @@ import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ForbiddenException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
 import com.example.task_manager.observability.dto.AuditLogResponse;
 import com.example.task_manager.observability.dto.ProjectInsightsResponse;
 import com.example.task_manager.observability.dto.SystemEventResponse;
 import com.example.task_manager.observability.dto.TeamInsightsResponse;
+import com.example.task_manager.observability.dto.TeamOverdueTask;
 import com.example.task_manager.observability.entity.AuditAction;
 import com.example.task_manager.observability.entity.AuditLogEntity;
 import com.example.task_manager.observability.entity.SystemEventEntity;
@@ -38,6 +40,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ObservabilityService {
   private static final Duration INSIGHT_WINDOW = Duration.ofDays(7);
+  private static final int OVERDUE_TASK_PAGE_SIZE = 20;
 
   private final AuditLogRepository auditLogRepository;
   private final SystemEventRepository systemEventRepository;
@@ -220,6 +224,32 @@ public class ObservabilityService {
         flowMetrics,
         activityMetrics,
         healthMetrics);
+  }
+
+  @Transactional(readOnly = true)
+  public PageResponse<TeamOverdueTask> getTeamOverdueTasks(
+      String teamKey, int page, Authentication authentication) {
+    TeamEntity team = validateCanReadTeamObservability(teamKey, authentication);
+    if (page < 0 || page > Integer.MAX_VALUE / OVERDUE_TASK_PAGE_SIZE) {
+      throw new BadRequestInputException("Overdue task page is out of range");
+    }
+    var tasks =
+        taskRepository.findTeamOverdueTasks(
+            team.getId(),
+            planningCalendar.startOfToday(Instant.now()),
+            TaskPlanningCalendar.CLOSED_STATUSES,
+            PageRequest.of(page, OVERDUE_TASK_PAGE_SIZE));
+    return toPageResponse(
+        tasks,
+        task ->
+            new TeamOverdueTask(
+                task.getTaskNumber(),
+                task.getName(),
+                task.getStatus(),
+                task.getPriority(),
+                planningCalendar.day(task.getPlannedDueDate()),
+                task.getProjectKey(),
+                task.getProjectName()));
   }
 
   @Transactional(readOnly = true)

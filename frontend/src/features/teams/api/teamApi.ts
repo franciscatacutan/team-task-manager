@@ -13,7 +13,10 @@ import type {
   TeamMe,
   TeamMember,
 } from "../types/team.type";
-import type { TeamInsights } from "../types/teamInsights.types";
+import type {
+  TeamInsights,
+  TeamOverdueTask,
+} from "../types/teamInsights.types";
 
 export const getTeams = async (
   params: BaseQueryParams & {
@@ -88,6 +91,18 @@ export const transferTeam = async (
   );
   return response.data;
 };
+
+export async function getTeamOverdueTasks(
+  teamKey: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<PageResponse<TeamOverdueTask>> {
+  const { data } = await apiClient.get<PageResponse<TeamOverdueTask>>(
+    `/teams/${teamKey}/insights/overdue-tasks`,
+    { params: { page }, signal },
+  );
+  return data;
+}
 
 export const getTeamInsights = async (
   teamKey: string,

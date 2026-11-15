@@ -13,6 +13,7 @@ import com.example.task_manager.support.TestFixtures;
 import com.example.task_manager.support.TestFixtures.Workspace;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
+import com.example.task_manager.task.entity.TaskStatus;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
@@ -106,6 +107,87 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.tasks.overdue").value(1));
     }
+  }
+
+  @Test
+  void teamOverdueListMatchesTheSummaryAcrossProjectsAndPages() throws Exception {
+    var today = planningCalendar.day(Instant.now());
+    var yesterday = planningCalendar.parse(today.minusDays(1).toString());
+    var oldest = planningCalendar.parse(today.minusDays(2).toString());
+    var member = user(UserRole.USER, TeamRole.MEMBER);
+    var admin = user(UserRole.ADMIN, null);
+    String memberAuth = TestFixtures.authorization(jwt, sessions, member);
+    String adminAuth = TestFixtures.authorization(jwt, sessions, admin);
+    String secondProjectKey =
+        transactions.execute(
+            status -> {
+              var project = em.find(ProjectEntity.class, workspace.project().getId());
+              var second = siblingProject(project, "Second project");
+              var archived = siblingProject(project, "Archived project");
+              archived.setDeletedAt(Instant.now());
+              em.find(TaskEntity.class, workspace.task().getId()).setPlannedDueDate(oldest);
+              for (int i = 1; i <= 20; i++) {
+                overdueFixture(second, i, yesterday);
+              }
+              overdueFixture(archived, 1, oldest);
+              overdueFixture(project, 2, oldest).setDeletedAt(Instant.now());
+              overdueFixture(project, 3, oldest).setStatus(TaskStatus.DONE);
+              overdueFixture(project, 4, oldest).setStatus(TaskStatus.CANCELLED);
+              overdueFixture(project, 5, planningCalendar.parse(today.toString()));
+              overdueFixture(project, 6, null);
+              var other = TestFixtures.workspace(em);
+              other.task().setPlannedDueDate(oldest);
+              return second.getKey();
+            });
+
+    String insights = "/api/teams/" + workspace.team().getKey() + "/insights";
+    String path = insights + "/overdue-tasks";
+    mvc.perform(get(insights + "/summary").header("Authorization", memberAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.health.overdueTasks").value(21))
+        .andExpect(jsonPath("$.tasks.overdue").value(21));
+    String first =
+        mvc.perform(get(path).header("Authorization", memberAuth).param("size", "100"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(21))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.content.length()").value(20))
+            .andExpect(jsonPath("$.content[0].projectKey").value(workspace.project().getKey()))
+            .andExpect(jsonPath("$.content[0].taskNumber").value(1))
+            .andExpect(jsonPath("$.content[0].plannedDueDay").value(today.minusDays(2).toString()))
+            .andExpect(jsonPath("$.content[1].projectName").value("Second project"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String second =
+        mvc.perform(get(path).header("Authorization", memberAuth).param("page", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(21))
+            .andExpect(jsonPath("$.last").value(true))
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].projectKey").value(secondProjectKey))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    List<Integer> firstProjectNumbers = JsonPath.read(first, "$.content[1:].taskNumber");
+    Integer lastNumber = JsonPath.read(second, "$.content[0].taskNumber");
+    assertThat(firstProjectNumbers).doesNotContain(lastNumber);
+    mvc.perform(get(path).header("Authorization", adminAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(21));
+    mvc.perform(get(path).header("Authorization", memberAuth).param("page", "2147483647"))
+        .andExpect(status().isBadRequest());
+
+    jdbc.update(
+        "delete from team_members where team_id = ? and user_id = ?",
+        workspace.team().getId(),
+        member.getId());
+    mvc.perform(get(path).header("Authorization", memberAuth)).andExpect(status().isForbidden());
+    transactions.executeWithoutResult(
+        status -> em.find(TeamEntity.class, workspace.team().getId()).setDeletedAt(Instant.now()));
+    mvc.perform(get(path).header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
   }
 
   @Test
@@ -489,6 +571,28 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
                 .param("sort", "priorityRank,asc")
                 .param("all", "true"))
         .andExpect(status().isBadRequest());
+  }
+
+  private ProjectEntity siblingProject(ProjectEntity project, String name) {
+    var sibling = new ProjectEntity();
+    sibling.setKey("PROJECT-" + UUID.randomUUID());
+    sibling.setName(name);
+    sibling.setTeam(project.getTeam());
+    sibling.setOwner(project.getOwner());
+    em.persist(sibling);
+    return sibling;
+  }
+
+  private TaskEntity overdueFixture(ProjectEntity project, long number, Instant dueDate) {
+    var task = new TaskEntity();
+    task.setName("Task " + number);
+    task.setProject(project);
+    task.setTaskNumber(number);
+    task.setAssignee(project.getOwner());
+    task.setPriority(TaskPriority.HIGH);
+    task.setPlannedDueDate(dueDate);
+    em.persist(task);
+    return task;
   }
 
   private ResultActions create(String name, TaskPriority priority) throws Exception {

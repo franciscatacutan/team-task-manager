@@ -46,6 +46,8 @@ export const queryKeys = {
     systemEvent: (teamKey: string, params: object) =>
       ["team-system-events", teamKey, params] as const,
     insights: (teamKey: string) => ["team-insights", teamKey] as const,
+    overdueTasks: (teamKey: string, page: number) =>
+      ["team-insights", teamKey, "overdue-tasks", page] as const,
   },
   projects: {
     listsRoot: ["projects"] as const,

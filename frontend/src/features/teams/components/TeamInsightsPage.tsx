@@ -41,6 +41,7 @@ export default function TeamInsightsPage() {
         isLoading={isTeamInsightsLoading}
         isError={isTeamInsightsError}
         onRetry={retryTeamInsights}
+        overdueTasksPath="overdue"
       />
 
       <TeamObservabilityLogs teamKey={teamKey} />
