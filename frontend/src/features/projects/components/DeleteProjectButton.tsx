@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { requestError } from "@/common/utils/requestError";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -31,19 +31,28 @@ export function DeleteProjectButton({
 }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const deleteProjectMutation = useDeleteProject(teamKey);
+  const activeProject = useRef<{ teamKey: string; projectKey: string }>(null);
+  useEffect(() => {
+    activeProject.current = { teamKey, projectKey };
+    return () => {
+      activeProject.current = null;
+    };
+  }, [teamKey, projectKey]);
 
-  const handleDelete = () => {
-    deleteProjectMutation.mutate(projectKey, {
-      onSuccess: () => {
-        setOpen(false);
-        if (onProjectDeleted) {
-          onProjectDeleted();
-        }
-        navigate(`/teams/${teamKey}/projects`);
-      },
-    });
-  };
+  const deleteProjectMutation = useDeleteProject(
+    teamKey,
+    (archivedProjectKey) => {
+      if (
+        activeProject.current?.teamKey !== teamKey ||
+        activeProject.current.projectKey !== archivedProjectKey
+      )
+        return;
+
+      setOpen(false);
+      if (onProjectDeleted) onProjectDeleted();
+      else navigate(`/teams/${teamKey}/projects`);
+    },
+  );
 
   return (
     <AlertDialog
@@ -101,7 +110,7 @@ export function DeleteProjectButton({
           <AlertDialogAction
             onClick={(event) => {
               event.preventDefault();
-              handleDelete();
+              deleteProjectMutation.mutate(projectKey);
             }}
             disabled={deleteProjectMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

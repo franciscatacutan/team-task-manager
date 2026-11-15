@@ -1,7 +1,12 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import { Link, MemoryRouter, Route, Routes } from "react-router";
+import { queryKeys } from "@/common/query/queryKeys";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DeleteTaskButton from "@/features/tasks/components/DeleteTaskButton";
 import { DeleteProjectButton } from "@/features/projects/components/DeleteProjectButton";
@@ -107,6 +112,89 @@ describe("archive confirmation feedback", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(deleteProject).not.toHaveBeenCalled();
+    client.clear();
+  });
+
+  it("returns to Projects before the confirmed archive refresh can hide its button", async () => {
+    let readOnly = false;
+    const detailKey = queryKeys.projects.detail("TEAM", "PROJECT");
+    const client = new QueryClient();
+    vi.mocked(deleteProject).mockImplementation(async () => {
+      readOnly = true;
+    });
+    const readProject = async () => ({ readOnly });
+    function ProjectPage() {
+      const project = useQuery({ queryKey: detailKey, queryFn: readProject });
+      return project.data && !project.data.readOnly ? (
+        <DeleteProjectButton
+          teamKey="TEAM"
+          projectKey="PROJECT"
+          projectName="Project"
+        />
+      ) : (
+        <p>Read-only project</p>
+      );
+    }
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/teams/TEAM/projects/PROJECT"]}>
+          <Routes>
+            <Route
+              path="/teams/TEAM/projects/PROJECT"
+              element={<ProjectPage />}
+            />
+            <Route path="/teams/TEAM/projects" element={<h1>Projects</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Archive project" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    expect(
+      await screen.findByRole("heading", { name: "Projects" }),
+    ).toBeVisible();
+    expect(deleteProject).toHaveBeenCalledExactlyOnceWith("TEAM", "PROJECT");
+    client.clear();
+  });
+
+  it("keeps the current page when an archive succeeds after leaving the project", async () => {
+    let finish!: () => void;
+    vi.mocked(deleteProject).mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const client = new QueryClient();
+    const archived = vi.fn();
+    const view = render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/teams/TEAM/projects/PROJECT"]}>
+          <DeleteProjectButton
+            teamKey="TEAM"
+            projectKey="PROJECT"
+            projectName="Project"
+            onProjectDeleted={archived}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Archive project" }));
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => expect(deleteProject).toHaveBeenCalledOnce());
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <Link to="/my-work">My Work</Link>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await act(async () => finish());
+    expect(archived).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "My Work" })).toBeVisible();
     client.clear();
   });
 
