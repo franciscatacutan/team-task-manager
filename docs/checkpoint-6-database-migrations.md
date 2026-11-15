@@ -47,7 +47,7 @@ The approved next local-use path is reviewable and reversible:
 4. Start the backend; confirm Flyway versions 1 and 2 are successful, Hibernate validation succeeds, `/actuator/health` is UP and the intended account flow works. Only explicitly configured bootstrap provisioning creates an account; no demo data is inserted by migrations.
 5. Keep the original database available while evaluating the new installation. Moving old test data later requires a separately reviewed transfer/adoption. If reverting the launcher, use an application version compatible with that original schema; the new artifact deliberately refuses unmanaged schemas.
 
-The current Compose `POSTGRES_DB` variable initializes the official image only for an empty data directory. Changing that variable on the existing persistent volume does not provision another database. Do not remove the volume to force initialization. No Compose recreation, credential rotation or local connection edit is part of the completed verification.
+Compose passes `DB_NAME` to PostgreSQL as `POSTGRES_DB`. The image uses this setting to initialize an empty data directory. Changing `DB_NAME` on an existing volume does not provision another database. Do not remove the volume to force initialization. No Compose recreation, credential rotation or local connection edit is part of the completed verification.
 
 ## Adding the next schema change
 

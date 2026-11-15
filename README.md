@@ -205,21 +205,23 @@ Use the [local deployment guide](docs/checkpoint-7-local-rehearsal.md) for local
 
 ## Docker Setup
 
-The root Compose file below is the earlier development flow. Prefer the isolated guide for the newly verified workflows; do not start the old database as a shortcut around the Flyway cutover.
+Copy `.env.example` to `.env` and set the passwords and JWT secret. After configuring the database, use `docker compose up --build --wait` to start the app and `docker compose down` to stop it.
 
-### Start Application
+### Use the included PostgreSQL container
 
-For an existing persistent PostgreSQL volume, review the [separate-database cutover](docs/checkpoint-6-database-migrations.md#existing-local-database-separate-cutover-required) first. Changing `POSTGRES_DB` alone does not create another database in an initialized volume; do not delete it.
+Keep `COMPOSE_PROFILES=bundled-postgres`. Compose starts PostgreSQL in a named volume and waits for it to accept TCP connections before starting the backend. Keep the database name in `DB_URL` in sync with `DB_NAME`. The backend connects to `postgres:5432` inside Docker. Host tools use `127.0.0.1:5433` or the port you set in `POSTGRES_PORT`.
 
-```bash
-docker compose up --build
-```
+Clear any old database variables exported in your terminal before starting the included container. Compose uses shell variables ahead of .env when configuring PostgreSQL.
 
-### Stop Application
+For a volume created before Flyway, follow the [database cutover guide](docs/checkpoint-6-database-migrations.md#existing-local-database-separate-cutover-required). The PostgreSQL container uses the initialization settings only when the data directory is empty.
 
-```bash
-docker compose down
-```
+### Use an existing PostgreSQL server
+
+Set `COMPOSE_PROFILES=` and update `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` in `.env`. Compose starts the backend and frontend. Use a dedicated database and login and start the database server first. For a fresh install, create the database before starting the backend so Flyway can create the tables.
+
+On Docker Desktop, use `jdbc:postgresql://host.docker.internal:5432/team_task_manager` for PostgreSQL installed on your computer at the default port. For a separately managed PostgreSQL container, use its published host port, such as `5433`. For a server elsewhere, use its hostname and port.
+
+If the included container is already running and you want to switch to an existing database, run `docker compose --profile bundled-postgres stop postgres` before starting the app. This preserves its volume.
 
 Application URLs:
 

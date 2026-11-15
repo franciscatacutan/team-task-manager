@@ -56,12 +56,12 @@ if ($Action -eq 'Init') {
   $rootEnvironment = Join-Path $repository '.env'
   if (!(Test-Path -LiteralPath $rootEnvironment -PathType Leaf)) { throw 'Init requires the existing Docker PostgreSQL administrator settings in the repository .env.' }
   $administrator = Read-NativeEnvironment $rootEnvironment
-  if (!$administrator.POSTGRES_USER -or !$administrator.POSTGRES_PASSWORD) { throw 'POSTGRES_USER and POSTGRES_PASSWORD must identify the existing Docker PostgreSQL administrator.' }
+  if (!$administrator.DB_USERNAME -or !$administrator.DB_PASSWORD) { throw 'DB_USERNAME and DB_PASSWORD must identify the existing Docker PostgreSQL administrator.' }
   $portJson = & docker inspect $PostgresContainer --format '{{json .NetworkSettings.Ports}}'
   if ($LASTEXITCODE -ne 0) { throw 'Start the existing PostgreSQL container before Init.' }
   $publishedPorts = ($portJson | ConvertFrom-Json).'5432/tcp'
   if (@($publishedPorts | Where-Object HostPort -eq "$DatabasePort").Count -eq 0) { throw 'DatabasePort does not match the selected container publication.' }
-  $existing = Invoke-NativePostgres "SELECT (SELECT count(*) FROM pg_database WHERE datname='$DatabaseName') + (SELECT count(*) FROM pg_roles WHERE rolname='$DatabaseUser');" $administrator.POSTGRES_USER $administrator.POSTGRES_PASSWORD
+  $existing = Invoke-NativePostgres "SELECT (SELECT count(*) FROM pg_database WHERE datname='$DatabaseName') + (SELECT count(*) FROM pg_roles WHERE rolname='$DatabaseUser');" $administrator.DB_USERNAME $administrator.DB_PASSWORD
   if ($existing -ne '0') { throw 'The requested database or role already exists. Choose unused names; nothing was changed.' }
   $secret = { [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant() }
   $settings = [ordered]@{
@@ -82,7 +82,7 @@ if ($Action -eq 'Init') {
 CREATE ROLE "$DatabaseUser" LOGIN PASSWORD '$($settings.DB_PASSWORD)' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE DATABASE "$DatabaseName" OWNER "$DatabaseUser";
 "@
-  $null = Invoke-NativePostgres $sql $administrator.POSTGRES_USER $administrator.POSTGRES_PASSWORD
+  $null = Invoke-NativePostgres $sql $administrator.DB_USERNAME $administrator.DB_PASSWORD
   Move-Item -LiteralPath $pendingFile -Destination $environmentFile
   Write-Output "Created separate database $DatabaseName and dedicated login $DatabaseUser. Existing databases were not modified."
   Write-Output "Generated credentials: $environmentFile (ignored by Git; do not share)."

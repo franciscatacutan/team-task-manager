@@ -60,7 +60,7 @@ Flyway applies the existing V1/V2 migrations to the fresh database, then Hiberna
 
 ## First initialization on another checkout/machine
 
-Only when no native state exists, with the intended existing PostgreSQL container running and its administrator credentials correctly recorded as `POSTGRES_USER` / `POSTGRES_PASSWORD` in the repository `.env`:
+Only when no native state exists, with the intended existing PostgreSQL container running and its administrator credentials correctly recorded as `DB_USERNAME` / `DB_PASSWORD` in the repository `.env`:
 
 ```powershell
 pwsh -File ./deploy/native/native.ps1 -Action Init
