@@ -78,6 +78,19 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
         .andExpect(jsonPath("$.content[0].taskNumber").value(1));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"%", "_", "!", "\\"})
+  void findsOnlyTasksContainingTheLiteralSearchCharacter(String character) throws Exception {
+    String name = "Literal " + character + " example";
+    jdbc.update("update tasks set name = ? where id = ?", name, workspace.task().getId());
+    create("Unrelated task", TaskPriority.MEDIUM).andExpect(status().isCreated());
+
+    mvc.perform(get(tasksPath()).header("Authorization", ownerAuth).param("search", character))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].name").value(name));
+  }
+
   @Test
   void concurrentCreationsInTheSameProjectKeepAllTasksAndDistinctNumbers() throws Exception {
     var admin = user(UserRole.USER, TeamRole.ADMIN);

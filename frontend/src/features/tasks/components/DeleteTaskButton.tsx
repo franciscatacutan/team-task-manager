@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { requestError } from "@/common/utils/requestError";
 import { Archive } from "lucide-react";
 import { useDeleteTask } from "../hooks/useDeleteTask";
@@ -33,19 +33,28 @@ export default function DeleteTaskButton({
 }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const deleteTaskMutation = useDeleteTask(teamKey, projectKey);
+  const scope = JSON.stringify([teamKey, projectKey, taskNumber]);
+  const activeScope = useRef<string | null>(null);
+  useEffect(() => {
+    activeScope.current = scope;
+    return () => {
+      activeScope.current = null;
+    };
+  }, [scope]);
 
-  const handleDelete = () => {
-    deleteTaskMutation.mutate(taskNumber, {
-      onSuccess: () => {
-        setOpen(false);
-        if (onTaskDeleted) {
-          onTaskDeleted();
-        }
-        navigate(`/teams/${teamKey}/projects/${projectKey}`);
-      },
-    });
-  };
+  const deleteTaskMutation = useDeleteTask(
+    teamKey,
+    projectKey,
+    (archivedTaskNumber) => {
+      if (activeScope.current !== scope || archivedTaskNumber !== taskNumber)
+        return;
+
+      setOpen(false);
+      if (onTaskDeleted) onTaskDeleted();
+      else
+        navigate(`/teams/${teamKey}/projects/${projectKey}`, { replace: true });
+    },
+  );
 
   return (
     <AlertDialog
@@ -101,7 +110,7 @@ export default function DeleteTaskButton({
           <AlertDialogAction
             onClick={(event) => {
               event.preventDefault();
-              handleDelete();
+              deleteTaskMutation.mutate(taskNumber);
             }}
             disabled={deleteTaskMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

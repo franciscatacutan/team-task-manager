@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "../types/project.types";
@@ -14,6 +14,8 @@ const state = vi.hoisted(() => ({
   taskParams: {} as Record<string, unknown>,
   boardParams: {} as Record<string, unknown>,
   tasksError: false,
+  tasksTotalPages: 10,
+  tasksPlaceholder: false,
   retryTasks: vi.fn(),
 }));
 vi.mock("react-router", async (importOriginal) => ({
@@ -40,13 +42,18 @@ vi.mock("../../tasks/hooks/useTasks", () => ({
   useTasks: (
     _team: string,
     _project: string,
-    params: { deletedFilter: string },
+    params: { deletedFilter: string; page: number },
   ) => {
     state.taskFilter = params.deletedFilter;
     state.taskParams = params;
     return {
-      data: { content: [] },
+      data: {
+        content: [],
+        page: params.page,
+        totalPages: state.tasksTotalPages,
+      },
       isError: state.tasksError,
+      isPlaceholderData: state.tasksPlaceholder,
       refetch: state.retryTasks,
     };
   },
@@ -132,6 +139,8 @@ describe("project archive context", () => {
     state.teamDeletedAt = null;
     state.boardPermission = undefined;
     state.tasksError = false;
+    state.tasksTotalPages = 10;
+    state.tasksPlaceholder = false;
     state.retryTasks.mockClear();
   });
   it.each(["project", "parent", "team"])(
@@ -220,6 +229,38 @@ describe("project archive context", () => {
       deletedFilter: "ACTIVE",
       overdue: true,
     });
+  });
+
+  it.each([
+    { page: 1, totalPages: 1, expectedPage: 0 },
+    { page: 4, totalPages: 3, expectedPage: 2 },
+    { page: 4, totalPages: 0, expectedPage: 0 },
+  ])(
+    "returns an out-of-range List page to the last valid page and keeps its filters",
+    async ({ page, totalPages, expectedPage }) => {
+      state.tasksTotalPages = totalPages;
+      renderProject(
+        `/project?view=list&q=Release&status=TODO&sort=priority&order=asc&page=${page}&size=20`,
+      );
+      await waitFor(() => expect(state.taskParams.page).toBe(expectedPage));
+      expect(state.taskParams).toMatchObject({
+        search: "Release",
+        status: ["TODO"],
+        sort: "priority,asc",
+        size: 20,
+      });
+      expect(screen.getByRole("tab", { name: "List" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    },
+  );
+
+  it("waits for confirmed page data before changing the page", () => {
+    state.tasksTotalPages = 1;
+    state.tasksPlaceholder = true;
+    renderProject("/project?view=list&page=2");
+    expect(state.taskParams.page).toBe(2);
   });
 
   it("shows failed task-list reads with a retry instead of an empty list", () => {

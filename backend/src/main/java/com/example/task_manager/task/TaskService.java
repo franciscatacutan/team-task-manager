@@ -327,7 +327,7 @@ public class TaskService {
     if (term.length() > 254) {
       throw new BadRequestInputException("Assignee search must be at most 254 characters");
     }
-    String pattern = "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+    String pattern = TaskSpecification.literalSearchPattern(term);
     var page = PageRequest.of(pageable.getPageNumber(), 20);
     if (page.getOffset() > Integer.MAX_VALUE) {
       throw new BadRequestInputException("Assignee page is out of range");

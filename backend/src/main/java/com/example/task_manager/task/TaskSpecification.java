@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 /** Builds dynamic filtering logic for TaskEntity queries. */
 public class TaskSpecification {
+  private static final char SEARCH_ESCAPE = '!';
 
   public static Specification<TaskEntity> build(
       UUID projectId,
@@ -49,7 +50,7 @@ public class TaskSpecification {
       }
 
       String term = keyword.strip();
-      String pattern = "%" + term.toLowerCase(Locale.ROOT) + "%";
+      String pattern = literalSearchPattern(term.toLowerCase(Locale.ROOT));
       Long number = parseTaskNumber(term);
 
       Join<TaskEntity, UserEntity> assigneeJoin = root.join("assignee", JoinType.LEFT);
@@ -57,16 +58,21 @@ public class TaskSpecification {
 
       var textMatch =
           cb.or(
-              cb.like(cb.lower(root.get("name")), pattern),
-              cb.like(cb.lower(root.get("description")), pattern),
-              cb.like(cb.lower(assigneeJoin.get("firstName")), pattern),
-              cb.like(cb.lower(assigneeJoin.get("lastName")), pattern),
-              cb.like(cb.lower(supportJoin.get("firstName")), pattern),
-              cb.like(cb.lower(supportJoin.get("lastName")), pattern));
+              cb.like(cb.lower(root.get("name")), pattern, SEARCH_ESCAPE),
+              cb.like(cb.lower(root.get("description")), pattern, SEARCH_ESCAPE),
+              cb.like(cb.lower(assigneeJoin.get("firstName")), pattern, SEARCH_ESCAPE),
+              cb.like(cb.lower(assigneeJoin.get("lastName")), pattern, SEARCH_ESCAPE),
+              cb.like(cb.lower(supportJoin.get("firstName")), pattern, SEARCH_ESCAPE),
+              cb.like(cb.lower(supportJoin.get("lastName")), pattern, SEARCH_ESCAPE));
       return number == null
           ? textMatch
           : cb.or(textMatch, cb.equal(root.get("taskNumber"), number));
     };
+  }
+
+  // The assignee picker uses the same escape character in its repository query.
+  static String literalSearchPattern(String term) {
+    return "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
   }
 
   private static Long parseTaskNumber(String term) {

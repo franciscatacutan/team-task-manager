@@ -5,7 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import ProjectAssigneeFilter from "@/features/tasks/components/ProjectAssigneeFilter";
 import { isTaskPriority } from "@/features/tasks/constants/task.constants";
@@ -170,6 +170,7 @@ export default function ProjectDetails() {
     isError: tasksError,
     refetch: retryTasks,
     isFetching: fetchingTasks,
+    isPlaceholderData: isTaskPagePlaceholder,
   } = useTasks(
     teamKey || "",
     projectKey || "",
@@ -184,6 +185,25 @@ export default function ProjectDetails() {
   const tasks = tasksData?.content ?? [];
   const totalPages = tasksData?.totalPages ?? 0;
   const totalElements = tasksData?.totalElements ?? 0;
+  const lastTaskPage = Math.max(0, totalPages - 1);
+  const taskPageOutOfRange =
+    view === "list" &&
+    !isTaskPagePlaceholder &&
+    tasksData?.page === page &&
+    page > lastTaskPage;
+
+  useEffect(() => {
+    if (!taskPageOutOfRange || tasksError || fetchingTasks) return;
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (lastTaskPage > 0) next.set("page", String(lastTaskPage));
+        else next.delete("page");
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [taskPageOutOfRange, tasksError, fetchingTasks, lastTaskPage, setParams]);
 
   const updateStatus = useUpdateTaskStatus(teamKey || "", projectKey || "");
 
@@ -436,7 +456,11 @@ export default function ProjectDetails() {
             ) : (
               <TaskList
                 tasks={tasks}
-                isLoading={isTasksLoading}
+                isLoading={
+                  isTasksLoading ||
+                  taskPageOutOfRange ||
+                  (Boolean(isTaskPagePlaceholder) && tasks.length === 0)
+                }
                 teamKey={teamKey}
                 projectKey={projectKey}
                 onCreateTask={() => setOpen(true)}
@@ -478,19 +502,22 @@ export default function ProjectDetails() {
           </TabsContent>
         </div>
       </Tabs>
-      {view === "list" && !tasksError && totalPages > 1 && (
-        <Pagination
-          page={page}
-          size={size}
-          totalPages={totalPages}
-          totalElements={totalElements}
-          onPageChange={(nextPage) => updateView({ page: String(nextPage) })}
-          onSizeChange={(nextSize) =>
-            updateView({ page: null, size: String(nextSize) })
-          }
-          options={sizes}
-        />
-      )}
+      {view === "list" &&
+        !tasksError &&
+        !taskPageOutOfRange &&
+        totalPages > 1 && (
+          <Pagination
+            page={page}
+            size={size}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            onPageChange={(nextPage) => updateView({ page: String(nextPage) })}
+            onSizeChange={(nextSize) =>
+              updateView({ page: null, size: String(nextSize) })
+            }
+            options={sizes}
+          />
+        )}
       {selectedTask && (
         <TaskModal
           isWorkspaceReadOnly={isProjectReadOnly}
