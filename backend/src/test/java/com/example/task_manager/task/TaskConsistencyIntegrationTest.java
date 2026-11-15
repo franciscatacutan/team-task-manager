@@ -108,6 +108,78 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
     }
   }
 
+  @Test
+  void assigneeChoicesUseVisibleTaskAssignmentsEvenAfterMembershipRemoval() throws Exception {
+    var formerMember = user(UserRole.USER, TeamRole.MEMBER);
+    String formerAuth = TestFixtures.authorization(jwt, sessions, formerMember);
+    var currentMember = user(UserRole.USER, TeamRole.MEMBER);
+    String memberAuth = TestFixtures.authorization(jwt, sessions, currentMember);
+    var other = transactions.execute(status -> TestFixtures.workspace(em));
+    create("Second task", TaskPriority.HIGH).andExpect(status().isCreated());
+    create("Owner task", TaskPriority.HIGH).andExpect(status().isCreated());
+
+    transactions.executeWithoutResult(
+        status -> {
+          var assigned = em.find(UserEntity.class, formerMember.getId());
+          em.find(TaskEntity.class, workspace.task().getId()).setAssignee(assigned);
+          em.find(TaskEntity.class, other.task().getId()).setAssignee(assigned);
+        });
+    jdbc.update(
+        "delete from team_members where team_id = ? and user_id = ?",
+        workspace.team().getId(),
+        formerMember.getId());
+
+    jdbc.update(
+        "update tasks set assignee_id = ? where project_id = ? and task_number = 2",
+        formerMember.getId(),
+        workspace.project().getId());
+    mvc.perform(
+            get(tasksPath())
+                .header("Authorization", memberAuth)
+                .param("assigneeId", formerMember.getId().toString())
+                .param("priority", "MEDIUM", "HIGH")
+                .param("sort", "taskNumber,asc")
+                .param("size", "1")
+                .param("page", "1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(2))
+        .andExpect(jsonPath("$.content[0].taskNumber").value(2));
+
+    String path = tasksPath() + "/assignees";
+    mvc.perform(get(path).header("Authorization", ownerAuth).param("size", "200"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(20))
+        .andExpect(jsonPath("$.totalElements").value(2));
+    mvc.perform(
+            get(path).header("Authorization", memberAuth).param("search", formerMember.getEmail()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(formerMember.getId().toString()));
+    mvc.perform(get(path).header("Authorization", formerAuth)).andExpect(status().isNotFound());
+
+    mvc.perform(delete(workspace.taskPath()).header("Authorization", ownerAuth))
+        .andExpect(status().isNoContent());
+    mvc.perform(delete(tasksPath() + "/2").header("Authorization", ownerAuth))
+        .andExpect(status().isNoContent());
+    mvc.perform(
+            get(path)
+                .header("Authorization", ownerAuth)
+                .param("deletedFilter", "ALL")
+                .param("assigneeId", formerMember.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1));
+    mvc.perform(
+            get(path)
+                .header("Authorization", memberAuth)
+                .param("deletedFilter", "ALL")
+                .param("assigneeId", formerMember.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
+    mvc.perform(
+            get(other.taskPath().replace("/tasks/1", "/tasks/assignees"))
+                .header("Authorization", ownerAuth))
+        .andExpect(status().isNotFound());
+  }
+
   @ParameterizedTest
   @EnumSource(TaskPriority.class)
   void everyPriorityCanBeCreatedFilteredAndUpdated(TaskPriority priority) throws Exception {

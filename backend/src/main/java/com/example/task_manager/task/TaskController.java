@@ -1,5 +1,6 @@
 package com.example.task_manager.task;
 
+import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.task.dto.ChangeStatusRequest;
 import com.example.task_manager.task.dto.CreateTaskCommentRequest;
@@ -81,6 +82,21 @@ public class TaskController {
 
     return ResponseEntity.ok(
         taskService.getTasks(teamKey, projectKey, request, pageable, authentication));
+  }
+
+  @GetMapping("/assignees")
+  public ResponseEntity<PageResponse<TaskResponse.TaskUserSummary>> getAssignees(
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @RequestParam(defaultValue = "ACTIVE") DeletedFilter deletedFilter,
+      @RequestParam(defaultValue = "") String search,
+      @RequestParam(required = false) UUID assigneeId,
+      Pageable pageable,
+      Authentication authentication) {
+
+    return ResponseEntity.ok(
+        taskService.getAssignees(
+            teamKey, projectKey, deletedFilter, search, assigneeId, pageable, authentication));
   }
 
   @GetMapping("/{taskNumber}")

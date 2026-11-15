@@ -27,7 +27,7 @@ export default function TaskBoardColumn({
   id: TaskStatus;
   teamKey: string;
   projectKey: string;
-  params: TaskBoardParams;
+  params: Omit<TaskBoardParams, "status">;
   activeTask: Task | null;
   pending: { task: Task; destination: TaskStatus } | null;
   busy: boolean;

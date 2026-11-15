@@ -49,6 +49,8 @@ export interface TaskQueryParams {
   search?: string;
   status?: TaskStatus[];
   priority?: TaskPriority[];
+  assigneeId?: string;
+  overdue?: boolean;
   sort?: string;
   deletedFilter: DeletedFilter;
 }

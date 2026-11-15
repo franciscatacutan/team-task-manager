@@ -6,6 +6,10 @@ import {
   useSearchParams,
 } from "react-router";
 import { useState } from "react";
+import { z } from "zod";
+import ProjectAssigneeFilter from "@/features/tasks/components/ProjectAssigneeFilter";
+import { isTaskPriority } from "@/features/tasks/constants/task.constants";
+import type { TaskQueryParams } from "@/features/tasks/types/task.types";
 
 import { useProject } from "../hooks/useProject";
 
@@ -46,7 +50,7 @@ import { getUserFromToken } from "../../users/api/userApi";
 import { useProjectInsights } from "../hooks/useProjectInsights";
 import { BASE_SORT_OPTIONS } from "@/common/constants/sort.constants";
 import Toolbar from "@/common/components/toolbar/ToolBar";
-import { TASK_STATUS_FILTER } from "@/features/tasks/constants/taksFilter.constants";
+import { PROJECT_TASK_FILTERS } from "@/features/tasks/constants/taksFilter.constants";
 import type { SortField, SortOrder } from "@/common/types/sort.types";
 import { Pagination } from "@/common/components/pagination/Pagination";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
@@ -95,6 +99,11 @@ export default function ProjectDetails() {
           ?.value ?? "lastActivityAt");
   const sortOrder: SortOrder = params.get("order") === "asc" ? "asc" : "desc";
   const statusFilter = params.getAll("status").filter(isTaskStatus);
+  const priorityFilter = [
+    ...new Set(params.getAll("priority").filter(isTaskPriority)),
+  ];
+  const assigneeId = z.uuid().safeParse(params.get("assigneeId")).data;
+  const overdue = params.get("overdue") === "true";
   const visibility = params.get("visibility");
   const deletedFilter: DeletedFilter =
     visibility === "DELETED" || visibility === "ALL" ? visibility : "ACTIVE";
@@ -103,7 +112,8 @@ export default function ProjectDetails() {
 
   // ---------------- DERIVED ----------------
 
-  const debouncedSearch = useDebounce(search, 400);
+  const delayedSearch = useDebounce(search, 400);
+  const debouncedSearch = search.trim() ? delayedSearch : "";
   const sort = `${sortField},${sortOrder}`;
 
   const sortOptions =
@@ -111,6 +121,9 @@ export default function ProjectDetails() {
   const hasActiveFilters =
     search.trim().length > 0 ||
     statusFilter.length > 0 ||
+    priorityFilter.length > 0 ||
+    Boolean(assigneeId) ||
+    overdue ||
     deletedFilter !== "ACTIVE";
 
   // ---------------- DATA ----------------
@@ -130,7 +143,18 @@ export default function ProjectDetails() {
     : deletedFilter;
   const filterValues = {
     statusFilter,
+    priorityFilter,
+    overdueFilter: overdue ? "true" : undefined,
     deletedFilter: effectiveDeletedFilter,
+  };
+  const taskFilters: TaskQueryParams = {
+    search: debouncedSearch,
+    sort,
+    status: statusFilter,
+    deletedFilter: effectiveDeletedFilter,
+    ...(priorityFilter.length ? { priority: priorityFilter } : {}),
+    ...(assigneeId ? { assigneeId } : {}),
+    ...(overdue ? { overdue: true } : {}),
   };
 
   const {
@@ -152,10 +176,7 @@ export default function ProjectDetails() {
     {
       page,
       size,
-      search: debouncedSearch,
-      sort,
-      status: statusFilter,
-      deletedFilter: effectiveDeletedFilter,
+      ...taskFilters,
     },
     view === "list",
   );
@@ -208,6 +229,11 @@ export default function ProjectDetails() {
     if (key === "statusFilter") {
       const statuses = Array.isArray(value) ? value : value ? [value] : [];
       updateView({ status: statuses.filter(isTaskStatus), page: null });
+    } else if (key === "priorityFilter") {
+      const priorities = Array.isArray(value) ? value : [value];
+      updateView({ priority: priorities.filter(isTaskPriority), page: null });
+    } else if (key === "overdueFilter") {
+      updateView({ overdue: value === "true" ? value : null, page: null });
     } else if (key === "deletedFilter") {
       updateView({
         visibility: value === "DELETED" || value === "ALL" ? value : null,
@@ -217,7 +243,15 @@ export default function ProjectDetails() {
   };
 
   const handleClearFilters = () =>
-    updateView({ q: null, status: null, visibility: null, page: null });
+    updateView({
+      q: null,
+      status: null,
+      priority: null,
+      assigneeId: null,
+      overdue: null,
+      visibility: null,
+      page: null,
+    });
 
   function handleStatusChange(
     taskNumber: number,
@@ -247,8 +281,8 @@ export default function ProjectDetails() {
 
   // ------------------ FILTERS ------------------
   const filterConfig = permissions.canViewDeleteTask
-    ? [...TASK_STATUS_FILTER, ...DELETED_FILTER]
-    : TASK_STATUS_FILTER;
+    ? [...PROJECT_TASK_FILTERS, ...DELETED_FILTER]
+    : PROJECT_TASK_FILTERS;
 
   const filters = {
     config: filterConfig,
@@ -310,7 +344,16 @@ export default function ProjectDetails() {
             onFieldChange: handleSort,
             onToggleOrder: handleToggleSortOrder,
           }}
-        />
+        >
+          <ProjectAssigneeFilter
+            key={JSON.stringify([teamKey, projectKey])}
+            teamKey={teamKey}
+            projectKey={projectKey}
+            deletedFilter={effectiveDeletedFilter}
+            value={assigneeId}
+            onChange={(value) => updateView({ assigneeId: value, page: null })}
+          />
+        </Toolbar>
       )}
 
       <Tabs
@@ -362,12 +405,7 @@ export default function ProjectDetails() {
               isUpdating={updateStatus.isPending}
               teamKey={teamKey}
               projectKey={projectKey}
-              params={{
-                search: debouncedSearch,
-                status: statusFilter,
-                sort,
-                deletedFilter: effectiveDeletedFilter,
-              }}
+              params={taskFilters}
               canChangeTaskStatus={(task) =>
                 !updateStatus.isPending &&
                 getTaskPermissions({
@@ -429,6 +467,7 @@ export default function ProjectDetails() {
               isLoading={isProjectInsightsLoading}
               isError={isProjectInsightsError}
               onRetry={retryProjectInsights}
+              overdueTasksPath="?view=list&overdue=true"
             />
             <div className="pb-4">
               <ProjectObservabilityLogs

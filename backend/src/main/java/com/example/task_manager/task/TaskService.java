@@ -5,6 +5,7 @@ import com.example.task_manager.activity.ActivityHistoryQuery;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
+import com.example.task_manager.common.DeletedFilter;
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.ProjectAuthorizationService;
@@ -33,6 +34,7 @@ import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -293,6 +295,52 @@ public class TaskService {
     Page<TaskEntity> page = taskRepository.findAll(spec, pageable);
 
     return toPageResponse(page, this::mapToResponse);
+  }
+
+  /** Finds distinct assignees from tasks visible in the selected archive scope. */
+  @Transactional(readOnly = true)
+  public PageResponse<TaskResponse.TaskUserSummary> getAssignees(
+      String teamKey,
+      String projectKey,
+      DeletedFilter deletedFilter,
+      String search,
+      UUID assigneeId,
+      Pageable pageable,
+      Authentication authentication) {
+    var requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    var project = projectAuthorizationService.requireProject(projectKey, teamKey);
+    var access =
+        readPolicy.forTeam(
+            project.getTeam().getId(),
+            requester.getId(),
+            globalAuthorizationService.isGlobalAdmin(requester));
+    if (!access.project(project)) {
+      throw new ResourceNotFoundException("Project not found");
+    }
+
+    boolean archivedProject =
+        project.getDeletedAt() != null || project.getTeam().getDeletedAt() != null;
+    boolean includeActive = !access.canReadArchived() || deletedFilter != DeletedFilter.DELETED;
+    boolean includeArchived = access.canReadArchived() && deletedFilter != DeletedFilter.ACTIVE;
+    String term = search.strip().toLowerCase(Locale.ROOT);
+    if (term.length() > 254) {
+      throw new BadRequestInputException("Assignee search must be at most 254 characters");
+    }
+    String pattern = "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+    var page = PageRequest.of(pageable.getPageNumber(), 20);
+    if (page.getOffset() > Integer.MAX_VALUE) {
+      throw new BadRequestInputException("Assignee page is out of range");
+    }
+    var assignees =
+        taskRepository.findVisibleAssignees(
+            project.getId(),
+            assigneeId,
+            pattern,
+            archivedProject,
+            includeActive,
+            includeArchived,
+            page);
+    return toPageResponse(assignees, this::mapTaskUser);
   }
 
   /** Returns a task by id. Only Global Admin, Owner and Team Admin can view deleted task */
@@ -695,23 +743,14 @@ public class TaskService {
         page.isLast());
   }
 
-  private TaskResponse mapToResponse(TaskEntity task) {
-    TaskResponse.TaskUserSummary assignedUser =
-        new TaskResponse.TaskUserSummary(
-            task.getAssignee().getId(),
-            task.getAssignee().getFirstName(),
-            task.getAssignee().getLastName(),
-            task.getAssignee().getEmail());
+  private TaskResponse.TaskUserSummary mapTaskUser(UserEntity user) {
+    return new TaskResponse.TaskUserSummary(
+        user.getId(), user.getFirstName(), user.getLastName(), user.getEmail());
+  }
 
-    TaskResponse.TaskUserSummary supportUser = null;
-    if (task.getSupport() != null) {
-      supportUser =
-          new TaskResponse.TaskUserSummary(
-              task.getSupport().getId(),
-              task.getSupport().getFirstName(),
-              task.getSupport().getLastName(),
-              task.getSupport().getEmail());
-    }
+  private TaskResponse mapToResponse(TaskEntity task) {
+    var assignedUser = mapTaskUser(task.getAssignee());
+    var supportUser = task.getSupport() == null ? null : mapTaskUser(task.getSupport());
 
     return new TaskResponse(
         task.getName(),

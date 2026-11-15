@@ -8,6 +8,7 @@ import type {
   TaskActivity,
   UpdateTaskInput,
   TaskQueryParams,
+  TaskUser,
 } from "../types/task.types";
 import type { TaskStatus } from "../utils/task.constants";
 
@@ -44,6 +45,22 @@ export const getTasks = async (
 
   return response.data;
 };
+
+export async function getProjectAssignees(
+  teamKey: string,
+  projectKey: string,
+  params: Pick<
+    TaskQueryParams,
+    "deletedFilter" | "search" | "assigneeId" | "page"
+  >,
+  signal: AbortSignal,
+): Promise<PageResponse<TaskUser>> {
+  const { data } = await apiClient.get<PageResponse<TaskUser>>(
+    `/teams/${teamKey}/projects/${projectKey}/tasks/assignees`,
+    { params, signal },
+  );
+  return data;
+}
 
 export const getTask = async (
   teamKey: string,

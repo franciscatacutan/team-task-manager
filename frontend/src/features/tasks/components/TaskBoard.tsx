@@ -10,8 +10,7 @@ import {
   useSensors,
   type CollisionDetection,
 } from "@dnd-kit/core";
-import type { Task } from "../types/task.types";
-import type { DeletedFilter } from "@/common/types/deletedFilter.types";
+import type { Task, TaskQueryParams } from "../types/task.types";
 import {
   allowedTransitions,
   canTransition,
@@ -28,12 +27,7 @@ import TaskBoardColumn from "./TaskBoardColumn";
 import TaskMovementFeedback from "./TaskMovementFeedback";
 import TaskCard from "./TaskCard";
 
-export interface TaskBoardParams {
-  search?: string;
-  status?: TaskStatus[];
-  sort?: string;
-  deletedFilter: DeletedFilter;
-}
+export type TaskBoardParams = Omit<TaskQueryParams, "page" | "size">;
 
 const columnCollision: CollisionDetection = (args) =>
   args.pointerCoordinates ? pointerWithin(args) : closestCorners(args);
@@ -61,10 +55,11 @@ export default function TaskBoard({
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const handledFocus = useRef(0);
+  const { status: selectedStatuses, ...columnFilters } = params;
   const statuses = useMemo<TaskStatus[]>(
     () =>
-      params.status?.length
-        ? [...new Set(params.status.filter(isTaskStatus))]
+      selectedStatuses?.length
+        ? [...new Set(selectedStatuses.filter(isTaskStatus))]
         : [
             "TODO",
             "IN_PROGRESS",
@@ -74,7 +69,7 @@ export default function TaskBoard({
             "CANCELLED",
             ...(params.deletedFilter !== "ACTIVE" ? ["DELETED" as const] : []),
           ],
-    [params.status, params.deletedFilter],
+    [selectedStatuses, params.deletedFilter],
   );
   const canMove = (task: Task) =>
     !isUpdating &&
@@ -185,7 +180,7 @@ export default function TaskBoard({
               id={status}
               teamKey={teamKey}
               projectKey={projectKey}
-              params={params}
+              params={columnFilters}
               activeTask={movement.activeTask}
               pending={movement.pending}
               busy={busy}

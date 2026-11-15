@@ -89,6 +89,8 @@ export const queryKeys = {
       ["tasks", teamKey, projectKey] as const,
     list: (teamKey: string, projectKey: string, params: object) =>
       ["tasks", teamKey, projectKey, params] as const,
+    assignees: (teamKey: string, projectKey: string, params: object) =>
+      ["tasks", teamKey, projectKey, "assignees", params] as const,
     teamBoards: (teamKey: string) => ["tasks", "infinite", teamKey] as const,
     boards: (teamKey: string, projectKey: string) =>
       ["tasks", "infinite", teamKey, projectKey] as const,

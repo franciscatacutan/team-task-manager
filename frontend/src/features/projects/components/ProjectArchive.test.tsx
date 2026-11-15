@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   boardPermission: undefined as undefined | ((task: Task) => boolean),
   taskFilter: "",
   taskParams: {} as Record<string, unknown>,
+  boardParams: {} as Record<string, unknown>,
   tasksError: false,
   retryTasks: vi.fn(),
 }));
@@ -53,10 +54,13 @@ vi.mock("../../tasks/hooks/useTasks", () => ({
 vi.mock("../../tasks/components/TaskBoard", () => ({
   default: ({
     canChangeTaskStatus,
+    params,
   }: {
     canChangeTaskStatus: (task: Task) => boolean;
+    params: Record<string, unknown>;
   }) => {
     state.boardPermission = canChangeTaskStatus;
+    state.boardParams = params;
     return <div>Task board</div>;
   },
 }));
@@ -84,7 +88,9 @@ vi.mock("../../projects/components/ProjectActivity", () => ({
   default: () => null,
 }));
 vi.mock("../../projects/components/ProjectInsightsDashboard", () => ({
-  default: () => null,
+  default: ({ overdueTasksPath }: { overdueTasksPath: string }) => (
+    <Link to={overdueTasksPath}>View overdue tasks</Link>
+  ),
 }));
 vi.mock("../../projects/components/ProjectObservabilityLogs", () => ({
   default: () => null,
@@ -163,13 +169,16 @@ describe("project archive context", () => {
 
   it("restores List search, filters, sorting and pagination when returning from a task", () => {
     renderProject(
-      "/project?view=list&q=%231&status=TODO&visibility=ALL&sort=priority&order=asc&page=1&size=20",
+      "/project?view=list&q=%231&status=TODO&visibility=ALL&sort=priority&order=asc&page=1&size=20&assigneeId=00000000-0000-4000-8000-000000000001&priority=HIGH&priority=CRITICAL&overdue=true",
     );
     const expected = {
       page: 1,
       size: 20,
       search: "#1",
       status: ["TODO"],
+      priority: ["HIGH", "CRITICAL"],
+      assigneeId: "00000000-0000-4000-8000-000000000001",
+      overdue: true,
       deletedFilter: "ALL",
       sort: "priority,asc",
     };
@@ -181,6 +190,36 @@ describe("project archive context", () => {
       "true",
     );
     expect(state.taskParams).toEqual(expected);
+  });
+
+  it("passes project filters to board columns and starts the Insights drill-down clean", () => {
+    const { unmount } = renderProject(
+      "/project?priority=HIGH&overdue=true&assigneeId=invalid",
+    );
+    expect(state.boardParams).toMatchObject({
+      priority: ["HIGH"],
+      overdue: true,
+    });
+    expect(state.boardParams).not.toHaveProperty("assigneeId");
+    unmount();
+
+    renderProject(
+      "/project?view=insights&q=old&priority=LOW&visibility=DELETED&page=3",
+    );
+    fireEvent.click(screen.getByRole("link", { name: "View overdue tasks" }));
+    expect(screen.getByRole("tab", { name: "List" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(state.taskParams).toEqual({
+      page: 0,
+      size: 10,
+      search: "",
+      sort: "lastActivityAt,desc",
+      status: [],
+      deletedFilter: "ACTIVE",
+      overdue: true,
+    });
   });
 
   it("shows failed task-list reads with a retry instead of an empty list", () => {

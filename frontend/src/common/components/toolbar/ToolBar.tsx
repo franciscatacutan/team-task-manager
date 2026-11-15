@@ -4,10 +4,12 @@ import SearchBar from "@/common/components/toolbar/SearchBar";
 import { SortControl } from "@/common/components/toolbar/SortControl";
 import type { SortField, SortOrder } from "@/common/types/sort.types";
 import type { FilterGroup } from "../../types/filter.types";
+import type { ReactNode } from "react";
 
 type FilterValues = Record<string, string | string[] | undefined>;
 
 interface Props {
+  children?: ReactNode;
   search: {
     label: string;
     value: string;
@@ -33,7 +35,13 @@ interface Props {
   };
 }
 
-export default function Toolbar({ search, filters, view, sort }: Props) {
+export default function Toolbar({
+  children,
+  search,
+  filters,
+  view,
+  sort,
+}: Props) {
   return (
     <section className="rounded-2xl border border-border/60 bg-background/92 p-4 shadow-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -66,6 +74,7 @@ export default function Toolbar({ search, filters, view, sort }: Props) {
             />
           )}
 
+          {children}
           {view === "board" && (
             <SortControl
               field={sort.field}

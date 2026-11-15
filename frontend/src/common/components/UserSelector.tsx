@@ -41,6 +41,8 @@ interface Props extends Pick<
   value?: string;
   placeholder: string;
   allowClear?: boolean;
+  clearLabel?: string;
+  usersLabel?: string;
   excludedUserIds?: string[];
   className?: string;
   popoverClassName?: string;
@@ -63,6 +65,8 @@ export default function UserSelector({
   value,
   placeholder = "Select user",
   allowClear = false,
+  clearLabel = "None",
+  usersLabel = "members",
   excludedUserIds = [],
   className,
   popoverClassName,
@@ -149,7 +153,7 @@ export default function UserSelector({
           <CommandList>
             {isLoading && (
               <p role="status" className="p-3 text-sm">
-                Loading members...
+                Loading {usersLabel}...
               </p>
             )}
             {error && (
@@ -176,7 +180,7 @@ export default function UserSelector({
                   }}
                   forceMount
                 >
-                  None
+                  {clearLabel}
                 </CommandItem>
               )}
 
@@ -229,7 +233,9 @@ export default function UserSelector({
                   onClick={onLoadMore}
                   disabled={isLoadingMore}
                 >
-                  {isLoadingMore ? "Loading more..." : "Load more members"}
+                  {isLoadingMore
+                    ? "Loading more..."
+                    : `Load more ${usersLabel}`}
                 </Button>
               </div>
             )}

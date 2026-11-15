@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "@/api/apiClients";
 import { getTeamInsights } from "@/features/teams/api/teamApi";
@@ -93,6 +94,25 @@ describe("KPI response contracts", () => {
     expect(screen.getByText("20 total project tasks")).toBeVisible();
     expect(screen.queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
   });
+  it("exposes the overdue KPI as a named link to the filtered project list", () => {
+    render(
+      <MemoryRouter
+        initialEntries={["/teams/DELIVERY/projects/PORTAL?view=insights"]}
+      >
+        <ProjectInsightsDashboard
+          insights={project}
+          overdueTasksPath="?view=list&overdue=true"
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole("link", { name: "View overdue tasks (1)" }),
+    ).toHaveAttribute(
+      "href",
+      "/teams/DELIVERY/projects/PORTAL?view=list&overdue=true",
+    );
+  });
+
   it("displays the planning calendar date and keeps a project due today on time", () => {
     render(
       <ProjectInsightsDashboard

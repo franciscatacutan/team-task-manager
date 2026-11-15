@@ -3,6 +3,7 @@ package com.example.task_manager.task;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.task.entity.TaskPriority;
 import com.example.task_manager.task.entity.TaskStatus;
+import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,33 @@ import org.springframework.data.jpa.repository.Query;
 public interface TaskRepository
     extends JpaRepository<TaskEntity, UUID>, JpaSpecificationExecutor<TaskEntity> {
   Page<TaskEntity> findByProjectId(UUID projectId, Pageable pageable);
+
+  @Query(
+      """
+      SELECT u FROM UserEntity u
+      WHERE u.id = coalesce(:assigneeId, u.id)
+        AND (
+          lower(concat(u.firstName, ' ', u.lastName)) LIKE :pattern ESCAPE '!'
+          OR lower(u.email) LIKE :pattern ESCAPE '!'
+        )
+        AND EXISTS (
+          SELECT 1 FROM TaskEntity t
+          WHERE t.project.id = :projectId AND t.assignee.id = u.id
+            AND (
+              (:includeActive = true AND :archivedProject = false AND t.deletedAt IS NULL)
+              OR (:includeArchived = true AND (:archivedProject = true OR t.deletedAt IS NOT NULL))
+            )
+        )
+      ORDER BY lower(u.lastName), lower(u.firstName), u.id
+      """)
+  Page<UserEntity> findVisibleAssignees(
+      UUID projectId,
+      UUID assigneeId,
+      String pattern,
+      boolean archivedProject,
+      boolean includeActive,
+      boolean includeArchived,
+      Pageable pageable);
 
   Optional<TaskEntity> findByTaskNumberAndProjectIdAndProjectTeamIdAndDeletedAtIsNull(
       Long taskNumber, UUID projectID, UUID teamID);
