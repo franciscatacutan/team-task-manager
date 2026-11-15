@@ -303,6 +303,9 @@ describe("bulk member removal results", () => {
       .mockResolvedValueOnce({ success: [first.id], failed: [failed] })
       .mockResolvedValueOnce({ success: [second.id], failed: [] });
     const view = render(modal(), setup());
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Assignee and support assignments stay on the tasks.",
+    );
     await selectBoth();
     await userEvent.click(
       screen.getByRole("button", { name: "Remove 2 members" }),
@@ -369,6 +372,9 @@ describe("single member removal", () => {
       .mockResolvedValueOnce({ success: [], failed: [failed] })
       .mockResolvedValueOnce({ success: [second.id], failed: [] });
     render(modal(), setup());
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Assignee and support assignments stay on the tasks.",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(failed.reason);
     expect(close).not.toHaveBeenCalled();

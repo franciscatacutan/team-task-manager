@@ -38,7 +38,7 @@ function RemoveMembersEditor(props: Props) {
   return (
     <MemberBatchDialog
       name="Remove members"
-      description="Select users to remove from the team"
+      description="Removing members ends access granted by their team membership."
       onOpenChange={props.onOpenChange}
     >
       {(onPendingChange) => (
@@ -148,6 +148,10 @@ function RemoveMembersForm({
       className="flex min-h-0 flex-col"
     >
       <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <p className="mb-4 text-sm text-foreground/75">
+          Assignee and support assignments stay on the tasks. Reassign open work
+          to current team members.
+        </p>
         <fieldset
           disabled={isSaving || isLoading}
           className="min-w-0 space-y-6"

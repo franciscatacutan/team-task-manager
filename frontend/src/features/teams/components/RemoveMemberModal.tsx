@@ -99,7 +99,7 @@ function RemoveMemberForm({
         <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
           <DialogTitle>Remove Member</DialogTitle>
           <DialogDescription className="text-foreground/75">
-            This removes their team access.
+            This removes access granted by team membership.
           </DialogDescription>
         </DialogHeader>
         <div
@@ -115,6 +115,10 @@ function RemoveMemberForm({
               {member.firstName} {member.lastName}
             </span>
             ?
+          </p>
+          <p className="text-sm text-foreground/75">
+            Assignee and support assignments stay on the tasks. Reassign open
+            work to current team members.
           </p>
           <div ref={feedbackRef}>
             <MemberBatchFeedback

@@ -236,6 +236,80 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
   }
 
   @Test
+  void newTeamOwnerCanFindAndReassignOpenWorkAfterRemovingTheFormerOwner() throws Exception {
+    var departing = workspace.owner();
+    var successor = user(UserRole.USER, TeamRole.MEMBER);
+    String successorAuth = TestFixtures.authorization(jwt, sessions, successor);
+    String teamPath = "/api/teams/" + workspace.team().getKey();
+    String members = teamPath + "/members";
+    String removal = "{\"userIds\":[\"" + departing.getId() + "\"]}";
+    String supportedTask = tasksPath() + "/2";
+    create("Review deployment", TaskPriority.HIGH).andExpect(status().isCreated());
+    mvc.perform(
+            patch(supportedTask + "/assignee/" + successor.getId())
+                .header("Authorization", ownerAuth))
+        .andExpect(status().isOk());
+    mvc.perform(
+            patch(supportedTask + "/support/" + departing.getId())
+                .header("Authorization", ownerAuth))
+        .andExpect(status().isOk());
+
+    mvc.perform(
+            delete(members)
+                .header("Authorization", ownerAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removal))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.failed[0].code").value("CONFLICT"));
+    mvc.perform(
+            patch(teamPath + "/transfer/" + successor.getId()).header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.teamRole").value("OWNER"));
+    mvc.perform(
+            delete(members)
+                .header("Authorization", successorAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removal))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success[0]").value(departing.getId().toString()));
+    mvc.perform(get(workspace.taskPath()).header("Authorization", ownerAuth))
+        .andExpect(status().isNotFound());
+    mvc.perform(get("/api/my-work").header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
+
+    mvc.perform(
+            get(tasksPath())
+                .header("Authorization", successorAuth)
+                .param("assigneeId", departing.getId().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].taskNumber").value(1));
+    mvc.perform(
+            get(tasksPath())
+                .header("Authorization", successorAuth)
+                .param("search", departing.getLastName())
+                .param("sort", "taskNumber,asc"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(2))
+        .andExpect(jsonPath("$.content[1].supportUser.id").value(departing.getId().toString()));
+    mvc.perform(
+            patch(workspace.taskPath() + "/assignee/" + successor.getId())
+                .header("Authorization", successorAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.assignedUser.id").value(successor.getId().toString()));
+    mvc.perform(delete(supportedTask + "/support").header("Authorization", successorAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.supportUser").isEmpty());
+    mvc.perform(
+            get(tasksPath())
+                .header("Authorization", successorAuth)
+                .param("search", departing.getLastName()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(0));
+  }
+
+  @Test
   void assigneeChoicesUseVisibleTaskAssignmentsEvenAfterMembershipRemoval() throws Exception {
     var formerMember = user(UserRole.USER, TeamRole.MEMBER);
     String formerAuth = TestFixtures.authorization(jwt, sessions, formerMember);

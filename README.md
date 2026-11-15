@@ -25,6 +25,8 @@ Team Task Manager enables organizations and teams to manage projects, organize t
 - Role management (Owner, Admin, Member)
 - Team activity tracking
 
+See the [departing member handoff checklist](docs/member-handoff.md) for reassigning work and removing team access.
+
 ### Project Management
 
 - Create and manage projects
