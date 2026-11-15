@@ -110,6 +110,51 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
   }
 
   @Test
+  void projectCompletionRequiresTheCurrentOpenTaskCountAndLeavesTasksEditable() throws Exception {
+    String project = tasksPath().replace("/tasks", "");
+    String statusPath = project + "/status";
+    completeProject(statusPath, null)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:ttm:project-completion-confirmation-required"))
+        .andExpect(jsonPath("$.openTaskCount").value(1));
+    mvc.perform(get(project).header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("ACTIVE"))
+        .andExpect(jsonPath("$.actualCompletionDate").isEmpty());
+    create("Added before confirmation", TaskPriority.HIGH).andExpect(status().isCreated());
+    completeProject(statusPath, 1)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.openTaskCount").value(2));
+    completeProject(statusPath, 2)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("COMPLETED"))
+        .andExpect(jsonPath("$.actualCompletionDate").isNotEmpty());
+    mvc.perform(get(workspace.taskPath()).header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("TODO"));
+    create("Added after completion", TaskPriority.LOW).andExpect(status().isCreated());
+    mvc.perform(
+            patch(workspace.taskPath())
+                .header("Authorization", ownerAuth)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Edited after completion\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Edited after completion"));
+  }
+
+  @Test
+  void completedAndArchivedTasksDoNotRequireConfirmation() throws Exception {
+    transactions.executeWithoutResult(
+        status -> em.find(TaskEntity.class, workspace.task().getId()).setStatus(TaskStatus.DONE));
+    create("To be archived", TaskPriority.HIGH).andExpect(status().isCreated());
+    mvc.perform(delete(tasksPath() + "/2").header("Authorization", ownerAuth))
+        .andExpect(status().isNoContent());
+    completeProject(tasksPath().replace("/tasks", "/status"), null)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("COMPLETED"));
+  }
+
+  @Test
   void teamOverdueListMatchesTheSummaryAcrossProjectsAndPages() throws Exception {
     var today = planningCalendar.day(Instant.now());
     var yesterday = planningCalendar.parse(today.minusDays(1).toString());
@@ -593,6 +638,16 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
     task.setPlannedDueDate(dueDate);
     em.persist(task);
     return task;
+  }
+
+  private ResultActions completeProject(String statusPath, Integer openTaskCount) throws Exception {
+    String confirmation =
+        openTaskCount == null ? "" : ",\"confirmedOpenTaskCount\":" + openTaskCount;
+    return mvc.perform(
+        patch(statusPath)
+            .header("Authorization", ownerAuth)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"status\":\"COMPLETED\"" + confirmation + "}"));
   }
 
   private ResultActions create(String name, TaskPriority priority) throws Exception {

@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Ref } from "react";
 import type { ProjectStatus } from "../types/project.types";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +18,7 @@ interface Props {
   onChange: (status: ProjectStatus) => void;
   className?: string;
   disabled?: boolean;
+  triggerRef?: Ref<HTMLButtonElement>;
 }
 
 export default function ProjectStatusSelector({
@@ -24,6 +26,7 @@ export default function ProjectStatusSelector({
   onChange,
   className,
   disabled,
+  triggerRef,
 }: Props) {
   const statuses: ProjectStatus[] = ["ACTIVE", "COMPLETED", "ON_HOLD"];
 
@@ -34,6 +37,7 @@ export default function ProjectStatusSelector({
       onValueChange={(v) => onChange(v as ProjectStatus)}
     >
       <SelectTrigger
+        ref={triggerRef}
         aria-label="Project status"
         className={cn(
           "h-10 w-full rounded-xl border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none",

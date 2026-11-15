@@ -352,6 +352,15 @@ public class ProjectService {
 
     validateStatusChange(project, newStatus.status());
 
+    if (newStatus.status() == ProjectStatus.COMPLETED) {
+      long openTaskCount =
+          taskRepository.countByProjectIdAndStatusNotInAndDeletedAtIsNull(
+              project.getId(), TaskPlanningCalendar.CLOSED_STATUSES);
+      if (openTaskCount > 0 && !Objects.equals(newStatus.confirmedOpenTaskCount(), openTaskCount)) {
+        throw new ProjectCompletionConfirmationRequired(openTaskCount);
+      }
+    }
+
     ProjectStatus currentStatus = project.getStatus();
     project.setStatus(newStatus.status());
     project.setStatusChangedAt(Instant.now());

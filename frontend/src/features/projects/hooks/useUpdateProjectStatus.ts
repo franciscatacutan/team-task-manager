@@ -6,7 +6,10 @@ import {
 import { queryKeys, mutationKeys } from "@/common/query/queryKeys";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { updateProjectStatus } from "../api/projectApi";
+import {
+  projectCompletionWarning,
+  updateProjectStatus,
+} from "../api/projectApi";
 import type { ProjectStatus } from "../types/project.types";
 
 export function useUpdateProjectStatus(teamKey: string) {
@@ -17,10 +20,13 @@ export function useUpdateProjectStatus(teamKey: string) {
     mutationFn: ({
       projectKey,
       status,
+      confirmedOpenTaskCount,
     }: {
       projectKey: string;
       status: ProjectStatus;
-    }) => updateProjectStatus(teamKey, projectKey, status),
+      confirmedOpenTaskCount?: number;
+    }) =>
+      updateProjectStatus(teamKey, projectKey, status, confirmedOpenTaskCount),
 
     onSuccess: async (project, { projectKey }) => {
       await setConfirmedData(
@@ -29,7 +35,10 @@ export function useUpdateProjectStatus(teamKey: string) {
         project,
       );
     },
-    onSettled: (_project, _error, { projectKey }) =>
-      invalidateProjectChange(queryClient, teamKey, projectKey),
+    onSettled: (_project, error, { projectKey }) => {
+      if (projectCompletionWarning(error) === undefined) {
+        return invalidateProjectChange(queryClient, teamKey, projectKey);
+      }
+    },
   });
 }

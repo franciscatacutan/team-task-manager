@@ -180,6 +180,9 @@ public interface TaskRepository
 
   long countByProjectIdAndStatusAndDeletedAtIsNull(UUID projectId, TaskStatus status);
 
+  long countByProjectIdAndStatusNotInAndDeletedAtIsNull(
+      UUID projectId, List<TaskStatus> closedStatuses);
+
   long countByProjectIdAndPriorityAndDeletedAtIsNull(UUID projectId, TaskPriority priority);
 
   long countByProjectTeamIdAndStatusAndActualCompletionDateAfterAndDeletedAtIsNull(

@@ -1,4 +1,5 @@
 import type { ActivityQueryParams } from "@/common/types/activity.types";
+import { isAxiosError } from "axios";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
@@ -117,14 +118,26 @@ export const updateProject = async (
   return response.data;
 };
 
+export function projectCompletionWarning(error: unknown): number | undefined {
+  if (!isAxiosError(error) || error.response?.status !== 409) return undefined;
+  const problem = error.response.data;
+  if (problem?.type !== "urn:ttm:project-completion-confirmation-required")
+    return undefined;
+  const count: unknown = problem.openTaskCount;
+  return typeof count === "number" && Number.isSafeInteger(count) && count > 0
+    ? count
+    : undefined;
+}
+
 export const updateProjectStatus = async (
   teamKey: string,
   projectKey: string,
   status: ProjectStatus,
+  confirmedOpenTaskCount?: number,
 ): Promise<Project> => {
   const response = await apiClient.patch(
     `/teams/${teamKey}/projects/${projectKey}/status`,
-    { status },
+    { status, confirmedOpenTaskCount },
   );
   return response.data;
 };

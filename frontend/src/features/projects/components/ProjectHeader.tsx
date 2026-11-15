@@ -1,4 +1,3 @@
-import { requestError } from "@/common/utils/requestError";
 import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
 
 import EditableField from "../../../common/components/EditableField";
@@ -6,15 +5,14 @@ import CreateButton from "@/common/components/CreateButton";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
 import { formatDate } from "../../../common/utils/dateFormatter";
 import { useUpdateProject } from "../hooks/useUpdateProject";
-import { useUpdateProjectStatus } from "../hooks/useUpdateProjectStatus";
-import type { Project, ProjectStatus } from "../types/project.types";
+import type { Project } from "../types/project.types";
 import {
   ProjectStatusLabel,
   ProjectStatusStyles,
 } from "../utils/project.constants";
 import type { ProjectPermissions } from "../utils/projectPermissions";
 import { DeleteProjectButton } from "./DeleteProjectButton";
-import ProjectStatusSelector from "./ProjectStatusSelector";
+import ProjectStatusControl from "./ProjectStatusControl";
 
 interface Props {
   permissions: ProjectPermissions;
@@ -32,8 +30,6 @@ export default function ProjectHeader({
   onProjectDeleted,
 }: Props) {
   const updateProject = useUpdateProject(teamKey, project.key);
-  const updateProjectStatus = useUpdateProjectStatus(teamKey);
-
   const owner = project.owner ?? project.createdBy;
   const ownerName = formatUserName(owner);
   const createdByName = formatUserName(project.createdBy);
@@ -41,22 +37,8 @@ export default function ProjectHeader({
   const deletedByName = formatUserName(project.deletedBy);
   const isDeleted = Boolean(project.deletedAt || project.readOnly);
 
-  function handleStatusChange(projectKey: string, status: ProjectStatus) {
-    if (updateProjectStatus.isPending) return;
-    updateProjectStatus.mutate({
-      projectKey,
-      status,
-    });
-  }
-
   return (
     <header className="rounded-xl border border-border/60 bg-background/95 p-4 shadow-sm shadow-slate-900/5">
-      {updateProjectStatus.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {requestError(updateProjectStatus.error)}
-        </p>
-      )}
-
       <div className="relative flex flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
@@ -68,12 +50,11 @@ export default function ProjectHeader({
 
               <div className="flex flex-wrap items-center gap-2">
                 {permissions.canChangeProjectStatus ? (
-                  <ProjectStatusSelector
-                    disabled={updateProjectStatus.isPending}
-                    value={project.status}
-                    onChange={(status) =>
-                      handleStatusChange(project.key, status)
-                    }
+                  <ProjectStatusControl
+                    key={`${teamKey}/${project.key}`}
+                    teamKey={teamKey}
+                    projectKey={project.key}
+                    status={project.status}
                   />
                 ) : (
                   <span className={ProjectStatusStyles[project.status]}>

@@ -8,14 +8,17 @@ import com.example.task_manager.project.dto.ProjectResponse;
 import com.example.task_manager.project.dto.ProjectSearchRequest;
 import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -108,5 +111,13 @@ public class ProjectController {
       Authentication authentication) {
     return ResponseEntity.ok(
         projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
+  }
+
+  @ExceptionHandler(ProjectCompletionConfirmationRequired.class)
+  public ProblemDetail handleCompletionConfirmation(ProjectCompletionConfirmationRequired warning) {
+    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, warning.getMessage());
+    problem.setType(URI.create("urn:ttm:project-completion-confirmation-required"));
+    problem.setProperty("openTaskCount", warning.openTaskCount());
+    return problem;
   }
 }
