@@ -1,30 +1,26 @@
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { format, parseISO } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
-
+import { Input } from "@/components/ui/input";
+import CreationForm from "@/common/components/CreationForm";
+import FormField from "@/common/components/FormFieldWrapper";
+import AutoResizeTextareaBase from "@/common/components/AutoResizeTextareaBase";
+import DatePicker from "@/common/components/DatePicker";
+import PrioritySelect from "@/common/components/PrioritySelector";
+import TeamMemberSelector from "@/features/teams/components/TeamMemberSelector";
 import { useCreateTask } from "../hooks/useCreateTask";
-
-import UserSelector from "../../../common/components/UserSelector";
-import PrioritySelect from "../../../common/components/PrioritySelector";
-
+import { taskMutationError } from "../utils/taskMutationError";
 import {
   createTaskSchema,
   type CreateTaskInput,
 } from "../types/createTaskSchema";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Separator } from "../../../components/ui/separator";
-import DatePicker from "../../../common/components/DatePicker";
-import type { TaskPriority } from "../utils/taskPriority";
-import AutoResizeTextareaBase from "../../../common/components/AutoResizeTextareaBase";
-import FormField from "../../../common/components/FormFieldWrapper";
-import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 
 interface Props {
   teamKey: string;
   projectKey: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onPendingChange?: (pending: boolean) => void;
 }
 
 export function CreateTaskForm({
@@ -32,10 +28,9 @@ export function CreateTaskForm({
   projectKey,
   onSuccess,
   onCancel,
+  onPendingChange,
 }: Props) {
   const createTaskMutation = useCreateTask(teamKey, projectKey);
-  const { data } = useTeamMembers(teamKey);
-  const members = data?.content ?? [];
 
   const form = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
@@ -83,166 +78,207 @@ export function CreateTaskForm({
     name: "plannedDueDate",
   });
 
-  const onSubmit = (data: CreateTaskInput) => {
-    createTaskMutation.mutate(data, {
-      onSuccess: () => {
-        form.reset();
-        onSuccess?.();
-      },
-    });
-  };
-
+  async function onSubmit(data: CreateTaskInput) {
+    try {
+      await createTaskMutation.mutateAsync(data, {
+        onSuccess: () => {
+          form.reset();
+          onSuccess?.();
+        },
+      });
+    } catch {
+      // Mutation state displays the failure; keep the complete task draft for retry.
+    }
+  }
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-2">
-        <FormField
-          label="Name"
-          error={form.formState.errors.name?.message}
-          length={name.length}
-          maxLength={MAX_NAME}
-        >
-          <Input
-            {...form.register("name")}
-            maxLength={MAX_NAME}
-            placeholder="Enter task name..."
-            className="
-      border-none px-0 py-0
-      focus-visible:ring-0
-      shadow-none
-      text-sm
-    "
-          />
-        </FormField>
-      </div>
-
-      <Controller
-        control={form.control}
-        name="description"
-        render={({ field, fieldState }) => (
+    <CreationForm
+      entity="Task"
+      canSubmit={form.formState.isValid}
+      error={
+        createTaskMutation.isError
+          ? taskMutationError(createTaskMutation.error)
+          : undefined
+      }
+      onSubmit={form.handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      onPendingChange={onPendingChange}
+    >
+      {(pending) => (
+        <>
           <FormField
-            label="Description"
-            error={fieldState.error?.message}
-            length={field.value?.length}
-            maxLength={MAX_DESC}
+            label="Name"
+            required
+            hint="1–100 characters after trimming."
+            error={form.formState.errors.name?.message}
+            length={name.length}
+            maxLength={MAX_NAME}
           >
-            <AutoResizeTextareaBase
-              value={field.value || ""}
-              onChange={field.onChange}
-              placeholder="Add more details about this task..."
-              maxLength={2000}
-              className="text-sm"
-            />
+            {(control) => (
+              <Input
+                {...form.register("name")}
+                {...control}
+                aria-required="true"
+                maxLength={MAX_NAME}
+                placeholder="Enter task name..."
+                className="border-none px-0 py-0 text-sm shadow-none focus-visible:ring-0"
+              />
+            )}
           </FormField>
-        )}
-      />
-
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Priority</Label>
-
-          <PrioritySelect
-            value={priority}
-            onChange={(value) =>
-              form.setValue("priority", value as TaskPriority, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }
+          <Controller
+            control={form.control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Description"
+                hint="Optional."
+                error={fieldState.error?.message}
+                length={field.value?.length}
+                maxLength={MAX_DESC}
+              >
+                {(control) => (
+                  <AutoResizeTextareaBase
+                    {...control}
+                    name={field.name}
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="Add more details about this task..."
+                    maxLength={MAX_DESC}
+                  />
+                )}
+              </FormField>
+            )}
           />
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Assignee</Label>
-
-          <UserSelector
-            users={members}
-            value={assigneeId}
-            excludedUserIds={supportId ? [supportId] : []}
-            onChange={(id) =>
-              form.setValue("assigneeId", id ?? "", {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }
-            placeholder="Select User"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Support</Label>
-
-          <UserSelector
-            users={members}
-            allowClear
-            value={supportId}
-            excludedUserIds={assigneeId ? [assigneeId] : []}
-            onChange={(id) => form.setValue("supportId", id ?? undefined)}
-            placeholder="Optional"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Planned Start</Label>
-
-          <DatePicker
-            value={plannedStartDate ? new Date(plannedStartDate) : undefined}
-            onChange={(date) => {
-              const iso = date ? date.toISOString() : "";
-
-              form.setValue("plannedStartDate", iso, {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-
-              if (
-                plannedDueDate &&
-                date &&
-                new Date(iso) > new Date(plannedDueDate)
-              ) {
-                form.setValue("plannedDueDate", iso);
-              }
-
-              form.trigger("plannedDueDate");
-            }}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Planned Due</Label>
-
-          <DatePicker
-            value={plannedDueDate ? new Date(plannedDueDate) : undefined}
-            onChange={(date) =>
-              form.setValue("plannedDueDate", date ? date.toISOString() : "", {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }
-            disabled={(date) => {
-              if (!plannedStartDate) return true;
-
-              return date < new Date(plannedStartDate);
-            }}
-          />
-        </div>
-      </div>
-      <Separator />
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-
-        <Button
-          type="submit"
-          variant="default"
-          disabled={createTaskMutation.isPending || !form.formState.isValid}
-        >
-          {createTaskMutation.isPending ? "Creating..." : "Create Task"}
-        </Button>
-      </div>
-    </form>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField
+              label="Priority"
+              required
+              framed={false}
+              error={form.formState.errors.priority?.message}
+            >
+              {(control) => (
+                <PrioritySelect
+                  {...control}
+                  aria-required="true"
+                  value={priority}
+                  disabled={pending}
+                  onChange={(value) =>
+                    form.setValue("priority", value, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+              )}
+            </FormField>
+            <FormField
+              label="Assignee"
+              required
+              framed={false}
+              error={form.formState.errors.assigneeId?.message}
+            >
+              {(control) => (
+                <TeamMemberSelector
+                  {...control}
+                  aria-label="Assignee"
+                  aria-required="true"
+                  teamKey={teamKey}
+                  value={assigneeId}
+                  disabled={pending}
+                  excludedUserIds={supportId ? [supportId] : []}
+                  onChange={(id) =>
+                    form.setValue("assigneeId", id ?? "", {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  placeholder="Select assignee"
+                />
+              )}
+            </FormField>
+            <FormField
+              label="Support"
+              hint="Optional."
+              framed={false}
+              error={form.formState.errors.supportId?.message}
+            >
+              {(control) => (
+                <TeamMemberSelector
+                  {...control}
+                  aria-label="Support"
+                  teamKey={teamKey}
+                  allowClear
+                  value={supportId}
+                  disabled={pending}
+                  excludedUserIds={assigneeId ? [assigneeId] : []}
+                  onChange={(id) =>
+                    form.setValue("supportId", id ?? undefined, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  placeholder="Select support"
+                />
+              )}
+            </FormField>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Planned Start"
+              required
+              framed={false}
+              error={form.formState.errors.plannedStartDate?.message}
+            >
+              {(control) => (
+                <DatePicker
+                  {...control}
+                  aria-label="Planned Start"
+                  triggerDisabled={pending}
+                  value={
+                    plannedStartDate ? parseISO(plannedStartDate) : undefined
+                  }
+                  onChange={(date) => {
+                    const day = date ? format(date, "yyyy-MM-dd") : "";
+                    form.setValue("plannedStartDate", day, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                    if (plannedDueDate && date && day > plannedDueDate)
+                      form.setValue("plannedDueDate", day);
+                    void form.trigger("plannedDueDate");
+                  }}
+                />
+              )}
+            </FormField>
+            <FormField
+              label="Planned Due"
+              required
+              framed={false}
+              error={form.formState.errors.plannedDueDate?.message}
+            >
+              {(control) => (
+                <DatePicker
+                  {...control}
+                  aria-label="Planned Due"
+                  triggerDisabled={pending}
+                  value={plannedDueDate ? parseISO(plannedDueDate) : undefined}
+                  onChange={(date) =>
+                    form.setValue(
+                      "plannedDueDate",
+                      date ? format(date, "yyyy-MM-dd") : "",
+                      { shouldValidate: true, shouldDirty: true },
+                    )
+                  }
+                  disabled={(date) =>
+                    !plannedStartDate ||
+                    format(date, "yyyy-MM-dd") < plannedStartDate
+                  }
+                />
+              )}
+            </FormField>
+          </div>
+        </>
+      )}
+    </CreationForm>
   );
 }

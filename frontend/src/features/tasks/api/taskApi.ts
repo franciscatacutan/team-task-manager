@@ -1,28 +1,41 @@
-import { apiClient } from "./../../../api/apiClients";
-import type { PageResponse } from "../../../common/types/pageResponse.types";
+import type { ActivityQueryParams } from "@/common/types/activity.types";
+import { apiClient } from "@/api/apiClients";
+import type { PageResponse } from "@/common/types/pageResponse.types";
 import type { CreateTaskInput } from "../types/createTaskSchema";
-import type { Task, TaskActivity, UpdateTaskInput } from "../types/task.types";
-import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
+import type {
+  MyWorkItem,
+  Task,
+  TaskActivity,
+  UpdateTaskInput,
+  TaskQueryParams,
+  TaskUser,
+} from "../types/task.types";
 import type { TaskStatus } from "../utils/task.constants";
+
+export async function getMyWork(
+  page: number,
+  includeClosed: boolean,
+  signal?: AbortSignal,
+): Promise<PageResponse<MyWorkItem>> {
+  const { data } = await apiClient.get<PageResponse<MyWorkItem>>("/my-work", {
+    params: { page, includeClosed },
+    signal,
+  });
+  return data;
+}
 
 export const getTasks = async (
   teamKey: string,
   projectKey: string,
-  params: {
-    page?: number;
-    size?: number;
-    search?: string;
-    status?: TaskStatus[];
-    sort?: string;
-    deletedFilter: DeletedFilter;
-  },
-) => {
-  const response = await apiClient.get(
+  params: TaskQueryParams,
+): Promise<PageResponse<Task>> => {
+  const response = await apiClient.get<PageResponse<Task>>(
     `/teams/${teamKey}/projects/${projectKey}/tasks`,
     {
       params: {
         ...params,
         status: params.status?.length ? params.status : undefined,
+        priority: params.priority?.length ? params.priority : undefined,
       },
       paramsSerializer: {
         indexes: null,
@@ -33,13 +46,31 @@ export const getTasks = async (
   return response.data;
 };
 
+export async function getProjectAssignees(
+  teamKey: string,
+  projectKey: string,
+  params: Pick<
+    TaskQueryParams,
+    "deletedFilter" | "search" | "assigneeId" | "page"
+  >,
+  signal: AbortSignal,
+): Promise<PageResponse<TaskUser>> {
+  const { data } = await apiClient.get<PageResponse<TaskUser>>(
+    `/teams/${teamKey}/projects/${projectKey}/tasks/assignees`,
+    { params, signal },
+  );
+  return data;
+}
+
 export const getTask = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-) => {
-  const response = await apiClient.get(
+  signal?: AbortSignal,
+): Promise<Task> => {
+  const response = await apiClient.get<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
+    { signal },
   );
 
   return response.data;
@@ -49,8 +80,8 @@ export const createTask = async (
   teamKey: string,
   projectKey: string,
   data: CreateTaskInput,
-) => {
-  const response = await apiClient.post(
+): Promise<Task> => {
+  const response = await apiClient.post<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks`,
     data,
   );
@@ -76,7 +107,7 @@ export const deleteTask = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-) => {
+): Promise<void> => {
   await apiClient.delete(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`,
   );
@@ -86,11 +117,12 @@ export const getTaskActivities = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-  params: { page: number; size: number; sort?: string },
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<TaskActivity>> => {
-  const res = await apiClient.get(
+  const res = await apiClient.get<PageResponse<TaskActivity>>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/activities`,
-    { params },
+    { params, signal },
   );
 
   return res.data;
@@ -100,10 +132,9 @@ export const updateTaskStatus = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-  status: string,
-) => {
-            console.log("TEST3")
-  const response = await apiClient.patch(
+  status: TaskStatus,
+): Promise<Task> => {
+  const response = await apiClient.patch<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/status`,
     { status },
   );
@@ -116,8 +147,8 @@ export const assignUser = async (
   projectKey: string,
   taskNumber: number,
   userId: string,
-) => {
-  const response = await apiClient.patch(
+): Promise<Task> => {
+  const response = await apiClient.patch<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/assignee/${userId}`,
   );
 
@@ -128,9 +159,15 @@ export const assignSupportUser = async (
   teamKey: string,
   projectKey: string,
   taskNumber: number,
-  userId: string,
-) => {
-  const response = await apiClient.patch(
+  userId: string | null,
+): Promise<Task> => {
+  if (userId === null) {
+    const response = await apiClient.delete<Task>(
+      `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/support`,
+    );
+    return response.data;
+  }
+  const response = await apiClient.patch<Task>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/support/${userId}`,
   );
 
@@ -142,8 +179,8 @@ export const createTaskComment = async (
   projectKey: string,
   taskNumber: number,
   message: string,
-) => {
-  const response = await apiClient.post(
+): Promise<TaskActivity> => {
+  const response = await apiClient.post<TaskActivity>(
     `/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}/activities`,
     { message },
   );

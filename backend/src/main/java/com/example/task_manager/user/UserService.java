@@ -1,9 +1,30 @@
 package com.example.task_manager.user;
 
+import com.example.task_manager.auth.RefreshTokenService;
+import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.exception.api.BadRequestInputException;
+import com.example.task_manager.exception.api.ConflictException;
+import com.example.task_manager.exception.api.ForbiddenException;
+import com.example.task_manager.exception.api.ResourceNotFoundException;
+import com.example.task_manager.exception.api.UserNotFoundException;
+import com.example.task_manager.user.dto.AdminResetPasswordRequest;
+import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
+import com.example.task_manager.user.dto.AdminUpdateUserRequest;
+import com.example.task_manager.user.dto.UpdateEmailRequest;
+import com.example.task_manager.user.dto.UpdatePasswordRequest;
+import com.example.task_manager.user.dto.UpdateUserProfileRequest;
+import com.example.task_manager.user.dto.UpdateUserRoleRequest;
+import com.example.task_manager.user.dto.UserResponse;
+import com.example.task_manager.user.dto.UserSearchRequest;
+import com.example.task_manager.user.entity.UserEntity;
+import com.example.task_manager.user.entity.UserRole;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -13,34 +34,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.task_manager.exception.api.BadRequestInputException;
-import com.example.task_manager.exception.api.ConflictException;
-import com.example.task_manager.exception.api.ForbiddenException;
-import com.example.task_manager.exception.api.ResourceNotFoundException;
-import com.example.task_manager.exception.api.UserNotFoundException;
-import com.example.task_manager.auth.RefreshTokenService;
-import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.user.dto.AdminUpdateEmailRequest;
-import com.example.task_manager.user.dto.AdminResetPasswordRequest;
-import com.example.task_manager.user.dto.UpdateEmailRequest;
-import com.example.task_manager.user.dto.UpdatePasswordRequest;
-import com.example.task_manager.user.dto.UpdateUserProfileRequest;
-import com.example.task_manager.user.dto.UpdateUserRoleRequest;
-import com.example.task_manager.user.dto.UserResponse;
-import com.example.task_manager.user.dto.UserSearchRequest;
-import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
-
-import lombok.RequiredArgsConstructor;
-
-/* 
-* Service layer for managing users.
+/*
+ * Service layer for managing users.
  */
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
   private final UserRepository userRepository;
+  private final UserVisibilityPolicy visibility;
   private final PasswordEncoder passwordEncoder;
   private final RefreshTokenService refreshTokenService;
 
@@ -49,13 +51,10 @@ public class UserService {
    */
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional(readOnly = true)
-  public PageResponse<UserResponse> getAllUsers(
-      UserSearchRequest request,
-      Pageable pageable) {
+  public PageResponse<UserResponse> getAllUsers(UserSearchRequest request, Pageable pageable) {
 
-    Specification<UserEntity> spec = UserSpecification.build(
-        request.search(),
-        request.roles());
+    Specification<UserEntity> spec =
+        UserSpecification.build(request.search(), request.roles(), request.visibility());
 
     pageable = validateSorting(pageable);
 
@@ -75,17 +74,66 @@ public class UserService {
    * Fetch one user.
    */
   @Transactional(readOnly = true)
-  public UserResponse getUser(UUID userId) {
+  public UserResponse getUser(UUID userId, String requesterEmail) {
+    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+    visibility.requireProfileAccess(requester, user);
+    return visibility.toResponse(user, requester);
+  }
 
-    UserEntity user = userRepository.findById(userId)
-        .orElseThrow(UserNotFoundException::new);
+  /** One admin transaction for profile, optional login email and optional global role. */
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+  @Transactional
+  public UserResponse updateUserByAdmin(
+      UUID userId, AdminUpdateUserRequest request, String requesterEmail) {
+    var accounts = lockManagedAccounts(userId, requesterEmail);
+    UserEntity target = accounts.target();
+    UserEntity requester = accounts.requester();
 
-    return new UserResponse(
-        user.getId(),
-        user.getFirstName(),
-        user.getLastName(),
-        user.getEmail(),
-        user.getRole());
+    // Validate every requested operation before changing any managed state.
+    String firstName =
+        request.firstName() == null
+            ? target.getFirstName()
+            : cleanRequiredName(request.firstName(), "First name");
+    String lastName =
+        request.lastName() == null
+            ? target.getLastName()
+            : cleanRequiredName(request.lastName(), "Last name");
+    String email = target.getEmail();
+    if (request.email() != null) {
+      if (requester.getId().equals(userId))
+        throw new ForbiddenException("Use the regular email change flow for your own account.");
+      if (request.email().isBlank()) throw new BadRequestInputException("Email cannot be blank");
+      email = normalizeEmail(request.email());
+      if (!email.equalsIgnoreCase(target.getEmail())
+          && userRepository.existsByEmailIgnoreCase(email)) {
+        throw new ConflictException("Email already exists");
+      }
+    }
+    if (request.role() != null) {
+      if (requester.getRole() != UserRole.SUPER_ADMIN)
+        throw new ForbiddenException("Only SUPER_ADMIN can update global roles.");
+      if (requester.getId().equals(userId) && request.role() != UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
+      }
+    }
+
+    boolean emailChanged = !email.equalsIgnoreCase(target.getEmail());
+    try {
+      target.setFirstName(firstName);
+      target.setLastName(lastName);
+      if (request.role() != null) target.setRole(request.role());
+      if (emailChanged) {
+        target.setEmail(email);
+        // This call can auto-flush the changed email before querying sessions.
+        refreshTokenService.revokeAllForUser(userId);
+      }
+      userRepository.flush();
+    } catch (DataIntegrityViolationException conflict) {
+      throw new ConflictException(
+          "The user could not be saved because an account value is already in use.");
+    }
+    return mapToResponse(target);
   }
 
   /*
@@ -96,11 +144,13 @@ public class UserService {
   @Transactional
   public void updateUserRole(UUID targetUserId, UpdateUserRoleRequest request, String requester) {
 
-    UserEntity currentUser = userRepository.findByEmailIgnoreCase(normalizeEmail(requester))
-        .orElseThrow(UserNotFoundException::new);
+    var accounts = lockManagedAccounts(targetUserId, requester);
+    UserEntity currentUser = accounts.requester();
+    UserEntity targetUser = accounts.target();
 
-    UserEntity targetUser = userRepository.findById(targetUserId)
-        .orElseThrow(UserNotFoundException::new);
+    if (currentUser.getRole() != UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException("Only SUPER_ADMIN can update global roles.");
+    }
 
     if (currentUser.getId().equals(targetUserId) && request.role() != UserRole.SUPER_ADMIN) {
       throw new ForbiddenException("SUPER ADMIN cannot demote themselves.");
@@ -116,13 +166,13 @@ public class UserService {
   @PreAuthorize("#userId == authentication.principal.id or hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public UserResponse updateProfile(
-      UUID userId,
-      UpdateUserProfileRequest request,
-      String requesterEmail) {
+      UUID userId, UpdateUserProfileRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity user =
+        userRepository
+            .findByIdForUpdate(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     assertCanManageTargetUser(requester, user);
 
@@ -139,13 +189,13 @@ public class UserService {
 
   /*
    * Update the current user's login email.
-   * This requires the current password and revokes refresh sessions because JWT
+   * This requires the current password and revokes all sessions because JWT
    * subjects are email-based.
    */
   @Transactional
   public void updateOwnEmail(UpdateEmailRequest request, String requesterEmail) {
 
-    UserEntity user = getUserByEmail(requesterEmail);
+    UserEntity user = getUserByEmailForUpdate(requesterEmail);
 
     if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
       throw new BadRequestInputException("Current password incorrect");
@@ -169,27 +219,24 @@ public class UserService {
    */
   @PreAuthorize("#userId == authentication.principal.id")
   @Transactional
-  public void updatePassword(
-      UUID userId,
-      UpdatePasswordRequest request,
-      String requesterEmail) {
+  public void updatePassword(UUID userId, UpdatePasswordRequest request, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity requester = getUserByEmailForUpdate(requesterEmail);
+    UserEntity target =
+        userRepository
+            .findByIdForUpdate(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (!requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the admin password reset flow for another user.");
     }
 
-    if (!passwordEncoder.matches(request.currentPassword(),
-        target.getPassword())) {
+    if (!passwordEncoder.matches(request.currentPassword(), target.getPassword())) {
       throw new BadRequestInputException("Current password incorrect");
     }
 
     target.setPassword(passwordEncoder.encode(request.newPassword()));
     refreshTokenService.revokeAllForUser(target.getId());
-
   }
 
   /*
@@ -199,13 +246,13 @@ public class UserService {
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public void resetPasswordByAdmin(
-      UUID targetUserId,
-      AdminResetPasswordRequest request,
-      String requesterEmail) {
+      UUID targetUserId, AdminResetPasswordRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity target =
+        userRepository
+            .findByIdForUpdate(targetUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the regular password change flow for your own account.");
@@ -224,13 +271,13 @@ public class UserService {
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @Transactional
   public UserResponse updateEmailByAdmin(
-      UUID targetUserId,
-      AdminUpdateEmailRequest request,
-      String requesterEmail) {
+      UUID targetUserId, AdminUpdateEmailRequest request, String requesterEmail) {
 
     UserEntity requester = getUserByEmail(requesterEmail);
-    UserEntity target = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UserEntity target =
+        userRepository
+            .findByIdForUpdate(targetUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (requester.getId().equals(target.getId())) {
       throw new ForbiddenException("Use the regular email change flow for your own account.");
@@ -259,12 +306,44 @@ public class UserService {
     return mapToResponse(user);
   }
 
-  private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmailIgnoreCase(normalizeEmail(email))
+  private UserEntity getUserByEmailForUpdate(String email) {
+    return userRepository
+        .findByEmailForUpdate(normalizeEmail(email))
         .orElseThrow(UserNotFoundException::new);
   }
 
-  private void assertCanManageTargetUser(UserEntity requester, UserEntity target) {
+  private UserEntity getUserByEmail(String email) {
+    return userRepository
+        .findByEmailIgnoreCase(normalizeEmail(email))
+        .orElseThrow(UserNotFoundException::new);
+  }
+
+  ManagedAccounts lockManagedAccounts(UUID targetId, String requesterEmail) {
+    String email = normalizeEmail(requesterEmail);
+    UUID requesterId = userRepository.findIdByEmail(email).orElseThrow(UserNotFoundException::new);
+    var accounts = userRepository.lockAccounts(Set.copyOf(List.of(requesterId, targetId)));
+    UserEntity requester =
+        accounts.stream()
+            .filter(account -> account.getId().equals(requesterId))
+            .findFirst()
+            .orElseThrow(UserNotFoundException::new);
+    if (requester.isArchived()
+        || !email.equalsIgnoreCase(requester.getEmail())
+        || requester.getRole() == UserRole.USER) {
+      throw new ForbiddenException("You do not have permission to manage accounts.");
+    }
+    UserEntity target =
+        accounts.stream()
+            .filter(account -> account.getId().equals(targetId))
+            .findFirst()
+            .orElseThrow(UserNotFoundException::new);
+    assertCanManageTargetUser(requester, target);
+    return new ManagedAccounts(requester, target);
+  }
+
+  record ManagedAccounts(UserEntity requester, UserEntity target) {}
+
+  void assertCanManageTargetUser(UserEntity requester, UserEntity target) {
     if (Objects.equals(requester.getId(), target.getId())) {
       return;
     }
@@ -296,7 +375,8 @@ public class UserService {
         user.getFirstName(),
         user.getLastName(),
         user.getEmail(),
-        user.getRole());
+        user.getRole(),
+        user.getArchivedAt());
   }
 
   private String normalizeEmail(String email) {
@@ -306,13 +386,8 @@ public class UserService {
   /*
    * Allowed Sorting Fields
    */
-  private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-      "firstName",
-      "email",
-      "lastName",
-      "createdAt",
-      "updatedAt",
-      "role");
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of("firstName", "email", "lastName", "createdAt", "updatedAt", "role");
 
   /*
    * Check sort request
@@ -321,12 +396,10 @@ public class UserService {
 
     for (Sort.Order order : pageable.getSort()) {
       if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-        throw new BadRequestInputException(
-            "Invalid sort field: " + order.getProperty());
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
       }
     }
 
     return pageable;
   }
-
 }

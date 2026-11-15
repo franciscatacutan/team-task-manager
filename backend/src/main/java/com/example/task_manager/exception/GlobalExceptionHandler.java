@@ -1,89 +1,94 @@
 package com.example.task_manager.exception;
 
+import com.example.task_manager.exception.ErrorResponse.ErrorCode;
+import com.example.task_manager.exception.api.ApiException;
+import com.example.task_manager.exception.api.TooManyRequestsException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.example.task_manager.exception.ErrorResponse.ErrorCode;
-import com.example.task_manager.exception.api.ApiException;
-
-import jakarta.servlet.http.HttpServletRequest;
-
-/**
- * Global exception handler for the application.
- */
+/** Global exception handler for the application. */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-  private ResponseEntity<ErrorResponse> build(HttpStatus status,
+  private ResponseEntity<ErrorResponse> build(
+      HttpStatus status,
       ErrorResponse.ErrorCode errorCode,
-      String message, HttpServletRequest request) {
-    return ResponseEntity.status(status).body(new ErrorResponse(status.value(), errorCode, message,
-        request.getRequestURI(), Instant.now()));
+      String message,
+      HttpServletRequest request) {
+    return ResponseEntity.status(status).body(errorResponse(status, errorCode, message, request));
   }
 
-  /**
-   * Handle all API exceptions.
-   */
+  private ErrorResponse errorResponse(
+      HttpStatus status, ErrorCode errorCode, String message, HttpServletRequest request) {
+    return new ErrorResponse(
+        status.value(), errorCode, message, request.getRequestURI(), Instant.now());
+  }
+
+  @ExceptionHandler(TooManyRequestsException.class)
+  public ResponseEntity<ErrorResponse> handleTooManyRequests(
+      TooManyRequestsException ex, HttpServletRequest request) {
+    return ResponseEntity.status(ex.getStatus())
+        .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+        .cacheControl(CacheControl.noStore())
+        .body(errorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request));
+  }
+
+  /** Handle all API exceptions. */
   @ExceptionHandler(ApiException.class)
   public ResponseEntity<ErrorResponse> handleApiException(
-      ApiException ex,
-      HttpServletRequest request) {
+      ApiException ex, HttpServletRequest request) {
+    return build(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(AuthenticationServiceException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationServiceFailure(
+      AuthenticationServiceException ex, HttpServletRequest request) {
+    log.error("Authentication service failed", ex);
     return build(
-        ex.getStatus(),
-        ex.getErrorCode(),
-        ex.getMessage(),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        "Unable to complete the request. Please try again.",
         request);
   }
 
-  /**
-   * Handles authentication exceptions.
-   */
+  /** Handles authentication exceptions. */
   @ExceptionHandler(AuthenticationException.class)
   public ResponseEntity<ErrorResponse> handleAuthenticationException(
-      AuthenticationException ex,
-      HttpServletRequest request) {
+      AuthenticationException ex, HttpServletRequest request) {
     return build(
-        HttpStatus.UNAUTHORIZED,
-        ErrorResponse.ErrorCode.UNAUTHORIZED,
-        ex.getMessage(),
-        request);
+        HttpStatus.UNAUTHORIZED, ErrorResponse.ErrorCode.UNAUTHORIZED, ex.getMessage(), request);
   }
 
-  /**
-   * Handles validation exceptions.
-   */
+  /** Handles validation exceptions. */
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleValidationException(
-      MethodArgumentNotValidException ex,
-      HttpServletRequest request) {
-    String message = ex.getBindingResult()
-        .getFieldErrors()
-        .stream()
-        .map(err -> err.getField() + ": " + err.getDefaultMessage())
-        .collect(Collectors.joining(", "));
+      MethodArgumentNotValidException ex, HttpServletRequest request) {
+    String message =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(err -> err.getField() + ": " + err.getDefaultMessage())
+            .collect(Collectors.joining(", "));
 
     return build(
-        HttpStatus.BAD_REQUEST,
-        ErrorResponse.ErrorCode.VALIDATION_ERROR,
-        message,
-        request);
+        HttpStatus.BAD_REQUEST, ErrorResponse.ErrorCode.VALIDATION_ERROR, message, request);
   }
 
-  /**
-   * Handles empty or malformed request body exceptions.
-   */
+  /** Handles empty or malformed request body exceptions. */
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ErrorResponse> handleEmptyOrInvalidBody(
-      HttpMessageNotReadableException ex,
-      HttpServletRequest request) {
+      HttpMessageNotReadableException ex, HttpServletRequest request) {
 
     return build(
         HttpStatus.BAD_REQUEST,
@@ -92,13 +97,10 @@ public class GlobalExceptionHandler {
         request);
   }
 
-  /**
-   * Handles optimistic locking exceptions.
-   */
+  /** Handles optimistic locking exceptions. */
   @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
   public ResponseEntity<ErrorResponse> handleOptimisticLock(
-      ObjectOptimisticLockingFailureException ex,
-      HttpServletRequest request) {
+      ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
 
     return build(
         HttpStatus.CONFLICT,
@@ -106,5 +108,4 @@ public class GlobalExceptionHandler {
         "Resource was modified by another user. Please refresh and try again.",
         request);
   }
-
 }

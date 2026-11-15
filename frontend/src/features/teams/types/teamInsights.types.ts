@@ -1,5 +1,16 @@
+import type { Task } from "@/features/tasks/types/task.types";
+
+export type TeamOverdueTask = Pick<
+  Task,
+  "taskNumber" | "name" | "priority" | "status"
+> & {
+  plannedDueDay: string;
+  projectKey: string;
+  projectName: string;
+};
+
 export interface TeamInsights {
-  teamKey: string;
+  teamId: string;
   generatedAt: string;
   membership: MembershipMetrics;
   tasks: TaskMetrics;

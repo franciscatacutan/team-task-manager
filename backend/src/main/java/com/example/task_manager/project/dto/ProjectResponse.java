@@ -1,13 +1,11 @@
 package com.example.task_manager.project.dto;
 
+import com.example.task_manager.project.entity.ProjectStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
-import com.example.task_manager.project.entity.ProjectStatus;
-
-/**
- * DTO for returning project information.
- */
+/** DTO for returning project information. */
 public record ProjectResponse(
     String key,
     String name,
@@ -20,6 +18,8 @@ public record ProjectResponse(
     ProjectUserSummary deletedBy,
     Instant plannedStartDate,
     Instant plannedDueDate,
+    LocalDate plannedStartDay,
+    LocalDate plannedDueDay,
     Instant actualStartDate,
     Instant actualCompletionDate,
     Instant createdAt,
@@ -27,15 +27,9 @@ public record ProjectResponse(
     Instant lastActivityAt,
     Instant statusChangedAt,
     Instant deletedAt,
-    boolean deleted) {
+    boolean deleted,
+    boolean readOnly) {
 
-  /**
-   * DTO for project owner information.
-   */
-  public record ProjectUserSummary(
-      UUID id,
-      String firstName,
-      String lastName,
-      String email) {
-  }
+  /** DTO for project owner information. */
+  public record ProjectUserSummary(UUID id, String firstName, String lastName, String email) {}
 }

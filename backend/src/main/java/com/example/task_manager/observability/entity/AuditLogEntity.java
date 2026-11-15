@@ -1,18 +1,9 @@
 package com.example.task_manager.observability.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.example.task_manager.activity.dto.ActivityEntityType;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -26,21 +17,29 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Immutable audit record derived from domain activity.
- */
+/** Immutable audit record derived from domain activity. */
 @Getter
 @Setter
 @Entity
-@Table(name = "audit_logs", indexes = {
-    @Index(name = "idx_audit_team_occurred_at", columnList = "team_id, occurred_at"),
-    @Index(name = "idx_audit_entity_occurred_at", columnList = "entity_type, entity_id, occurred_at"),
-    @Index(name = "idx_audit_actor_occurred_at", columnList = "actor_id, occurred_at"),
-    @Index(name = "idx_audit_action_occurred_at", columnList = "action, occurred_at")
-})
+@Table(
+    name = "audit_logs",
+    indexes = {
+      @Index(name = "idx_audit_team_occurred_at", columnList = "team_id, occurred_at"),
+      @Index(
+          name = "idx_audit_entity_occurred_at",
+          columnList = "entity_type, entity_id, occurred_at"),
+      @Index(name = "idx_audit_actor_occurred_at", columnList = "actor_id, occurred_at"),
+      @Index(name = "idx_audit_action_occurred_at", columnList = "action, occurred_at")
+    })
 @EntityListeners(AuditingEntityListener.class)
 public class AuditLogEntity {
   @Id

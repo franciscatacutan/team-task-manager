@@ -1,14 +1,7 @@
 package com.example.task_manager.notification.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -22,16 +15,22 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "notifications", indexes = {
-    @Index(name = "idx_notification_recipient_created", columnList = "recipient_id, created_at"),
-    @Index(name = "idx_notification_recipient_read", columnList = "recipient_id, read_at")
-})
+@Table(
+    name = "notifications",
+    indexes = {
+      @Index(name = "idx_notification_recipient_created", columnList = "recipient_id, created_at"),
+      @Index(name = "idx_notification_recipient_read", columnList = "recipient_id, read_at")
+    })
 @EntityListeners(AuditingEntityListener.class)
 public class NotificationEntity {
 

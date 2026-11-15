@@ -1,5 +1,6 @@
+import QueryFailure from "@/common/components/QueryFailure";
 import { useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router";
 import { Activity, FolderKanban, Sparkles, Users } from "lucide-react";
 
 import { Button } from "../../../components/ui/button";
@@ -44,16 +45,26 @@ export default function TeamOverview() {
 
   const { data: teamMe } = useTeamMe(teamKey || "");
 
-  const { data: projectsData } = useProjects(teamKey || "", {
+  const {
+    data: projectsData,
+    isError: projectsError,
+    isLoading: projectsLoading,
+    refetch: projectsRetry,
+  } = useProjects(teamKey || "", {
     sort: "updatedAt,desc",
-    deletedFilter: "ACTIVE",
+    deletedFilter: team.deletedAt ? "ALL" : "ACTIVE",
   });
 
   const projects = projectsData?.content ?? [];
   const projectCount = projectsData?.totalElements ?? 0;
 
   // IMPLEMENT STATISTICS
-  const { data: activeProjectsData } = useProjects(teamKey || "", {
+  const {
+    data: activeProjectsData,
+    isError: activeError,
+    isLoading: activeLoading,
+    refetch: activeRetry,
+  } = useProjects(teamKey || "", {
     status: ["ACTIVE"],
     all: true,
     sort: "updatedAt,desc",
@@ -62,7 +73,12 @@ export default function TeamOverview() {
 
   const activeProjectCount = activeProjectsData?.totalElements ?? 0;
 
-  const { data: membersData } = useTeamMembers(teamKey || "", {
+  const {
+    data: membersData,
+    isError: membersError,
+    isLoading: membersLoading,
+    refetch: membersRetry,
+  } = useTeamMembers(teamKey || "", {
     page: 0,
     size: 10,
     sort: "joinedAt,desc",
@@ -71,7 +87,12 @@ export default function TeamOverview() {
   const members = membersData?.content ?? [];
   const memberCount = membersData?.totalElements ?? 0;
 
-  const { data: activitiesData } = useTeamActivities(teamKey || "", {
+  const {
+    data: activitiesData,
+    isError: activityError,
+    isLoading: activityLoading,
+    refetch: activityRetry,
+  } = useTeamActivities(teamKey || "", {
     page: 0,
     size: 5,
     sort: "createdAt,desc",
@@ -90,7 +111,28 @@ export default function TeamOverview() {
     isReadOnly: Boolean(team.deletedAt),
   });
 
-  if (isLoading || !team) {
+  if (projectsError || activeError || membersError || activityError)
+    return (
+      <QueryFailure
+        label="team overview"
+        onRetry={() =>
+          Promise.all([
+            projectsError ? projectsRetry() : undefined,
+            activeError ? activeRetry() : undefined,
+            membersError ? membersRetry() : undefined,
+            activityError ? activityRetry() : undefined,
+          ])
+        }
+      />
+    );
+  if (
+    isLoading ||
+    projectsLoading ||
+    activeLoading ||
+    membersLoading ||
+    activityLoading ||
+    !team
+  ) {
     return (
       <div className="text-sm text-muted-foreground">Loading overview...</div>
     );
@@ -116,7 +158,7 @@ export default function TeamOverview() {
           value={String(projectCount)}
           description="View and manage project work."
           icon={FolderKanban}
-          onClick={() => navigate(`/teams/${team.key}/projects`)}
+          to={`/teams/${team.key}/projects`}
         />
 
         <TeamOverviewCard
@@ -125,7 +167,7 @@ export default function TeamOverview() {
           value={String(activeProjectCount)}
           description="See what work is moving now."
           icon={Sparkles}
-          onClick={() => navigate(`/teams/${team.key}/projects`)}
+          to={`/teams/${team.key}/projects`}
         />
 
         <TeamOverviewCard
@@ -134,7 +176,7 @@ export default function TeamOverview() {
           value={String(memberCount)}
           description="Review team roles and people."
           icon={Users}
-          onClick={() => navigate(`/teams/${team.key}/members`)}
+          to={`/teams/${team.key}/members`}
         />
 
         <TeamOverviewCard
@@ -143,7 +185,7 @@ export default function TeamOverview() {
           value={String(activityCount)}
           description="Open the full team history."
           icon={Activity}
-          onClick={() => navigate(`/teams/${team.key}/activity`)}
+          to={`/teams/${team.key}/activity`}
         />
       </section>
 
@@ -285,15 +327,10 @@ export default function TeamOverview() {
                 <ActivityItem
                   key={activity.id}
                   item={activity}
-                  interactive={Boolean(
-                    activity.project?.key && activity.task?.taskNumber,
-                  )}
+                  interactive={Boolean(activity.targetPath)}
                   onOpenTask={
-                    activity.project?.key && activity.task?.taskNumber
-                      ? () =>
-                          navigate(
-                            `/teams/${team.key}/projects/${activity.project?.key}/tasks/${activity.task?.taskNumber}`,
-                          )
+                    activity.targetPath
+                      ? () => navigate(activity.targetPath!)
                       : undefined
                   }
                 />
@@ -310,7 +347,7 @@ export default function TeamOverview() {
       />
 
       <AddMembersModal
-        userTeamRole={teamMe?.role ?? "MEMBER"}
+        canAssignAdmin={permissions.canChangeRole}
         teamKey={team.key}
         open={openAddMember}
         isLoading={false}

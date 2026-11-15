@@ -1,11 +1,13 @@
 import type { ProjectStatus } from "./project.types";
 
 export interface ProjectInsights {
-  teamKey: string;
-  projectKey: string;
+  teamId: string;
+  projectId: string;
   status: ProjectStatus;
   plannedStartDate?: string | null;
   plannedDueDate?: string | null;
+  plannedStartDay?: string | null;
+  plannedDueDay?: string | null;
   actualStartDate?: string | null;
   actualCompletionDate?: string | null;
   generatedAt: string;

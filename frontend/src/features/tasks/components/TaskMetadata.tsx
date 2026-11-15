@@ -1,7 +1,9 @@
-import type { Task } from "../types/task.types";
-import UserSelector from "../../../common/components/UserSelector";
+import type { Task, UpdateTaskInput } from "../types/task.types";
+import TeamMemberSelector from "../../teams/components/TeamMemberSelector";
+import { useState } from "react";
+import type { TaskPriority } from "../constants/task.constants";
+import { taskMutationError } from "../utils/taskMutationError";
 
-import { useTeamMembers } from "../../teams/hooks/useTeamMembers";
 import { useAssignUser } from "../hooks/useAssignUser";
 import { useAssignSupportUser } from "../hooks/useAssignSupportUser";
 import PrioritySelect from "../../../common/components/PrioritySelector";
@@ -14,7 +16,7 @@ import {
   type TaskStatus,
 } from "../utils/task.constants";
 import { useUpdateTaskStatus } from "../hooks/useUpdateTaskStatus";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import type { TaskPermissions } from "../utils/taskPermissions";
 import { cn } from "../../../lib/utils";
@@ -48,12 +50,28 @@ export default function TaskMetadata({
   projectKey,
   task,
 }: Props) {
-  const { data } = useTeamMembers(teamKey);
-  const members = data?.content ?? [];
+  const [mutationError, setMutationError] = useState("");
+  const mutationCallbacks = {
+    onError: (error: unknown) => setMutationError(taskMutationError(error)),
+  };
+  const startDay =
+    task.plannedStartDay ??
+    (task.plannedStartDate
+      ? format(parseISO(task.plannedStartDate), "yyyy-MM-dd")
+      : null);
+  const dueDay =
+    task.plannedDueDay ??
+    (task.plannedDueDate
+      ? format(parseISO(task.plannedDueDate), "yyyy-MM-dd")
+      : null);
   const currentAssigneeId = task.assignedUser?.id;
   const currentSupportId = task.supportUser?.id;
 
-  const assignUserMutation = useAssignUser(teamKey, projectKey, task.taskNumber);
+  const assignUserMutation = useAssignUser(
+    teamKey,
+    projectKey,
+    task.taskNumber,
+  );
 
   const assignSupportUserMutation = useAssignSupportUser(
     teamKey,
@@ -61,51 +79,59 @@ export default function TaskMetadata({
     task.taskNumber,
   );
 
-  const updateTaskMutation = useUpdateTask(teamKey, projectKey, task.taskNumber);
+  const updateTaskMutation = useUpdateTask(
+    teamKey,
+    projectKey,
+    task.taskNumber,
+  );
+
+  function saveDetails(input: UpdateTaskInput) {
+    setMutationError("");
+    updateTaskMutation.mutate(input, mutationCallbacks);
+  }
 
   function handleAssignUser(userId: string | null) {
     if (!userId || userId === currentAssigneeId) return;
-    assignUserMutation.mutate(userId);
+    setMutationError("");
+    assignUserMutation.mutate(userId, mutationCallbacks);
   }
 
   function handleAssignSupport(userId: string | null) {
-    if (!userId) {
+    if (
+      (!userId && !currentSupportId) ||
+      userId === currentSupportId ||
+      userId === currentAssigneeId
+    )
       return;
-    }
-
-    if (userId === currentSupportId || userId === currentAssigneeId) return;
-
-    assignSupportUserMutation.mutate(userId);
+    setMutationError("");
+    assignSupportUserMutation.mutate(userId, mutationCallbacks);
   }
 
-  function handleUpdatePriority(priority: string | null) {
+  function handleUpdatePriority(priority: TaskPriority) {
     if (!priority || priority === task.priority) return;
-    updateTaskMutation.mutate({
+    saveDetails({
       priority,
     });
   }
 
   function handleUpdatePlannedStartDate(plannedStartDate: string | null) {
-    if (!plannedStartDate || plannedStartDate === task.plannedStartDate) return;
-    if (
-      task.plannedDueDate &&
-      new Date(plannedStartDate) > new Date(task.plannedDueDate)
-    ) {
-      updateTaskMutation.mutate({
+    if (!plannedStartDate || plannedStartDate === startDay) return;
+    if (dueDay && plannedStartDate > dueDay) {
+      saveDetails({
         plannedStartDate,
         plannedDueDate: plannedStartDate,
       });
       return;
     }
 
-    updateTaskMutation.mutate({
+    saveDetails({
       plannedStartDate,
     });
   }
 
   function handleUpdatePlannedDueDate(plannedDueDate: string | null) {
-    if (!plannedDueDate || plannedDueDate === task.plannedDueDate) return;
-    updateTaskMutation.mutate({
+    if (!plannedDueDate || plannedDueDate === dueDay) return;
+    saveDetails({
       plannedDueDate,
     });
   }
@@ -113,11 +139,8 @@ export default function TaskMetadata({
   const updateStatus = useUpdateTaskStatus(teamKey, projectKey);
 
   function handleStatusChange(taskNumber: number, status: TaskStatus) {
-    console.log("TEST1")
-    updateStatus.mutate({
-      taskNumber,
-      status,
-    });
+    setMutationError("");
+    updateStatus.mutate({ taskNumber, status }, mutationCallbacks);
   }
 
   return (
@@ -126,6 +149,11 @@ export default function TaskMetadata({
         <h2 className="text-sm font-semibold text-foreground">Details</h2>
       </div>
 
+      {mutationError && (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {mutationError}
+        </p>
+      )}
       <div className="mt-2">
         <Row
           label="Status"
@@ -133,7 +161,9 @@ export default function TaskMetadata({
             permissions.canChangeStatus ? (
               <StatusSelect
                 value={task.status}
-                onChange={(status) => handleStatusChange(task.taskNumber, status)}
+                onChange={(status) =>
+                  handleStatusChange(task.taskNumber, status)
+                }
               />
             ) : (
               <span
@@ -151,10 +181,12 @@ export default function TaskMetadata({
           label="Assignee"
           value={
             permissions.canAssign ? (
-              <UserSelector
+              <TeamMemberSelector
                 key={"assignee"}
-                users={members}
+                teamKey={teamKey}
                 value={currentAssigneeId}
+                selectedUser={task.assignedUser}
+                disabled={assignUserMutation.isPending}
                 placeholder="Select assignee"
                 excludedUserIds={currentSupportId ? [currentSupportId] : []}
                 onChange={handleAssignUser}
@@ -200,10 +232,12 @@ export default function TaskMetadata({
           label="Support"
           value={
             permissions.canAssign ? (
-              <UserSelector
+              <TeamMemberSelector
                 key={"support"}
-                users={members}
+                teamKey={teamKey}
                 value={currentSupportId}
+                selectedUser={task.supportUser}
+                disabled={assignSupportUserMutation.isPending}
                 placeholder="Select support"
                 allowClear
                 excludedUserIds={currentAssigneeId ? [currentAssigneeId] : []}
@@ -241,22 +275,18 @@ export default function TaskMetadata({
           value={
             permissions.canChangeSchedule ? (
               <DatePicker
-                value={
-                  task.plannedStartDate
-                    ? new Date(task.plannedStartDate)
-                    : undefined
-                }
+                value={startDay ? parseISO(startDay) : undefined}
                 onChange={(date) =>
-                  handleUpdatePlannedStartDate(date ? date.toISOString() : null)
+                  handleUpdatePlannedStartDate(
+                    date ? format(date, "yyyy-MM-dd") : null,
+                  )
                 }
               />
             ) : (
               <span className="flex w-fit max-w-full flex-wrap items-center rounded-lg bg-muted/25 px-3 py-2 text-left text-muted-foreground">
                 <CalendarIcon className="mr-2 h-4 w-4" />
 
-                {task.plannedStartDate
-                  ? format(task.plannedStartDate, "MMM dd, yyyy")
-                  : "-"}
+                {startDay ? format(parseISO(startDay), "MMM dd, yyyy") : "-"}
               </span>
             )
           }
@@ -266,27 +296,21 @@ export default function TaskMetadata({
           value={
             permissions.canChangeSchedule ? (
               <DatePicker
-                value={
-                  task.plannedDueDate
-                    ? new Date(task.plannedDueDate)
-                    : undefined
-                }
+                value={dueDay ? parseISO(dueDay) : undefined}
                 onChange={(date) =>
-                  handleUpdatePlannedDueDate(date ? date.toISOString() : null)
+                  handleUpdatePlannedDueDate(
+                    date ? format(date, "yyyy-MM-dd") : null,
+                  )
                 }
                 disabled={(date) =>
-                  task.plannedStartDate
-                    ? date < new Date(task.plannedStartDate)
-                    : false
+                  Boolean(startDay && format(date, "yyyy-MM-dd") < startDay)
                 }
               />
             ) : (
               <span className="flex w-fit max-w-full flex-wrap items-center rounded-lg bg-muted/25 px-3 py-2 text-left text-muted-foreground">
                 <CalendarIcon className="mr-2 h-4 w-4" />
 
-                {task.plannedDueDate
-                  ? format(task.plannedDueDate, "MMM dd, yyyy")
-                  : "-"}
+                {dueDay ? format(parseISO(dueDay), "MMM dd, yyyy") : "-"}
               </span>
             )
           }

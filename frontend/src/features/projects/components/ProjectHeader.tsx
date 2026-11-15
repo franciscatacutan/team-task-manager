@@ -1,19 +1,20 @@
-import { CheckCircle2, Clock3, FolderKanban, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
+import type { ReactNode } from "react";
 
 import EditableField from "../../../common/components/EditableField";
-import { Button } from "../../../components/ui/button";
+import CreateButton from "@/common/components/CreateButton";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
 import { formatDate } from "../../../common/utils/dateFormatter";
 import { useUpdateProject } from "../hooks/useUpdateProject";
-import { useUpdateProjectStatus } from "../hooks/useUpdateProjectStatus";
-import type { Project, ProjectStatus } from "../types/project.types";
+import type { Project } from "../types/project.types";
 import {
   ProjectStatusLabel,
   ProjectStatusStyles,
 } from "../utils/project.constants";
 import type { ProjectPermissions } from "../utils/projectPermissions";
 import { DeleteProjectButton } from "./DeleteProjectButton";
-import ProjectStatusSelector from "./ProjectStatusSelector";
+import ProjectStatusControl from "./ProjectStatusControl";
+import ProjectDueDateControl from "./ProjectDueDateControl";
 
 interface Props {
   permissions: ProjectPermissions;
@@ -31,21 +32,12 @@ export default function ProjectHeader({
   onProjectDeleted,
 }: Props) {
   const updateProject = useUpdateProject(teamKey, project.key);
-  const updateProjectStatus = useUpdateProjectStatus(teamKey);
-
   const owner = project.owner ?? project.createdBy;
   const ownerName = formatUserName(owner);
   const createdByName = formatUserName(project.createdBy);
   const completedByName = formatUserName(project.completedBy);
   const deletedByName = formatUserName(project.deletedBy);
-  const isDeleted = Boolean(project.deletedAt);
-
-  function handleStatusChange(projectKey: string, status: ProjectStatus) {
-    updateProjectStatus.mutate({
-      projectKey,
-      status,
-    });
-  }
+  const isDeleted = Boolean(project.deletedAt || project.readOnly);
 
   return (
     <header className="rounded-xl border border-border/60 bg-background/95 p-4 shadow-sm shadow-slate-900/5">
@@ -60,11 +52,11 @@ export default function ProjectHeader({
 
               <div className="flex flex-wrap items-center gap-2">
                 {permissions.canChangeProjectStatus ? (
-                  <ProjectStatusSelector
-                    value={project.status}
-                    onChange={(status) =>
-                      handleStatusChange(project.key, status)
-                    }
+                  <ProjectStatusControl
+                    key={`${teamKey}/${project.key}`}
+                    teamKey={teamKey}
+                    projectKey={project.key}
+                    status={project.status}
                   />
                 ) : (
                   <span className={ProjectStatusStyles[project.status]}>
@@ -74,8 +66,8 @@ export default function ProjectHeader({
 
                 {isDeleted ? (
                   <span className="inline-flex items-center rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700">
-                    <Trash2 className="mr-1 h-3 w-3" />
-                    Deleted
+                    <Archive className="mr-1 h-3 w-3" />
+                    Archived
                   </span>
                 ) : null}
               </div>
@@ -86,7 +78,7 @@ export default function ProjectHeader({
               inputClassName="w-full text-xl font-semibold tracking-normal sm:text-2xl"
               value={project.name}
               maxLength={100}
-              onSave={(value) => updateProject.mutate({ name: value })}
+              onSave={(value) => updateProject.mutateAsync({ name: value })}
               disabled={!permissions.canEditProjectDetails}
             />
 
@@ -95,21 +87,23 @@ export default function ProjectHeader({
               inputClassName="w-full text-sm"
               placeholder="Add a concise project summary or goal"
               multiline
+              allowEmpty
               value={project.description}
               maxLength={2000}
-              onSave={(value) => updateProject.mutate({ description: value })}
+              onSave={(value) =>
+                updateProject.mutateAsync({ description: value })
+              }
               disabled={!permissions.canEditProjectDetails}
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 pt-1">
+          <div className="flex w-full shrink-0 items-center gap-2 pt-1 sm:w-auto">
             {permissions.canCreateTask && (
-              <Button
+              <CreateButton
+                entity="task"
+                className="flex-1 sm:flex-none"
                 onClick={onCreateTask}
-                className="h-9 rounded-lg px-3 text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5"
-              >
-                Create Task
-              </Button>
+              />
             )}
 
             {permissions.canDeleteProject && (
@@ -153,12 +147,22 @@ export default function ProjectHeader({
             <HeaderDetail
               label="Planned"
               value={formatDateRange(
-                project.plannedStartDate,
-                project.plannedDueDate,
+                project.plannedStartDay ?? project.plannedStartDate,
+                project.plannedDueDay ?? project.plannedDueDate,
                 "TBD",
                 "TBD",
               )}
-              helper="Target schedule"
+              action={
+                permissions.canEditProjectDetails && (
+                  <ProjectDueDateControl
+                    key={JSON.stringify([teamKey, project.key])}
+                    teamKey={teamKey}
+                    projectKey={project.key}
+                    currentDay={project.plannedDueDay ?? null}
+                    startDay={project.plannedStartDay}
+                  />
+                )
+              }
             />
             <HeaderDetail
               label="Actual"
@@ -193,10 +197,10 @@ export default function ProjectHeader({
             ) : null}
             {isDeleted ? (
               <HeaderDetail
-                label="Deleted"
+                label="Archived"
                 value={displayDate(project.deletedAt, "No date")}
                 helper={deletedByName ? `by ${deletedByName}` : "Archived"}
-                icon={Trash2}
+                icon={Archive}
               />
             ) : null}
           </div>
@@ -241,11 +245,13 @@ function HeaderDetail({
   label,
   value,
   helper,
+  action,
   icon: Icon,
 }: {
   label: string;
   value: string;
   helper?: string;
+  action?: ReactNode;
   icon?: HeaderIcon;
 }) {
   return (
@@ -257,6 +263,7 @@ function HeaderDetail({
       <p className="mt-0.5 truncate text-sm font-medium text-foreground">
         {value}
       </p>
+      {action}
       {helper ? (
         <p className="truncate text-xs text-muted-foreground">{helper}</p>
       ) : null}

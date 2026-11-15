@@ -1,3 +1,5 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
+import { isAxiosError } from "axios";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
@@ -7,6 +9,7 @@ import type {
 } from "../../../common/types/observability.types";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { ProjectInsights } from "../types/projectInsights.types";
+import type { CreateProjectInput } from "../types/createProjectSchema";
 import type {
   Project,
   ProjectActivity,
@@ -40,7 +43,7 @@ export const getProjects = async (
 
 export const createProject = async (
   teamKey: string,
-  data: { name: string; description?: string },
+  data: CreateProjectInput,
 ): Promise<Project> => {
   const response = await apiClient.post(`/teams/${teamKey}/projects`, data);
   return response.data;
@@ -60,11 +63,12 @@ export const getProject = async (
 export const getProjectActivities = async (
   teamKey: string,
   projectKey: string,
-  params: BaseQueryParams,
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<ProjectActivity>> => {
   const res = await apiClient.get(
     `/teams/${teamKey}/projects/${projectKey}/activities`,
-    { params },
+    { params, signal },
   );
   return res.data;
 };
@@ -115,14 +119,26 @@ export const updateProject = async (
   return response.data;
 };
 
+export function projectCompletionWarning(error: unknown): number | undefined {
+  if (!isAxiosError(error) || error.response?.status !== 409) return undefined;
+  const problem = error.response.data;
+  if (problem?.type !== "urn:ttm:project-completion-confirmation-required")
+    return undefined;
+  const count: unknown = problem.openTaskCount;
+  return typeof count === "number" && Number.isSafeInteger(count) && count > 0
+    ? count
+    : undefined;
+}
+
 export const updateProjectStatus = async (
   teamKey: string,
   projectKey: string,
   status: ProjectStatus,
+  confirmedOpenTaskCount?: number,
 ): Promise<Project> => {
   const response = await apiClient.patch(
     `/teams/${teamKey}/projects/${projectKey}/status`,
-    { status },
+    { status, confirmedOpenTaskCount },
   );
   return response.data;
 };

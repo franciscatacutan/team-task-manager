@@ -1,25 +1,14 @@
-import React from "react";
-import ErrorPage from "../pages/ErrorPage";
+import { Component, type ReactNode } from "react";
+import CrashRecovery from "./components/CrashRecovery";
 
-// Error Boundary Component
-type Props = {
-  children: React.ReactNode;
-};
+type Props = { children: ReactNode };
+type State = { hasError: boolean };
 
-type State = {
-  hasError: boolean;
-};
+/** The fallback is outside all application providers, just like this root boundary. */
+export default class ErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false };
 
-/*
- * ErrorBoundary component to catch JavaScript errors in its child component tree
- */
-export default class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(): State {
     return { hasError: true };
   }
 
@@ -28,10 +17,6 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   render() {
-    if (this.state.hasError) {
-      return <ErrorPage />;
-    }
-
-    return this.props.children;
+    return this.state.hasError ? <CrashRecovery /> : this.props.children;
   }
 }

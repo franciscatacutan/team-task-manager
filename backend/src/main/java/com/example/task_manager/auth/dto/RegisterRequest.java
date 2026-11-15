@@ -5,18 +5,35 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/**
- * DTO for register request
- */
+/** DTO for register request */
 public record RegisterRequest(
-    @NotBlank @Pattern(regexp = "^[^@]+@[^@]+\\.[^@]+$", message = "Please enter a valid email address") @Email String email,
+    @NotBlank
+        @Size(max = 150)
+        @Pattern(regexp = "^[^@]+@[^@]+\\.[^@]+$", message = "Please enter a valid email address")
+        @Email
+        String email,
+    @NotBlank @Size(max = 100) @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid first name")
+        String firstName,
+    @NotBlank @Size(max = 100) @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid last name")
+        String lastName,
+    @NotBlank
+        @Size(min = 8, message = "Password should be at least 8 characters")
+        @Pattern(
+            regexp =
+                "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-\\[\\]{};':\"\\\\|,.<>/?]).{8,}$",
+            message = "Password must contain upper, lower, digit, and special character")
+        String password,
+    @NotBlank
+        @Size(min = 8, message = "Password should be at least 8 characters")
+        @Pattern(
+            regexp =
+                "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-\\[\\]{};':\"\\\\|,.<>/?]).{8,}$",
+            message = "Password must contain upper, lower, digit, and special character")
+        String confirmPassword,
+    @Pattern(regexp = "^[A-Za-z0-9_-]{43}$", message = "Invalid invite link") String inviteToken) {
 
-    @NotBlank @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid first name") String firstName,
-
-    @NotBlank @Pattern(regexp = "^[\\p{L} .'-]+$", message = "Invalid last name") String lastName,
-
-    @NotBlank @Size(min = 8, message = "Password should be at least 8 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-\\[\\]{};':\"\\\\|,.<>/?]).{8,}$", message = "Password must contain upper, lower, digit, and special character") String password,
-
-    @NotBlank @Size(min = 8, message = "Password should be at least 8 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-\\[\\]{};':\"\\\\|,.<>/?]).{8,}$", message = "Password must contain upper, lower, digit, and special character") String confirmPassword) {
-
+  public RegisterRequest(
+      String email, String firstName, String lastName, String password, String confirmPassword) {
+    this(email, firstName, lastName, password, confirmPassword, null);
+  }
 }

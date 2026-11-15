@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { LogOut, Settings, Shield, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import {
@@ -12,10 +12,11 @@ import { Button } from "../components/ui/button";
 import { useCurrentUser } from "../features/auth/hooks/useCurrentUser";
 
 interface Props {
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
+  isLoggingOut: boolean;
 }
 
-export default function UserMenu({ onLogout }: Props) {
+export default function UserMenu({ onLogout, isLoggingOut }: Props) {
   const navigate = useNavigate();
   const { data: user, isLoading } = useCurrentUser();
   if (isLoading || !user) return null;
@@ -23,7 +24,11 @@ export default function UserMenu({ onLogout }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-9 px-2 flex items-center gap-2">
+        <Button
+          aria-label={`Open user menu for ${user.firstName} ${user.lastName}`}
+          variant="ghost"
+          className="flex h-11 min-w-11 items-center gap-2 rounded-xl px-2 sm:h-9 sm:min-w-9"
+        >
           <Avatar className="h-5 w-5">
             <AvatarFallback>
               {user.lastName?.[0]}
@@ -31,7 +36,9 @@ export default function UserMenu({ onLogout }: Props) {
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm hidden md:block">{user.firstName}</span>
+          <span className="hidden max-w-24 truncate text-sm md:block">
+            {user.firstName}
+          </span>
         </Button>
       </DropdownMenuTrigger>
 
@@ -66,11 +73,12 @@ export default function UserMenu({ onLogout }: Props) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onClick={onLogout}
+          disabled={isLoggingOut}
+          onClick={() => void onLogout()}
           className="text-destructive focus:text-destructive"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {isLoggingOut ? "Signing out..." : "Logout"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

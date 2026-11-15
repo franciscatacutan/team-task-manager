@@ -1,68 +1,58 @@
+import { useState } from "react";
 import { useDebounce } from "@/common/hooks/useDebounce";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "../../../components/ui/dialog";
-
+import { authStorage } from "@/features/auth/utils/authStorage";
 import { useAvailableUsers } from "../hooks/useAvailableUsers";
 import { AddMemberForm } from "./AddMemberForm";
-import { useState } from "react";
-import type { TeamRole } from "../types/team.type";
+import MemberBatchDialog from "./MemberBatchDialog";
 
 interface Props {
-  userTeamRole: TeamRole;
+  canAssignAdmin: boolean;
   teamKey: string;
   open: boolean;
   isLoading: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function AddMembersModal({
-  userTeamRole,
+export default function AddMembersModal(props: Props) {
+  if (!props.open) return null;
+  return (
+    <AddMembersEditor
+      key={JSON.stringify([props.teamKey, authStorage.getRevision()])}
+      {...props}
+    />
+  );
+}
+
+function AddMembersEditor({
+  canAssignAdmin,
   teamKey,
-  open,
   isLoading,
   onOpenChange,
 }: Props) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 400);
-
-  const { data: availableUsersData } = useAvailableUsers(teamKey || "", {
-    search: debouncedSearch,
-  });
-
-  const users = availableUsersData?.content ?? [];
-
-  if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading...</div>;
-  }
-
+  const users = useAvailableUsers(teamKey, { search: debouncedSearch });
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="w-[min(42rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] gap-0 rounded-2xl p-0 sm:max-w-2xl"
-        aria-describedby={undefined}
-      >
-        <div className="px-6 pt-6 pb-3 border-b">
-          <DialogTitle className="text-base font-semibold">
-            Add member
-          </DialogTitle>
-
-          <p className="text-sm text-muted-foreground mt-1">
-            Invite a user and assign their role
-          </p>
-        </div>
-
+    <MemberBatchDialog
+      name="Add member"
+      description="Invite a user and assign their role"
+      onOpenChange={onOpenChange}
+    >
+      {(onPendingChange) => (
         <AddMemberForm
-          userTeamRole={userTeamRole}
+          canAssignAdmin={canAssignAdmin}
           search={search}
           onSearchChange={setSearch}
           teamKey={teamKey}
-          users={users}
+          users={users.data?.content ?? []}
           onOpenChange={onOpenChange}
+          onPendingChange={onPendingChange}
+          isLoading={isLoading}
+          usersError={users.isError}
+          isFetchingUsers={users.isFetching}
+          onRetryUsers={users.refetch}
         />
-      </DialogContent>
-    </Dialog>
+      )}
+    </MemberBatchDialog>
   );
 }

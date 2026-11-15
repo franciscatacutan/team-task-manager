@@ -10,8 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 // like createdAt and updatedAt
 public class TeamTaskManagerApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TeamTaskManagerApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(TeamTaskManagerApplication.class, args);
+  }
 }

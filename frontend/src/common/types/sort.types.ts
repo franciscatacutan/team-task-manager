@@ -2,6 +2,7 @@ export type SortField =
   | "createdAt"
   | "createdBy"
   | "name"
+  | "taskNumber"
   | "assignee"
   | "support"
   | "lastActivityAt"

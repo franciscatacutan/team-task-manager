@@ -2,9 +2,7 @@ package com.example.task_manager.task.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-/**
- * Enum representing the status of a task.
- */
+/** Enum representing the status of a task. */
 public enum TaskStatus {
   TODO,
   IN_PROGRESS,
@@ -12,6 +10,7 @@ public enum TaskStatus {
   ON_HOLD,
   DONE,
   CANCELLED,
+  // Legacy persisted value only. New archives use deletedAt and preserve workflow status.
   DELETED;
 
   /** Allowed user transitions; deletion uses the dedicated archive operation. */

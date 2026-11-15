@@ -48,13 +48,25 @@ function inferLegacyType(message: string): ActivityType {
     return "TEAM_OWNERSHIP_TRANSFERRED";
   if (message.startsWith("Changed project status from "))
     return "PROJECT_STATUS_CHANGED";
-  if (message.startsWith("Deleted project ")) return "PROJECT_DELETED";
-  if (message.startsWith("Deleted team ")) return "TEAM_DELETED";
+  if (
+    message.startsWith("Deleted project ") ||
+    message.startsWith("Archived project ")
+  )
+    return "PROJECT_DELETED";
+  if (
+    message.startsWith("Deleted team ") ||
+    message.startsWith("Archived team ")
+  )
+    return "TEAM_DELETED";
   if (message === "Task created") return "TASK_CREATED";
   if (message.startsWith("Created task ")) return "TASK_CREATED";
   if (message.startsWith("Task details updated")) return "TASK_UPDATED";
   if (message === "Task deleted") return "TASK_DELETED";
-  if (message.startsWith("Deleted task ")) return "TASK_DELETED";
+  if (
+    message.startsWith("Deleted task ") ||
+    message.startsWith("Archived task ")
+  )
+    return "TASK_DELETED";
   if (message.startsWith("Status changed from ")) return "TASK_STATUS_CHANGED";
   if (message.startsWith("Assignee changed from "))
     return "TASK_ASSIGNEE_CHANGED";
@@ -123,49 +135,39 @@ function inferLegacyDetails(message: string): Partial<ActivityDetails> {
   return {};
 }
 
+const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+  TEAM_CREATED: "Created",
+  TEAM_UPDATED: "Updated",
+  TEAM_DELETED: "Archived",
+  PROJECT_CREATED: "Created",
+  PROJECT_UPDATED: "Updated",
+  PROJECT_DELETED: "Archived",
+  TEAM_MEMBER_ADDED: "Member",
+  TEAM_MEMBER_REMOVED: "Member",
+  TEAM_MEMBER_ROLE_CHANGED: "Role",
+  TEAM_OWNERSHIP_TRANSFERRED: "Owner",
+  PROJECT_STATUS_CHANGED: "Status",
+  TASK_CREATED: "Created",
+  TASK_UPDATED: "Updated",
+  TASK_DELETED: "Archived",
+  TASK_STATUS_CHANGED: "Status",
+  TASK_ASSIGNEE_CHANGED: "Assignee",
+  TASK_SUPPORT_ASSIGNED: "Support",
+  TASK_SUPPORT_CHANGED: "Support",
+  TASK_SUPPORT_REMOVED: "Support",
+  TASK_COMMENTED: "Comment",
+};
+
+/** Structured event names never fall back to interpreting message text. */
+export function getActivityEventLabel(eventType: string): string | undefined {
+  return Object.hasOwn(ACTIVITY_TYPE_LABELS, eventType)
+    ? ACTIVITY_TYPE_LABELS[eventType as ActivityType]
+    : undefined;
+}
+
 export function getActivityTypeLabel(activity: string | ActivityLike): string {
   const { type = "TASK_COMMENTED" } = normalizeActivity(activity);
-
-  switch (type) {
-    case "TEAM_CREATED":
-      return "Created";
-    case "TEAM_UPDATED":
-      return "Updated";
-    case "TEAM_DELETED":
-      return "Deleted";
-    case "PROJECT_CREATED":
-      return "Created";
-    case "PROJECT_UPDATED":
-      return "Updated";
-    case "PROJECT_DELETED":
-      return "Deleted";
-    case "TEAM_MEMBER_ADDED":
-      return "Member";
-    case "TEAM_MEMBER_REMOVED":
-      return "Member";
-    case "TEAM_MEMBER_ROLE_CHANGED":
-      return "Role";
-    case "TEAM_OWNERSHIP_TRANSFERRED":
-      return "Owner";
-    case "PROJECT_STATUS_CHANGED":
-      return "Status";
-    case "TASK_CREATED":
-      return "Created";
-    case "TASK_UPDATED":
-      return "Updated";
-    case "TASK_DELETED":
-      return "Deleted";
-    case "TASK_STATUS_CHANGED":
-      return "Status";
-    case "TASK_ASSIGNEE_CHANGED":
-      return "Assignee";
-    case "TASK_SUPPORT_ASSIGNED":
-    case "TASK_SUPPORT_CHANGED":
-    case "TASK_SUPPORT_REMOVED":
-      return "Support";
-    default:
-      return "Comment";
-  }
+  return getActivityEventLabel(type) ?? "Comment";
 }
 
 export function getActivityVerb(activity: string | ActivityLike): string {
@@ -177,7 +179,7 @@ export function getActivityVerb(activity: string | ActivityLike): string {
     case "TEAM_UPDATED":
       return "updated";
     case "TEAM_DELETED":
-      return "deleted";
+      return "archived";
     case "TEAM_MEMBER_ADDED":
       return "added";
     case "TEAM_MEMBER_REMOVED":
@@ -191,7 +193,7 @@ export function getActivityVerb(activity: string | ActivityLike): string {
     case "PROJECT_UPDATED":
       return "updated";
     case "PROJECT_DELETED":
-      return "deleted";
+      return "archived";
     case "PROJECT_STATUS_CHANGED":
       return "changed";
     case "TASK_CREATED":
@@ -199,7 +201,7 @@ export function getActivityVerb(activity: string | ActivityLike): string {
     case "TASK_UPDATED":
       return "updated";
     case "TASK_DELETED":
-      return "deleted";
+      return "archived";
     case "TASK_STATUS_CHANGED":
       return "changed";
     case "TASK_ASSIGNEE_CHANGED":
@@ -297,14 +299,14 @@ export function activityFormatter(
     case "TEAM_DELETED":
       return details.team?.label ? (
         <>
-          Deleted team{" "}
+          Archived team{" "}
           <span className="font-medium text-foreground">
             {details.team.label}
           </span>
           .
         </>
       ) : (
-        "Deleted this team."
+        "Archived this team."
       );
 
     case "TEAM_MEMBER_ADDED":
@@ -400,14 +402,14 @@ export function activityFormatter(
     case "PROJECT_DELETED":
       return details.project?.label ? (
         <>
-          Deleted project{" "}
+          Archived project{" "}
           <span className="font-medium text-foreground">
             {details.project.label}
           </span>
           .
         </>
       ) : (
-        "Deleted this project."
+        "Archived this project."
       );
 
     case "PROJECT_STATUS_CHANGED":
@@ -417,11 +419,8 @@ export function activityFormatter(
 
       return (
         <>
-          Changed the project status from{" "}
-          {renderProjectStatus(details.from)}{" "}
-          to{" "}
-          {renderProjectStatus(details.to)}
-          .
+          Changed the project status from {renderProjectStatus(details.from)} to{" "}
+          {renderProjectStatus(details.to)}.
         </>
       );
 
@@ -462,14 +461,14 @@ export function activityFormatter(
     case "TASK_DELETED":
       return details.task?.label ? (
         <>
-          Deleted task{" "}
+          Archived task{" "}
           <span className="font-medium text-foreground">
             {details.task.label}
           </span>
           .
         </>
       ) : (
-        "Deleted this task."
+        "Archived this task."
       );
 
     case "TASK_STATUS_CHANGED": {

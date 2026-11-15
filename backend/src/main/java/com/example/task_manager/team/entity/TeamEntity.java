@@ -1,16 +1,6 @@
 package com.example.task_manager.team.entity;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,21 +16,28 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Entity representing a team.
- */
+/** Entity representing a team. */
 @Getter
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class) // Enable auditing for createdAt and updatedAt fields
-@Table(name = "teams", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_team_key", columnNames = "team_key") }, indexes = {
-        @Index(name = "idx_team_owner_id_deleted", columnList = "owner_id, deleted_at"),
-        @Index(name = "idx_team_name", columnList = "name"),
-        @Index(name = "idx_team_deleted", columnList = "deleted_at")
+@Table(
+    name = "teams",
+    uniqueConstraints = {@UniqueConstraint(name = "uk_team_key", columnNames = "team_key")},
+    indexes = {
+      @Index(name = "idx_team_owner_id_deleted", columnList = "owner_id, deleted_at"),
+      @Index(name = "idx_team_name", columnList = "name"),
+      @Index(name = "idx_team_deleted", columnList = "deleted_at")
     })
 public class TeamEntity {
 
@@ -74,11 +71,9 @@ public class TeamEntity {
   @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<TeamMemberEntity> members = new ArrayList<>();
 
-  @CreationTimestamp
-  private Instant createdAt;
+  @CreationTimestamp private Instant createdAt;
 
-  @LastModifiedDate
-  private Instant updatedAt;
+  @LastModifiedDate private Instant updatedAt;
 
   private Instant lastActivityAt;
 
@@ -88,6 +83,5 @@ public class TeamEntity {
 
   private Instant deletedAt;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 }

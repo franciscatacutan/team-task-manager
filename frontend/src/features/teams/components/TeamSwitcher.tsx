@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
-import { ChevronsUpDown, Plus, Check } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
+import { useNavigate } from "react-router";
+import { ChevronsUpDown, Check } from "lucide-react";
 
 import { useAllTeams } from "../hooks/useAllTeams";
 import { Button } from "../../../components/ui/button";
@@ -7,10 +8,12 @@ import { cn } from "../../../lib/utils";
 import { Avatar, AvatarFallback } from "../../../components/ui/avatar";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getTeamPermissions } from "../utils/teamPermissions";
 import {
   Command,
   CommandEmpty,
@@ -25,12 +28,19 @@ import { Separator } from "../../../components/ui/separator";
 interface Props {
   teamKey: string;
   collapsed?: boolean;
+  onNavigate?: () => void;
 }
 
-export default function TeamSwitcher({ teamKey, collapsed }: Props) {
+export default function TeamSwitcher({
+  teamKey,
+  collapsed,
+  onNavigate,
+}: Props) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { canCreateTeam } = getTeamPermissions({ globalRole: user?.role });
   const { data } = useAllTeams();
-  
+
   const teams = data?.content ?? [];
 
   const [open, setOpen] = useState(false);
@@ -48,16 +58,17 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
   function handleCreate() {
     setOpen(false);
 
-    setTimeout(() => {
-      setCreateOpen(true);
-    }, 100);
+    setCreateOpen(true);
   }
 
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
           <Button
+            aria-label={`Switch team (current: ${currentTeam?.name ?? teamKey})`}
+            role="combobox"
+            aria-expanded={open}
             variant="ghost"
             className={cn(
               "h-11 w-full rounded-xl border border-border/60 bg-background/75 px-2.5 transition hover:bg-muted/25",
@@ -66,7 +77,7 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
           >
             <div className="flex items-center gap-2 min-w-0">
               <Avatar className="h-7 w-7 shrink-0 ring-1 ring-border/60">
-                <AvatarFallback className="text-[11px] font-semibold">
+                <AvatarFallback className="text-[11px] font-semibold text-foreground/75">
                   {currentTeam?.name?.[0] || "T"}
                 </AvatarFallback>
               </Avatar>
@@ -87,14 +98,21 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             )}
           </Button>
-        </DropdownMenuTrigger>
+        </PopoverTrigger>
 
-        <DropdownMenuContent
+        <PopoverContent
+          aria-label="Choose team"
           align="start"
-          className="w-72 rounded-2xl border border-border/60 p-2 shadow-lg"
+          className="w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-border/60 p-2 shadow-lg"
+          onCloseAutoFocus={(event) => {
+            if (createOpen) event.preventDefault();
+          }}
         >
-          <Command className="space-y-2">
-            <CommandInput placeholder="Search teams..." />
+          <Command label="Search teams" className="space-y-2">
+            <CommandInput
+              aria-label="Search teams"
+              placeholder="Search teams..."
+            />
 
             <CommandList>
               <CommandEmpty>No teams found.</CommandEmpty>
@@ -105,7 +123,7 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
                 return (
                   <CommandItem
                     key={team.key}
-                    value={team.key}
+                    value={`${team.name} ${team.key}`}
                     onSelect={() => switchTeam(team.key)}
                     className={cn(
                       "flex items-center gap-2 rounded-xl px-2 py-2",
@@ -113,7 +131,7 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
                     )}
                   >
                     <Avatar className="h-6 w-6 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[10px]">
+                      <AvatarFallback className="text-[10px] text-foreground/75">
                         {team.name[0]}
                       </AvatarFallback>
                     </Avatar>
@@ -127,27 +145,29 @@ export default function TeamSwitcher({ teamKey, collapsed }: Props) {
             </CommandList>
           </Command>
 
-          <Separator />
+          {canCreateTeam && <Separator />}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-2 w-full justify-start gap-2 rounded-xl"
-            onClick={handleCreate}
-          >
-            <Plus className="h-4 w-4" />
-            Create Team
-          </Button>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          {canCreateTeam && (
+            <CreateButton
+              entity="team"
+              variant="secondary"
+              className="mt-2 w-full justify-start sm:w-full"
+              onClick={handleCreate}
+            />
+          )}
+        </PopoverContent>
+      </Popover>
 
-      <CreateTeamModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onSuccess={(team) => {
-          navigate(`/teams/${team.key}`);
-        }}
-      />
+      {canCreateTeam && (
+        <CreateTeamModal
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onSuccess={(team) => {
+            onNavigate?.();
+            navigate(`/teams/${team.key}`);
+          }}
+        />
+      )}
     </>
   );
 }

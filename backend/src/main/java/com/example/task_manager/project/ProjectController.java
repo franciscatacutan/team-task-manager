@@ -1,22 +1,5 @@
 package com.example.task_manager.project;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.project.dto.ChangeProjectStatusRequest;
 import com.example.task_manager.project.dto.CreateProjectRequest;
@@ -24,13 +7,30 @@ import com.example.task_manager.project.dto.ProjectActivityResponse;
 import com.example.task_manager.project.dto.ProjectResponse;
 import com.example.task_manager.project.dto.ProjectSearchRequest;
 import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
-
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-/**
- * REST controller for managing projects.
- */
+/** REST controller for managing projects. */
 @RestController
 @RequestMapping("/api/teams/{teamKey}/projects")
 @RequiredArgsConstructor
@@ -46,7 +46,6 @@ public class ProjectController {
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(projectService.createProject(teamKey, request, authentication.getName()));
-
   }
 
   @PatchMapping("/{projectKey}")
@@ -56,7 +55,8 @@ public class ProjectController {
       @Valid @RequestBody UpdateProjectDetailsRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.updateProject(teamKey, projectKey, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.updateProject(teamKey, projectKey, request, authentication.getName()));
   }
 
   @DeleteMapping("/{projectKey}")
@@ -75,10 +75,12 @@ public class ProjectController {
   public ResponseEntity<PageResponse<ProjectResponse>> getProjects(
       @PathVariable String teamKey,
       @ModelAttribute ProjectSearchRequest request,
-      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.getProjects(teamKey, request, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjects(teamKey, request, pageable, authentication));
   }
 
   @GetMapping("/{projectKey}")
@@ -93,9 +95,12 @@ public class ProjectController {
   public ResponseEntity<PageResponse<ProjectActivityResponse>> getProjectActivities(
       @PathVariable String teamKey,
       @PathVariable String projectKey,
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @RequestParam(required = false) String search,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
-    return ResponseEntity.ok(projectService.getProjectActivities(teamKey, projectKey, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjectActivities(teamKey, projectKey, search, pageable, authentication));
   }
 
   @PatchMapping("/{projectKey}/status")
@@ -104,7 +109,15 @@ public class ProjectController {
       @PathVariable String projectKey,
       @Valid @RequestBody ChangeProjectStatusRequest request,
       Authentication authentication) {
-    return ResponseEntity
-        .ok(projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
+  }
+
+  @ExceptionHandler(ProjectCompletionConfirmationRequired.class)
+  public ProblemDetail handleCompletionConfirmation(ProjectCompletionConfirmationRequired warning) {
+    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, warning.getMessage());
+    problem.setType(URI.create("urn:ttm:project-completion-confirmation-required"));
+    problem.setProperty("openTaskCount", warning.openTaskCount());
+    return problem;
   }
 }

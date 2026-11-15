@@ -28,6 +28,7 @@ export default function MembersToolbar({
         <div className="relative w-full">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            aria-label="Search members"
             placeholder="Search members..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}

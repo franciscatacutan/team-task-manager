@@ -2,23 +2,9 @@ package com.example.task_manager.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
@@ -32,6 +18,19 @@ import com.example.task_manager.team.TeamRepository;
 import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -52,16 +51,18 @@ class NotificationServiceTest {
     task.setAssignee(recipient);
     ActivityEventEntity event = event(ActivityEventType.TASK_COMMENTED, team, project, task);
     when(tasks.findById(task.getId())).thenReturn(Optional.of(task));
+    when(members.existsByTeamIdAndUserId(team.getId(), recipient.getId())).thenReturn(true);
     service.createFromActivity(event);
     var saved = ArgumentCaptor.forClass(NotificationEntity.class);
     verify(notifications).save(saved.capture());
-    assertThat(saved.getValue().getTargetPath()).isEqualTo("/teams/TEAM-A/projects/PROJ-A/tasks/42");
+    assertThat(saved.getValue().getTargetPath())
+        .isEqualTo("/teams/TEAM-A/projects/PROJ-A/tasks/42");
   }
 
   @ParameterizedTest
-  @EnumSource(value = ActivityEventType.class, names = {
-      "TASK_COMMENTED", "PROJECT_UPDATED", "TEAM_MEMBER_ADDED", "TEAM_DELETED"
-  })
+  @EnumSource(
+      value = ActivityEventType.class,
+      names = {"TASK_COMMENTED", "PROJECT_UPDATED", "TEAM_MEMBER_ADDED", "TEAM_DELETED"})
   void existingInboxItemsResolveCurrentRoutesInsteadOfStoredUuidPaths(ActivityEventType type) {
     TeamEntity team = team();
     ProjectEntity project = project(team);
@@ -70,22 +71,29 @@ class NotificationServiceTest {
     String expected;
     if (type == ActivityEventType.TASK_COMMENTED) {
       event = event(type, team, project, task);
-      when(tasks.findById(task.getId())).thenReturn(Optional.of(task));
+
       expected = "/teams/TEAM-A/projects/PROJ-A/tasks/42";
     } else if (type == ActivityEventType.PROJECT_UPDATED) {
       event = event(type, team, project, null);
-      when(projects.findById(project.getId())).thenReturn(Optional.of(project));
+      when(projects.findRouteProjects(any())).thenReturn(List.of(project));
       expected = "/teams/TEAM-A/projects/PROJ-A";
     } else {
       event = event(type, team, null, null);
-      when(teams.findById(team.getId())).thenReturn(Optional.of(team));
+      when(teams.findAllById(any())).thenReturn(List.of(team));
       expected = "/teams/TEAM-A" + (type == ActivityEventType.TEAM_MEMBER_ADDED ? "/members" : "");
     }
+    when(users.findByEmailIgnoreCase("test@example.test")).thenReturn(Optional.of(user()));
     NotificationEntity item = new NotificationEntity();
     item.setActivityEvent(event);
     item.setTargetPath("/teams/" + team.getId());
-    when(notifications.findInbox(any(), any())).thenReturn(new PageImpl<>(List.of(item)));
-    assertThat(service.getInbox("test@example.test", Pageable.unpaged()).content().getFirst().targetPath())
+    when(notifications.findInbox(any(), eq(false), any()))
+        .thenReturn(new PageImpl<>(List.of(item)));
+    assertThat(
+            service
+                .getInbox("test@example.test", false, Pageable.unpaged())
+                .content()
+                .getFirst()
+                .targetPath())
         .isEqualTo(expected);
   }
 
@@ -120,7 +128,8 @@ class NotificationServiceTest {
     return user;
   }
 
-  private ActivityEventEntity event(ActivityEventType type, TeamEntity team, ProjectEntity project, TaskEntity task) {
+  private ActivityEventEntity event(
+      ActivityEventType type, TeamEntity team, ProjectEntity project, TaskEntity task) {
     ActivityEventEntity event = new ActivityEventEntity();
     event.setUser(user());
     event.setEventType(type);
@@ -128,6 +137,7 @@ class NotificationServiceTest {
     event.setTeamId(team.getId());
     event.setProjectId(project == null ? null : project.getId());
     event.setTaskId(task == null ? null : task.getId());
+    event.setTask(task);
     return event;
   }
 }

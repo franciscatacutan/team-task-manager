@@ -1,3 +1,5 @@
+import UserProfileLink from "@/features/users/components/UserProfileLink";
+import { SortHeader } from "@/common/components/toolbar/SortHeader";
 import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
@@ -24,27 +26,21 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 
-import { useUpdateMemberRole } from "../hooks/useUpdateMemberRole";
+import MemberRoleControl from "./MemberRoleControl";
 import RemoveMemberModal from "./RemoveMemberModal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select";
 import { TEAM_ROLE_STYLES, TEAM_ROLE_LABEL } from "../constants/team.constants";
 import { cn } from "../../../lib/utils";
 import TransferOwnershipModal from "./TransferOwnershipModal";
 import type { TeamPermissions } from "../../teams/utils/teamPermissions";
 import { useTeamMe } from "../../teams/hooks/useTeamMe";
-import type { TeamMember, TeamRole } from "../types/team.type";
+import type { TeamMember } from "../types/team.type";
 import {
   Pagination,
   type PaginationProps,
 } from "../../../common/components/pagination/Pagination";
 
 interface Props {
+  canViewProfile?: (member: TeamMember) => boolean;
   permissions: TeamPermissions;
   teamKey: string;
   members: TeamMember[];
@@ -55,6 +51,7 @@ interface Props {
 }
 
 export default function MembersList({
+  canViewProfile = () => false,
   permissions,
   teamKey,
   members,
@@ -67,8 +64,6 @@ export default function MembersList({
 
   const [removeOpen, setRemoveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-
-  const updateRole = useUpdateMemberRole(teamKey);
 
   const handleSort = (field: string) => {
     const [currentField, direction] = sort.split(",");
@@ -94,18 +89,8 @@ export default function MembersList({
   const { data: teamMe } = useTeamMe(teamKey || "");
 
   const isOwner = teamMe?.role === "OWNER";
-  const isAdmin = teamMe?.role === "ADMIN";
-
-  type EditableRole = "ADMIN" | "MEMBER";
-
-  const handleRoleChange = (memberId: string, role: EditableRole) => {
-    updateRole.mutate({
-      memberId,
-      role: role as EditableRole,
-    });
-  };
-
-  const isUpdating = updateRole.isPending;
+  const canShowActions =
+    permissions.canTransferOwnership || permissions.canRemoveMember;
 
   if (isLoading) {
     return (
@@ -128,36 +113,27 @@ export default function MembersList({
     );
   }
   return (
-    <section className="flex flex-col h-full min-h-0 gap-6">
-      <div className="flex h-full min-h-0 rounded-2xl border border-border/60 bg-background/92 shadow-sm overflow-hidden">
-        <Table className="overflow-auto">
+    <section className="list-fill flex flex-col h-full min-h-0 gap-6">
+      <div className="list-frame flex flex-1 min-h-0 min-w-0 rounded-2xl border border-border/60 bg-background/92 shadow-sm overflow-hidden">
+        <Table scrollLabel="Team members table">
           <TableHeader className="sticky top-0 z-30 rounded-2xl bg-background/85 px-4 backdrop-blur supports-backdrop-filter:bg-background/75">
             <TableRow>
-              <TableHead
-                onClick={() => handleSort("user.lastName")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Name
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("role")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Role
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("user.email")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Email
-              </TableHead>
-              <TableHead
-                onClick={() => handleSort("joinedAt")}
-                className="cursor-pointer px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                Joined Date
-              </TableHead>
-              {(isOwner || isAdmin) && (
+              {[
+                ["user.lastName", "Name"],
+                ["role", "Role"],
+                ["user.email", "Email"],
+                ["joinedAt", "Joined Date"],
+              ].map(([field, label]) => (
+                <SortHeader
+                  key={field}
+                  label={label}
+                  field={field}
+                  sortField={sort.split(",")[0]}
+                  order={sort.endsWith(",asc") ? "asc" : "desc"}
+                  onSort={handleSort}
+                />
+              ))}
+              {canShowActions && (
                 <TableHead className="px-4 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Actions
                 </TableHead>
@@ -179,11 +155,16 @@ export default function MembersList({
 
                       <div className="min-w-0">
                         <div className="truncate font-medium text-foreground">
-                          {member.firstName} {member.lastName}
+                          <UserProfileLink
+                            user={member}
+                            enabled={canViewProfile(member)}
+                          />
                         </div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {member.globalRole}
-                        </div>
+                        {member.globalRole && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {member.globalRole}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -197,43 +178,11 @@ export default function MembersList({
                         {TEAM_ROLE_LABEL.OWNER}
                       </Badge>
                     ) : permissions.canChangeRole ? (
-                      <Select
-                        value={(member.teamRole ?? "MEMBER") as TeamRole}
-                        onValueChange={(value) =>
-                          handleRoleChange(member.id, value as EditableRole)
-                        }
-                        disabled={isUpdating}
-                      >
-                        <SelectTrigger
-                          className={`h-9 w-34 rounded-xl border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] shadow-none ${TEAM_ROLE_STYLES[(member.teamRole ?? "MEMBER") as TeamRole]}`}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          <SelectItem value="ADMIN">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                                TEAM_ROLE_STYLES.ADMIN,
-                              )}
-                            >
-                              {TEAM_ROLE_LABEL.ADMIN}
-                            </span>
-                          </SelectItem>
-
-                          <SelectItem value="MEMBER">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                                TEAM_ROLE_STYLES.MEMBER,
-                              )}
-                            >
-                              {TEAM_ROLE_LABEL.MEMBER}
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <MemberRoleControl
+                        teamKey={teamKey}
+                        member={member}
+                        disabled={member.id === teamMe?.userId}
+                      />
                     ) : member.teamRole === "ADMIN" ? (
                       <span
                         className={cn(
@@ -262,39 +211,51 @@ export default function MembersList({
                     {formatDate(member.joinedAt)}
                   </TableCell>
 
-                  {(isOwner || isAdmin) && member.teamRole != "OWNER" && (
+                  {canShowActions && (
                     <TableCell className="px-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-full p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-fit">
-                          {permissions.canTransferOwnership && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => onOpenTransfer(member)}
-                                className="text-muted-foreground"
+                      {member.teamRole !== "OWNER" &&
+                        (permissions.canTransferOwnership ||
+                          (permissions.canRemoveMember &&
+                            (isOwner || member.teamRole === "MEMBER"))) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                aria-label={`Actions for ${member.firstName} ${member.lastName}`}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-full p-0"
                               >
-                                Make Owner
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            disabled={!permissions.canRemoveMember}
-                            onClick={() => onOpenRemove(member)}
-                            className="flex items-center justify-between text-destructive focus:text-destructive"
-                          >
-                            <span>Remove Member</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-fit">
+                              {permissions.canTransferOwnership && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => onOpenTransfer(member)}
+                                    className="text-muted-foreground"
+                                  >
+                                    Make Owner
+                                  </DropdownMenuItem>
+                                  {permissions.canRemoveMember &&
+                                    (isOwner ||
+                                      member.teamRole === "MEMBER") && (
+                                      <DropdownMenuSeparator />
+                                    )}
+                                </>
+                              )}
+                              {permissions.canRemoveMember &&
+                                (isOwner || member.teamRole === "MEMBER") && (
+                                  <DropdownMenuItem
+                                    onClick={() => onOpenRemove(member)}
+                                    className="flex items-center justify-between text-destructive focus:text-destructive"
+                                  >
+                                    <span>Remove Member</span>
+                                  </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -322,6 +283,7 @@ export default function MembersList({
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}
+        isCurrentOwner={isOwner}
         preselectedUserId={selectedMember?.id ?? null}
       />
 

@@ -2,15 +2,9 @@ package com.example.task_manager.exception;
 
 import java.time.Instant;
 
-/**
- * Represents an error response structure.
- */
+/** Represents an error response structure. */
 public record ErrorResponse(
-    int status,
-    ErrorCode error,
-    String message,
-    String path,
-    Instant timestamp) {
+    int status, ErrorCode error, String message, String path, Instant timestamp) {
 
   public enum ErrorCode {
     INVALID_CREDENTIALS,
@@ -24,6 +18,7 @@ public record ErrorResponse(
     INVALID_PARAMETER,
     INVALID_METHOD,
     CONFLICT,
+    TOO_MANY_REQUESTS,
     BAD_REQUEST
   }
 }

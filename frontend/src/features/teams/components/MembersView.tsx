@@ -1,9 +1,12 @@
-import { useOutletContext, useParams } from "react-router-dom";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { canLinkProfile } from "@/features/users/utils/profileNavigation";
+import { useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 
 import { useTeamMembers } from "../hooks/useTeamMembers";
 import { useDebounce } from "../../../common/hooks/useDebounce";
 import MembersHeader from "./MembersHeader";
+import InviteMemberDialog from "./InviteMemberDialog";
 import MembersToolbar from "./MembersToolbar";
 import MembersList from "./MembersList";
 import AddMembersModal from "./AddMembersModal";
@@ -19,6 +22,7 @@ export default function MembersPage() {
   const { teamKey } = useParams<{ teamKey: string }>();
 
   const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [removeMembersOpen, setRemoveMembersOpen] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
@@ -31,20 +35,29 @@ export default function MembersPage() {
 
   const debouncedSearch = useDebounce(search, 400);
 
-  const { data: membersData, isLoading: membersLoading } = useTeamMembers(
-    teamKey || "",
-    {
-      page,
-      size: 10,
-      search: debouncedSearch,
-      sort,
-      roles: roleFilter,
-    },
-  );
-  const { data: teamMe } = useTeamMe(teamKey || "");
+  const membersQuery = useTeamMembers(teamKey || "", {
+    page,
+    size,
+    search: debouncedSearch,
+    sort,
+    roles: roleFilter,
+  });
+  const { data: membersData, isLoading: membersLoading } = membersQuery;
+  const membership = useTeamMe(teamKey || "");
+  const { data: teamMe } = membership;
+  const { user: viewer } = useAuth();
   const { team } = useOutletContext<WorkspaceOutletContext>();
   const isWorkspaceReadOnly = Boolean(team.deletedAt);
-  if (!teamMe?.role) return;
+  const sharesConfirmedActiveTeam = Boolean(
+    viewer &&
+    !isWorkspaceReadOnly &&
+    membersQuery.isSuccess &&
+    !membersQuery.isError &&
+    membership.isSuccess &&
+    !membership.isError &&
+    teamMe?.userId === viewer.id &&
+    ["OWNER", "ADMIN", "MEMBER"].includes(teamMe?.role ?? ""),
+  );
 
   const members = membersData?.content ?? [];
   const totalPages = membersData?.totalPages ?? 0;
@@ -70,9 +83,11 @@ export default function MembersPage() {
   if (!teamKey) return <div className="p-6">Invalid team</div>;
 
   return (
-    <section className="flex flex-col h-full min-h-0 gap-6">
+    <section className="list-layout flex flex-col h-full min-h-0 gap-6">
       <MembersHeader
+        teamKey={teamKey}
         setAddMembersOpen={() => setAddMembersOpen(true)}
+        setInviteOpen={() => setInviteOpen(true)}
         setRemoveMembersOpen={() => setRemoveMembersOpen(true)}
         setTransferOpen={() => setTransferOpen(true)}
         permissions={permissions}
@@ -86,6 +101,9 @@ export default function MembersPage() {
       />
 
       <MembersList
+        canViewProfile={(member) =>
+          canLinkProfile(viewer, member.id, sharesConfirmedActiveTeam)
+        }
         permissions={permissions}
         teamKey={teamKey}
         members={members}
@@ -106,7 +124,7 @@ export default function MembersPage() {
       />
 
       <RemoveMultiMembersModal
-        userTeamRole={teamMe.role}
+        userTeamRole={teamMe?.role ?? "MEMBER"}
         teamKey={teamKey}
         open={removeMembersOpen}
         isLoading={false}
@@ -114,18 +132,27 @@ export default function MembersPage() {
       />
 
       <AddMembersModal
-        userTeamRole={teamMe.role}
+        canAssignAdmin={permissions.canChangeRole}
         teamKey={teamKey}
         open={addMembersOpen}
         isLoading={false}
         onOpenChange={setAddMembersOpen}
       />
 
+      {permissions.canAddMember && inviteOpen && (
+        <InviteMemberDialog
+          key={teamKey}
+          teamKey={teamKey}
+          onClose={() => setInviteOpen(false)}
+        />
+      )}
+
       <TransferOwnershipModal
         teamKey={teamKey}
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
         members={members}
+        isCurrentOwner={teamMe?.role === "OWNER"}
       />
     </section>
   );

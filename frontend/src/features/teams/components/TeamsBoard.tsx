@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
 import TeamCard from "./TeamCard";
 import { Button } from "@/components/ui/button";
 import type { Team } from "../types/team.type";
@@ -6,7 +6,6 @@ import type { Team } from "../types/team.type";
 interface Props {
   teams: Team[];
   isLoading: boolean;
-  openTeam: (teamKey: string) => void;
   onCreateTeam: () => void;
   onClearFilters: () => void;
   canCreateTeam: boolean;
@@ -16,7 +15,6 @@ interface Props {
 export default function TeamsBoard({
   teams,
   isLoading,
-  openTeam,
   onCreateTeam,
   onClearFilters,
   canCreateTeam,
@@ -39,11 +37,7 @@ export default function TeamsBoard({
         <div className="flex-1 overflow-y-auto p-4 rounded-2xl border border-border/60 bg-background shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {teams.map((team) => (
-              <TeamCard
-                key={team.key}
-                team={team}
-                onClick={() => openTeam(team.key)}
-              />
+              <TeamCard key={team.key} team={team} />
             ))}
           </div>
         </div>
@@ -55,7 +49,9 @@ export default function TeamsBoard({
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             {hasActiveFilters
               ? "Try clearing the search or filters to see more teams."
-              : "Create a team to get started."}
+              : canCreateTeam
+                ? "Create a team to get started."
+                : "Ask a team owner or admin to add you using your sign-in email."}
           </p>
 
           {hasActiveFilters ? (
@@ -67,10 +63,11 @@ export default function TeamsBoard({
               Clear filters
             </Button>
           ) : canCreateTeam ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateTeam}>
-              <Plus className="h-4 w-4" />
-              Create team
-            </Button>
+            <CreateButton
+              entity="team"
+              className="mt-6"
+              onClick={onCreateTeam}
+            />
           ) : null}
         </div>
       )}

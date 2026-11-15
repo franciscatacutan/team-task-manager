@@ -1,3 +1,4 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type {
@@ -12,7 +13,10 @@ import type {
   TeamMe,
   TeamMember,
 } from "../types/team.type";
-import type { TeamInsights } from "../types/teamInsights.types";
+import type {
+  TeamInsights,
+  TeamOverdueTask,
+} from "../types/teamInsights.types";
 
 export const getTeams = async (
   params: BaseQueryParams & {
@@ -35,9 +39,13 @@ export const getAllTeams = async (
 
 export const getTeamActivities = async (
   teamKey: string,
-  params: BaseQueryParams,
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<TeamActivity>> => {
-  const res = await apiClient.get(`/teams/${teamKey}/activities`, { params });
+  const res = await apiClient.get(`/teams/${teamKey}/activities`, {
+    params,
+    signal,
+  });
   return res.data;
 };
 
@@ -78,9 +86,23 @@ export const transferTeam = async (
   teamKey: string,
   userId: string,
 ): Promise<TeamMember> => {
-  const response = await apiClient.patch(`/teams/${teamKey}/transfer/${userId}`);
+  const response = await apiClient.patch(
+    `/teams/${teamKey}/transfer/${userId}`,
+  );
   return response.data;
 };
+
+export async function getTeamOverdueTasks(
+  teamKey: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<PageResponse<TeamOverdueTask>> {
+  const { data } = await apiClient.get<PageResponse<TeamOverdueTask>>(
+    `/teams/${teamKey}/insights/overdue-tasks`,
+    { params: { page }, signal },
+  );
+  return data;
+}
 
 export const getTeamInsights = async (
   teamKey: string,
@@ -93,9 +115,12 @@ export const getTeamAuditLogs = async (
   teamKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilityAuditLog>> => {
-  const response = await apiClient.get(`/teams/${teamKey}/insights/audit-logs`, {
-    params,
-  });
+  const response = await apiClient.get(
+    `/teams/${teamKey}/insights/audit-logs`,
+    {
+      params,
+    },
+  );
   return response.data;
 };
 

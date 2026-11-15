@@ -1,12 +1,49 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+interface TableProps extends React.ComponentProps<"table"> {
+  scrollLabel?: string;
+}
+
+/** Add a named keyboard stop only while this container actually scrolls. */
+function Table({
+  className,
+  scrollLabel = "Table content",
+  ...props
+}: TableProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [scrollable, setScrollable] = React.useState(false);
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () =>
+      setScrollable(
+        container.scrollWidth > container.clientWidth + 1 ||
+          container.scrollHeight > container.clientHeight + 1,
+      );
+    measure();
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(measure);
+    observer?.observe(container);
+    if (container.firstElementChild)
+      observer?.observe(container.firstElementChild);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [props.children]);
   return (
     <div
+      ref={containerRef}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      role={scrollable ? "region" : undefined}
+      aria-label={scrollable ? scrollLabel : undefined}
+      tabIndex={scrollable ? 0 : undefined}
+      className="relative min-h-0 min-w-0 w-full flex-1 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
       <table
         data-slot="table"
@@ -14,7 +51,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
         {...props}
       />
     </div>
-  )
+  );
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
@@ -24,7 +61,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
       className={cn("[&_tr]:border-b", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -34,7 +71,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
       className={cn("[&_tr:last-child]:border-0", className)}
       {...props}
     />
-  )
+  );
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
@@ -43,11 +80,11 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
       data-slot="table-footer"
       className={cn(
         "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
@@ -56,11 +93,11 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
       data-slot="table-row"
       className={cn(
         "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
@@ -69,11 +106,11 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       data-slot="table-head"
       className={cn(
         "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
@@ -82,11 +119,11 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       data-slot="table-cell"
       className={cn(
         "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function TableCaption({
@@ -99,7 +136,7 @@ function TableCaption({
       className={cn("mt-4 text-sm text-muted-foreground", className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -111,4 +148,4 @@ export {
   TableRow,
   TableCell,
   TableCaption,
-}
+};

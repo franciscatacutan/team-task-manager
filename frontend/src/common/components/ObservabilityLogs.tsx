@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
@@ -31,6 +32,7 @@ import {
   TabsTrigger,
 } from "../../components/ui/tabs";
 import { cn } from "../../lib/utils";
+import QueryFailure from "./QueryFailure";
 import type {
   ObservabilityAuditLog,
   ObservabilitySystemEvent,
@@ -39,21 +41,28 @@ import type {
 } from "../types/observability.types";
 import {
   activityFormatter,
-  getActivityTypeLabel,
+  getActivityEventLabel,
 } from "../utils/activityFormatter";
 import { formatDate, formatDateTimeShort } from "../utils/dateFormatter";
+
+interface LogQueryState {
+  isError: boolean;
+  error: unknown;
+  isFetching: boolean;
+  onRetry: () => unknown;
+}
 
 interface Props {
   title?: string;
   description: string;
-  audit: {
+  audit: LogQueryState & {
     logs: ObservabilityAuditLog[];
     isLoading: boolean;
     page: number;
     totalPages: number;
     onPageChange: (page: number) => void;
   };
-  system: {
+  system: LogQueryState & {
     events: ObservabilitySystemEvent[];
     isLoading: boolean;
     page: number;
@@ -83,7 +92,10 @@ export default function ObservabilityLogs({
         </div>
 
         <Select value={sort} onValueChange={onSortChange}>
-          <SelectTrigger className="h-10 w-full rounded-xl border-border/70 bg-background shadow-none md:w-44">
+          <SelectTrigger
+            aria-label="Sort operational logs"
+            className="h-10 w-full rounded-xl border-border/70 bg-background shadow-none md:w-44"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -113,28 +125,80 @@ export default function ObservabilityLogs({
           </TabsList>
 
           <TabsContent value="audit" className="m-0">
-            <AuditLogList logs={audit.logs} isLoading={audit.isLoading} />
-            <LogPagination
-              page={audit.page}
-              totalPages={audit.totalPages}
-              onPageChange={audit.onPageChange}
-            />
+            <LogQueryFeedback
+              label="audit logs"
+              state={audit}
+              hasEntries={audit.logs.length > 0}
+            >
+              <AuditLogList logs={audit.logs} isLoading={audit.isLoading} />
+              {!audit.isError && (
+                <LogPagination
+                  page={audit.page}
+                  totalPages={audit.totalPages}
+                  onPageChange={audit.onPageChange}
+                />
+              )}
+            </LogQueryFeedback>
           </TabsContent>
 
           <TabsContent value="system" className="m-0">
-            <SystemEventList
-              events={system.events}
-              isLoading={system.isLoading}
-            />
-            <LogPagination
-              page={system.page}
-              totalPages={system.totalPages}
-              onPageChange={system.onPageChange}
-            />
+            <LogQueryFeedback
+              label="system events"
+              state={system}
+              hasEntries={system.events.length > 0}
+            >
+              <SystemEventList
+                events={system.events}
+                isLoading={system.isLoading}
+              />
+              {!system.isError && (
+                <LogPagination
+                  page={system.page}
+                  totalPages={system.totalPages}
+                  onPageChange={system.onPageChange}
+                />
+              )}
+            </LogQueryFeedback>
           </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+function LogQueryFeedback({
+  label,
+  state,
+  hasEntries,
+  children,
+}: {
+  label: string;
+  state: LogQueryState;
+  hasEntries: boolean;
+  children: ReactNode;
+}) {
+  const unavailable =
+    isAxiosError(state.error) &&
+    [403, 404].includes(state.error.response?.status ?? 0);
+  const showCached = state.isError && hasEntries && !unavailable;
+  return (
+    <div className="space-y-3" aria-busy={state.isFetching}>
+      {state.isError && (
+        <>
+          {showCached && (
+            <p className="text-sm text-muted-foreground">
+              Showing the last loaded {label} while refresh is unavailable.
+            </p>
+          )}
+          <QueryFailure
+            label={label}
+            pending={state.isFetching}
+            onRetry={state.onRetry}
+          />
+        </>
+      )}
+      {(!state.isError || showCached) && children}
+    </div>
   );
 }
 
@@ -186,11 +250,9 @@ function AuditLogList({
                 })}
                 meta={[
                   formatConstant(log.entityType),
-                  getActivityTypeLabel({
-                    message: log.summary,
-                  }),
-                  log.projectKey ? `Project ${shortId(log.projectKey)}` : null,
-                  log.taskNumber ? `Task ${shortId(log.taskNumber)}` : null,
+                  getActivityEventLabel(log.eventType) ??
+                    formatConstant(log.eventType),
+                  ...scopeMetadata(log),
                 ]}
               />
             ))}
@@ -259,14 +321,10 @@ function SystemEventList({
                 })}
                 meta={[
                   event.category,
-                  getActivityTypeLabel({
-                    message: event.eventName,
-                  }),
+                  getActivityEventLabel(event.eventName) ??
+                    formatConstant(event.eventName),
                   event.source,
-                  event.projectKey
-                    ? `Project ${shortId(event.projectKey)}`
-                    : null,
-                  event.taskNumber ? `Task ${shortId(event.taskNumber)}` : null,
+                  ...scopeMetadata(event),
                 ]}
               />
             ))}
@@ -324,7 +382,7 @@ function LogRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2.5">
           <Avatar size="sm" className="mt-0.5 h-7 w-7 shrink-0">
-            <AvatarFallback className="bg-muted text-[11px] font-semibold text-muted-foreground">
+            <AvatarFallback className="bg-muted text-[11px] font-semibold text-foreground/75">
               {actorInitials(actor)}
             </AvatarFallback>
           </Avatar>
@@ -346,9 +404,12 @@ function LogRow({
             <div className="flex flex-wrap items-center gap-y-1 text-[11px] text-muted-foreground">
               <span>{formatDateTimeShort(occurredAt)}</span>
               {cleanedMeta.map((item) => (
-                <span key={item} className="inline-flex items-center">
-                  <Dot className="h-3 w-3" />
-                  <span className="rounded-md bg-muted/25 px-1.5 py-0.5">
+                <span
+                  key={item}
+                  className="inline-flex min-w-0 max-w-full items-center"
+                >
+                  <Dot className="h-3 w-3 shrink-0" />
+                  <span className="min-w-0 rounded-md bg-muted/25 px-1.5 py-0.5 [overflow-wrap:anywhere]">
                     {item}
                   </span>
                 </span>
@@ -408,7 +469,11 @@ function LogPagination({
 
 function LogSkeleton() {
   return (
-    <div className="space-y-2 rounded-xl border border-border/60 bg-background/70 p-2">
+    <div
+      role="status"
+      aria-label="Loading logs"
+      className="space-y-2 rounded-xl border border-border/60 bg-background/70 p-2"
+    >
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
@@ -462,8 +527,17 @@ function formatConstant(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function shortId(value: string) {
-  return value.slice(0, 8);
+/** Internal UUID context is distinct from navigable public keys/task numbers. */
+function scopeMetadata({
+  teamId,
+  projectId,
+  taskId,
+}: Pick<ObservabilityAuditLog, "teamId" | "projectId" | "taskId">) {
+  return [
+    teamId ? `Team ID: ${teamId}` : null,
+    projectId ? `Project ID: ${projectId}` : null,
+    taskId ? `Task ID: ${taskId}` : null,
+  ];
 }
 
 function groupByDate<T extends { occurredAt: string }>(items: T[]) {

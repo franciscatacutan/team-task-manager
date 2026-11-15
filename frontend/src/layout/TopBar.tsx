@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ListTodo, Plus, Sparkles } from "lucide-react";
+import { Link, NavLink } from "react-router";
 import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
@@ -20,9 +20,14 @@ import AppBreadcrumbs from "../common/components/AppBreadcrumbs";
 import NotificationCenter from "../features/notifications/components/NotificationCenter";
 
 export default function TopBar() {
-  const { logout } = useAuth();
-  const { teamKey, projectKey, teamKeyPresent, projectKeyPresent, permissions } =
-    useWorkspaceContext();
+  const { logout, isLoggingOut } = useAuth();
+  const {
+    teamKey,
+    projectKey,
+    teamKeyPresent,
+    projectKeyPresent,
+    permissions,
+  } = useWorkspaceContext();
 
   const [openTeam, setOpenTeam] = useState(false);
   const [openProject, setOpenProject] = useState(false);
@@ -30,50 +35,67 @@ export default function TopBar() {
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/60 bg-background/85 px-4 backdrop-blur supports-backdrop-filter:bg-background/75">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/85 px-3 backdrop-blur supports-backdrop-filter:bg-background/75 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <Link
             to="/teams"
-            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-sm font-semibold text-foreground transition hover:border-border hover:bg-muted/20"
+            aria-label="TeamTaskManager"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-full border border-border/60 bg-background/80 text-sm font-semibold text-foreground transition hover:border-border hover:bg-muted/20 sm:h-9 sm:w-auto sm:px-3"
           >
             <span className="rounded-full bg-primary/10 p-1 text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
             </span>
-            TeamTaskManager
+            <span className="hidden sm:inline">TeamTaskManager</span>
           </Link>
+          <NavLink
+            to="/my-work"
+            aria-label="My Work"
+            title="My Work"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:bg-muted aria-[current=page]:text-foreground sm:h-9 sm:w-auto sm:px-3"
+          >
+            <ListTodo aria-hidden="true" className="h-4 w-4" />
+            <span className="hidden sm:inline">My Work</span>
+          </NavLink>
           <AppBreadcrumbs />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {(permissions.canCreateTeam ||
             permissions.canCreateProject ||
             permissions.canCreateTask) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" className="h-9 rounded-xl px-3.5">
-                  <Plus className="h-4 w-4" />
-                  Create
+                <Button
+                  aria-label="Create"
+                  title="Create"
+                  className="h-11 w-11 gap-2 rounded-xl px-0 sm:h-9 sm:w-auto sm:px-3.5"
+                >
+                  <Plus aria-hidden="true" className="h-4 w-4" />
+                  <span className="hidden sm:inline">Create</span>
                 </Button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-48 rounded-xl">
                 <DropdownMenuItem
+                  className="min-h-11 rounded-lg sm:min-h-9"
                   disabled={!permissions.canCreateTeam}
                   onClick={() => setOpenTeam(true)}
                 >
-                  New Team
+                  Create team
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  className="min-h-11 rounded-lg sm:min-h-9"
                   disabled={!permissions.canCreateProject || !teamKeyPresent}
                   onClick={() => setOpenProject(true)}
                 >
-                  New Project
+                  Create project
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
+                  className="min-h-11 rounded-lg sm:min-h-9"
                   disabled={!permissions.canCreateTask || !projectKeyPresent}
                   onClick={() => setOpenTask(true)}
                 >
-                  New Task
+                  Create task
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -81,7 +103,7 @@ export default function TopBar() {
 
           <NotificationCenter />
 
-          <UserMenu onLogout={logout} />
+          <UserMenu onLogout={logout} isLoggingOut={isLoggingOut} />
         </div>
       </div>
 

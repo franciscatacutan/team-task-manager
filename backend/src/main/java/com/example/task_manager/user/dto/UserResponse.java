@@ -1,16 +1,17 @@
 package com.example.task_manager.user.dto;
 
+import com.example.task_manager.user.entity.UserRole;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Instant;
 import java.util.UUID;
 
-import com.example.task_manager.user.entity.UserRole;
-
-/* 
-* Data Transfer Object for user responses.
+/*
+ * Data Transfer Object for user responses.
  */
 public record UserResponse(
     UUID id,
     String firstName,
     String lastName,
     String email,
-    UserRole role) {
-}
+    @JsonInclude(JsonInclude.Include.NON_NULL) UserRole role,
+    @JsonInclude(JsonInclude.Include.NON_NULL) Instant archivedAt) {}

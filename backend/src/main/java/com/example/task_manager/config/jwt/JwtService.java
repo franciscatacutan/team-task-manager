@@ -1,26 +1,23 @@
 package com.example.task_manager.config.jwt;
 
+import com.example.task_manager.config.security.CustomUserPrincipal;
+import com.example.task_manager.user.entity.UserEntity;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
-
+import javax.crypto.SecretKey;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import com.example.task_manager.config.security.CustomUserPrincipal;
-import com.example.task_manager.user.entity.UserEntity;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-
-/**
- * Service for handling JWT operations.
- */
+/** Service for handling JWT operations. */
 @Service
 public class JwtService implements InitializingBean {
 
@@ -33,20 +30,19 @@ public class JwtService implements InitializingBean {
   @Value("${auth.access-token-expiration-ms}")
   private long accessTokenExpirationMs;
 
-  /**
-   * Generates a JWT token for the given user.
-   */
-  public String generateToken(UserEntity user) {
+  /** Generates a JWT token for the given user. */
+  public String generateToken(UserEntity user, UUID sessionId) {
     Instant now = Instant.now();
 
     return Jwts.builder()
-        .setSubject(user.getEmail())
-        .setId(user.getId().toString())
-        .setIssuer(issuer)
+        .subject(user.getEmail())
+        .id(UUID.randomUUID().toString())
+        .issuer(issuer)
         .claim("role", user.getRole().name())
         .claim("userId", user.getId())
-        .setIssuedAt(Date.from(now))
-        .setExpiration(Date.from(now.plusMillis(accessTokenExpirationMs)))
+        .claim("sid", Objects.requireNonNull(sessionId).toString())
+        .issuedAt(Date.from(now))
+        .expiration(Date.from(now.plusMillis(accessTokenExpirationMs)))
         .signWith(getKey())
         .compact();
   }
@@ -55,60 +51,56 @@ public class JwtService implements InitializingBean {
     return accessTokenExpirationMs / 1000;
   }
 
-  /**
-   * Extracts the email from a JWT token.
-   */
-  public String extractEmail(String token) {
-    return getClaims(token).getSubject();
-  }
-
-  /**
-   * Validates a JWT token.
-   */
-  public boolean isTokenValid(String token, UserDetails userDetails) {
+  /** Validates the signature, issuer, expiry and mandatory identity/session claims once. */
+  public AccessTokenClaims parseAccessToken(String token) {
     Claims claims = getClaims(token);
-    if (isTokenExpired(claims)) {
-      return false;
+    if (claims.getExpiration() == null
+        || !claims.getExpiration().after(new Date())
+        || claims.getSubject() == null
+        || claims.getSubject().isBlank()) {
+      throw new MalformedJwtException("Access token requires an expiry and subject");
     }
-
-    if (!issuer.equals(claims.getIssuer())) {
-      return false;
+    try {
+      return new AccessTokenClaims(
+          claims.getSubject(),
+          UUID.fromString(claims.get("userId", String.class)),
+          UUID.fromString(claims.get("sid", String.class)));
+    } catch (IllegalArgumentException | NullPointerException ex) {
+      throw new MalformedJwtException(
+          "Access token requires valid user and session identities", ex);
     }
-
-    if (!claims.getSubject().equalsIgnoreCase(userDetails.getUsername())) {
-      return false;
-    }
-
-    if (userDetails instanceof CustomUserPrincipal principal) {
-      String tokenUserId = claims.get("userId", String.class);
-      return principal.getId().equals(UUID.fromString(tokenUserId));
-    }
-
-    return true;
   }
 
-  private boolean isTokenExpired(Claims claims) {
-    return claims.getExpiration().before(new Date());
+  public String extractEmail(String token) {
+    return parseAccessToken(token).email();
   }
 
-  /**
-   * Extracts claims from a JWT token.
-   */
+  /** Cryptographic/identity validation. The filter separately checks active session state. */
+  public boolean isTokenValid(String token, UserDetails userDetails) {
+    return parseAccessToken(token).matches(userDetails);
+  }
+
+  public record AccessTokenClaims(String email, UUID userId, UUID sessionId) {
+    public boolean matches(UserDetails details) {
+      return details instanceof CustomUserPrincipal principal
+          && userId.equals(principal.getId())
+          && email.equalsIgnoreCase(principal.getUsername());
+    }
+  }
+
+  /** Extracts claims from a JWT token. */
   private Claims getClaims(String token) {
-    return Jwts.parserBuilder()
-        .setSigningKey(getKey())
+    return Jwts.parser()
+        .verifyWith(getKey())
         .requireIssuer(issuer)
         .build()
-        .parseClaimsJws(token)
-        .getBody();
+        .parseSignedClaims(token)
+        .getPayload();
   }
 
-  /**
-   * Gets the signing key for JWT operations.
-   */
-  private Key getKey() {
-    return Keys.hmacShaKeyFor(
-        secret.getBytes(StandardCharsets.UTF_8));
+  /** Gets the signing key for JWT operations. */
+  private SecretKey getKey() {
+    return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override

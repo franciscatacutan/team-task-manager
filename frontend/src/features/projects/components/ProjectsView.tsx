@@ -1,4 +1,4 @@
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router";
 import { useState } from "react";
 import { useDebounce } from "../../../common/hooks/useDebounce";
 import { useProjects } from "../hooks/useProjects";
@@ -178,8 +178,10 @@ export default function ProjectsPage() {
     onClear: handleClearFilters,
   };
 
+  if (!teamKey) return <div role="alert">Invalid workspace</div>;
+
   return (
-    <div className="space-y-6 flex flex-1 flex-col min-h-0 h-full">
+    <div className="list-layout space-y-6 flex flex-1 flex-col min-h-0 h-full">
       <ProjectsHeader
         canCreateProject={permissions.canCreateProject}
         onCreateProject={() => setOpen(true)}
@@ -193,6 +195,7 @@ export default function ProjectsPage() {
 
       <Toolbar
         search={{
+          label: "Search projects",
           value: search,
           onChange: handleSearchChange,
         }}
@@ -231,7 +234,7 @@ export default function ProjectsPage() {
         <Tabs
           value={view}
           onValueChange={handleViewChange}
-          className="flex flex-col flex-1 min-h-0"
+          className="list-fill flex flex-col flex-1 min-h-0"
         >
           <TabsList className="inline-flex gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm">
             <TabsTrigger
@@ -251,12 +254,12 @@ export default function ProjectsPage() {
           </TabsList>
           <TabsContent
             value="board"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
             <ProjectsBoard
               projects={projects}
               isLoading={isLoading}
-              openProject={openProject}
+              teamKey={teamKey}
               onCreateProject={() => setOpen(true)}
               onClearFilters={handleClearFilters}
               canCreateProject={permissions.canCreateProject}
@@ -266,9 +269,10 @@ export default function ProjectsPage() {
 
           <TabsContent
             value="list"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
             <ProjectsList
+              teamKey={teamKey}
               projects={projects}
               isLoading={isLoading}
               openProject={openProject}

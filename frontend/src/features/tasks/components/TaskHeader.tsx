@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import EditableField from "../../../common/components/EditableField";
 import PriorityBadge from "../../../common/components/PriorityBadge";
 import { useUpdateTask } from "../hooks/useUpdateTask";
@@ -36,6 +37,9 @@ export default function TaskHeader({
               <span className={TaskStatusStyles[task.status]}>
                 {TaskStatusLabel[task.status]}
               </span>
+              <ArchiveBadge
+                archived={Boolean(task.deletedAt || task.readOnly)}
+              />
               <PriorityBadge
                 priority={task.priority ?? "LOW"}
                 className="rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.12em]"
@@ -59,7 +63,7 @@ export default function TaskHeader({
           maxLength={100}
           displayClassName="text-xl font-semibold leading-tight text-foreground sm:text-2xl"
           inputClassName="text-xl font-semibold sm:text-2xl"
-          onSave={(value) => updateTask.mutate({ name: value })}
+          onSave={(value) => updateTask.mutateAsync({ name: value })}
           disabled={!permissions.canEditTaskDetails}
         />
       </div>

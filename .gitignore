@@ -15,7 +15,13 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Isolated local deployment state (credentials, certificates, backups)
+deploy/local/state/
+
 # Build
 backend/target/
 frontend/node_modules/
 frontend/dist/
+
+# Native development credentials and provisioning state
+deploy/native/state/

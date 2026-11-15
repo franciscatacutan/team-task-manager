@@ -1,18 +1,15 @@
 package com.example.task_manager.auth;
 
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.WebUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-/**
- * Writes and clears the refresh token cookie.
- */
+/** Writes and clears the refresh token cookie. */
 @Service
 public class RefreshTokenCookieService implements InitializingBean {
 
@@ -33,25 +30,27 @@ public class RefreshTokenCookieService implements InitializingBean {
   }
 
   public void writeRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-    ResponseCookie cookie = ResponseCookie.from(cookieName, refreshToken)
-        .httpOnly(true)
-        .secure(secureCookie)
-        .sameSite(sameSite)
-        .path("/api/auth")
-        .maxAge(refreshTokenExpirationMs / 1000)
-        .build();
+    ResponseCookie cookie =
+        ResponseCookie.from(cookieName, refreshToken)
+            .httpOnly(true)
+            .secure(secureCookie)
+            .sameSite(sameSite)
+            .path("/api/auth")
+            .maxAge(refreshTokenExpirationMs / 1000)
+            .build();
 
     response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
   }
 
   public void clearRefreshTokenCookie(HttpServletResponse response) {
-    ResponseCookie cookie = ResponseCookie.from(cookieName, "")
-        .httpOnly(true)
-        .secure(secureCookie)
-        .sameSite(sameSite)
-        .path("/api/auth")
-        .maxAge(0)
-        .build();
+    ResponseCookie cookie =
+        ResponseCookie.from(cookieName, "")
+            .httpOnly(true)
+            .secure(secureCookie)
+            .sameSite(sameSite)
+            .path("/api/auth")
+            .maxAge(0)
+            .build();
 
     response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
   }

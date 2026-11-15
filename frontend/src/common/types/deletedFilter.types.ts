@@ -9,7 +9,7 @@ export const DELETED_FILTER: FilterGroup[] = [
     type: "single",
     options: [
       { label: "Active", value: "ACTIVE", isDefault: true },
-      { label: "Deleted", value: "DELETED" },
+      { label: "Archived", value: "DELETED" },
       { label: "All", value: "ALL" },
     ],
   },

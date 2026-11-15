@@ -1,13 +1,23 @@
 package com.example.task_manager.task;
 
+import com.example.task_manager.common.DeletedFilter;
+import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.task.dto.ChangeStatusRequest;
+import com.example.task_manager.task.dto.CreateTaskCommentRequest;
+import com.example.task_manager.task.dto.CreateTaskRequest;
+import com.example.task_manager.task.dto.TaskActivityResponse;
+import com.example.task_manager.task.dto.TaskResponse;
+import com.example.task_manager.task.dto.TaskSearchRequest;
+import com.example.task_manager.task.dto.UpdateTaskDetailsRequest;
+import jakarta.validation.Valid;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,23 +25,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.task.dto.ChangeStatusRequest;
-import com.example.task_manager.task.dto.CreateTaskRequest;
-import com.example.task_manager.task.dto.CreateTaskCommentRequest;
-import com.example.task_manager.task.dto.TaskResponse;
-import com.example.task_manager.task.dto.TaskSearchRequest;
-import com.example.task_manager.task.dto.TaskActivityResponse;
-import com.example.task_manager.task.dto.UpdateTaskDetailsRequest;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-/**
- * REST controller for managing tasks within projects.
- */
+/** REST controller for managing tasks within projects. */
 @RestController
 @RequestMapping("/api/teams/{teamKey}/projects/{projectKey}/tasks")
 @RequiredArgsConstructor
@@ -58,8 +55,8 @@ public class TaskController {
       @Valid @RequestBody UpdateTaskDetailsRequest request,
       Authentication authentication) {
 
-    return ResponseEntity
-        .ok(taskService.updateTask(teamKey, projectKey, taskNumber, request, authentication.getName()));
+    return ResponseEntity.ok(
+        taskService.updateTask(teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
 
   @DeleteMapping("/{taskNumber}")
@@ -79,10 +76,27 @@ public class TaskController {
       @PathVariable String teamKey,
       @PathVariable String projectKey,
       TaskSearchRequest request,
-      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTasks(teamKey, projectKey, request, pageable, authentication));
+    return ResponseEntity.ok(
+        taskService.getTasks(teamKey, projectKey, request, pageable, authentication));
+  }
+
+  @GetMapping("/assignees")
+  public ResponseEntity<PageResponse<TaskResponse.TaskUserSummary>> getAssignees(
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @RequestParam(defaultValue = "ACTIVE") DeletedFilter deletedFilter,
+      @RequestParam(defaultValue = "") String search,
+      @RequestParam(required = false) UUID assigneeId,
+      Pageable pageable,
+      Authentication authentication) {
+
+    return ResponseEntity.ok(
+        taskService.getAssignees(
+            teamKey, projectKey, deletedFilter, search, assigneeId, pageable, authentication));
   }
 
   @GetMapping("/{taskNumber}")
@@ -92,29 +106,21 @@ public class TaskController {
       @PathVariable Long taskNumber,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTaskById(teamKey, projectKey, taskNumber, authentication));
+    return ResponseEntity.ok(
+        taskService.getTaskById(teamKey, projectKey, taskNumber, authentication));
   }
 
-  @GetMapping("/my-task")
+  // Both existing aliases inherit the team/project scope of this controller.
+  @GetMapping({"/my-task", "/project-task"})
   public ResponseEntity<PageResponse<TaskResponse>> getMyTasks(
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-      Authentication authentication) {
-
-    PageResponse<TaskResponse> response = taskService.getMyTasks(authentication.getName(), pageable);
-
-    return ResponseEntity.ok(response);
-  }
-
-  @GetMapping("/project-task")
-  public ResponseEntity<PageResponse<TaskResponse>> getMyTasksByProject(
+      @PathVariable String teamKey,
       @PathVariable String projectKey,
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    PageResponse<TaskResponse> response = taskService.getMyTasksByProject(projectKey, authentication.getName(),
-        pageable);
-
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(
+        taskService.getMyTasks(teamKey, projectKey, authentication.getName(), pageable));
   }
 
   @GetMapping("/{taskNumber}/activities")
@@ -122,10 +128,14 @@ public class TaskController {
       @PathVariable String teamKey,
       @PathVariable String projectKey,
       @PathVariable Long taskNumber,
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @RequestParam(required = false) String search,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(taskService.getTaskActivities(teamKey, projectKey, taskNumber, pageable, authentication));
+    return ResponseEntity.ok(
+        taskService.getTaskActivities(
+            teamKey, projectKey, taskNumber, search, pageable, authentication));
   }
 
   @PatchMapping("/{taskNumber}/status")
@@ -136,8 +146,9 @@ public class TaskController {
       @Valid @RequestBody ChangeStatusRequest request,
       Authentication authentication) {
 
-    return ResponseEntity
-        .ok(taskService.changeStatus(teamKey, projectKey, taskNumber, request, authentication.getName()));
+    return ResponseEntity.ok(
+        taskService.changeStatus(
+            teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
 
   @PatchMapping("/{taskNumber}/assignee/{userId}")
@@ -148,8 +159,9 @@ public class TaskController {
       @PathVariable UUID userId,
       Authentication authentication) {
 
-    return ResponseEntity
-        .ok(taskService.changeAssignee(teamKey, projectKey, taskNumber, userId, authentication.getName()));
+    return ResponseEntity.ok(
+        taskService.changeAssignee(
+            teamKey, projectKey, taskNumber, userId, authentication.getName()));
   }
 
   @PatchMapping("/{taskNumber}/support/{userId}")
@@ -160,8 +172,20 @@ public class TaskController {
       @PathVariable UUID userId,
       Authentication authentication) {
 
-    return ResponseEntity
-        .ok(taskService.changeSupport(teamKey, projectKey, taskNumber, userId, authentication.getName()));
+    return ResponseEntity.ok(
+        taskService.changeSupport(
+            teamKey, projectKey, taskNumber, userId, authentication.getName()));
+  }
+
+  /** Removes the optional support relationship without overloading UUID path values. */
+  @DeleteMapping("/{taskNumber}/support")
+  public ResponseEntity<TaskResponse> removeSupport(
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @PathVariable Long taskNumber,
+      Authentication authentication) {
+    return ResponseEntity.ok(
+        taskService.changeSupport(teamKey, projectKey, taskNumber, null, authentication.getName()));
   }
 
   @PostMapping("/{taskNumber}/activities")
@@ -172,8 +196,8 @@ public class TaskController {
       @Valid @RequestBody CreateTaskCommentRequest request,
       Authentication authentication) {
 
-    return ResponseEntity
-        .ok(taskService.addTaskComment(teamKey, projectKey, taskNumber, request, authentication.getName()));
+    return ResponseEntity.ok(
+        taskService.addTaskComment(
+            teamKey, projectKey, taskNumber, request, authentication.getName()));
   }
-
 }

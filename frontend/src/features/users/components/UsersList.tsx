@@ -1,4 +1,9 @@
+import UserProfileLink from "./UserProfileLink";
+import { canLinkProfile } from "../utils/profileNavigation";
+import { canEditUser } from "../utils/userPermissions";
 import {
+  Archive,
+  ArchiveRestore,
   ArrowUpDown,
   KeyRound,
   MoreHorizontal,
@@ -29,7 +34,7 @@ import { USER_ROLE_LABEL, USER_ROLE_STYLES } from "../constants/user.constants";
 
 interface Props {
   users: User[];
-  currentUser: User;
+  currentUser?: User;
   isLoading: boolean;
 
   editUser: (user: User) => void;
@@ -37,6 +42,7 @@ interface Props {
 
   onEditUser: () => void;
   onResetPassword: () => void;
+  onAccountLifecycle?: (user: User) => void;
 
   sortField: SortField;
   sortOrder: "asc" | "desc";
@@ -64,6 +70,7 @@ export default function UsersList({
   resetPassword,
   onEditUser,
   onResetPassword,
+  onAccountLifecycle,
 
   sortField,
   sortOrder,
@@ -72,9 +79,9 @@ export default function UsersList({
   return (
     <>
       {isLoading ? (
-        <div className="flex flex-col">
-          <div className="flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col">
+          <div className="list-frame flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Users table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
@@ -103,13 +110,14 @@ export default function UsersList({
           </div>
         </div>
       ) : users.length > 0 ? (
-        <div className="flex flex-col h-full min-h-0">
-          <div className="flex flex-1 overflow-auto rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col h-full min-h-0">
+          <div className="list-frame flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Users table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -126,32 +134,38 @@ export default function UsersList({
               <TableBody>
                 {users.map((user) => {
                   const canManageUser =
-                    currentUser.role === "SUPER_ADMIN"
-                      ? user.id !== currentUser.id
-                      : currentUser.role === "ADMIN"
-                        ? user.role === "USER"
-                        : false;
+                    currentUser &&
+                    user.id !== currentUser.id &&
+                    canEditUser(currentUser, user);
 
                   return (
                     <TableRow
                       key={user.id}
-                      className="group cursor-pointer transition-colors hover:bg-muted/40"
+                      className="group transition-colors hover:bg-muted/40"
                     >
                       <TableCell className="px-4 py-3">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
-                          {user.firstName}
+                        <div className="truncate">
+                          <UserProfileLink
+                            user={user}
+                            enabled={canLinkProfile(currentUser, user.id)}
+                          >
+                            {user.firstName}
+                          </UserProfileLink>
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
+                        <div className="font-medium truncate">
                           {user.lastName}
                         </div>
                       </TableCell>
 
                       <TableCell className="px-4 py-3">
-                        <div className="truncate group-hover:text-primary transition-colors">
-                          {user.email}
-                        </div>
+                        <div className="truncate">{user.email}</div>
+                        {user.archivedAt && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Archived
+                          </span>
+                        )}
                       </TableCell>
 
                       <TableCell className="px-4 py-3">
@@ -167,6 +181,7 @@ export default function UsersList({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
+                                aria-label={`Actions for ${user.firstName} ${user.lastName}`}
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 rounded-full p-0"
@@ -175,30 +190,56 @@ export default function UsersList({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-fit">
-                              <DropdownMenuItem
-                                key={user.id}
-                                onClick={() => {
-                                  editUser(user);
-                                  onEditUser();
-                                }}
-                                className="text-muted-foreground"
-                              >
-                                <PencilLine className="h-3.5 w-3.5" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+                              {!user.archivedAt && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      editUser(user);
+                                      onEditUser();
+                                    }}
+                                    className="text-muted-foreground"
+                                  >
+                                    <PencilLine className="h-3.5 w-3.5" />
+                                    Edit User
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
 
-                              <DropdownMenuItem
-                                key={user.id}
-                                onClick={() => {
-                                  resetPassword(user);
-                                  onResetPassword();
-                                }}
-                                className="text-muted-foreground"
-                              >
-                                <KeyRound className="h-3.5 w-3.5" />
-                                Reset password
-                              </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      resetPassword(user);
+                                      onResetPassword();
+                                    }}
+                                    className="text-muted-foreground"
+                                  >
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                    Reset password
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {onAccountLifecycle && (
+                                <>
+                                  {!user.archivedAt && (
+                                    <DropdownMenuSeparator />
+                                  )}
+                                  <DropdownMenuItem
+                                    variant={
+                                      user.archivedAt
+                                        ? "default"
+                                        : "destructive"
+                                    }
+                                    onSelect={() => onAccountLifecycle(user)}
+                                  >
+                                    {user.archivedAt ? (
+                                      <ArchiveRestore />
+                                    ) : (
+                                      <Archive />
+                                    )}
+                                    {user.archivedAt
+                                      ? "Restore user"
+                                      : "Archive user"}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}

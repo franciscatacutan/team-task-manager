@@ -1,12 +1,9 @@
 package com.example.task_manager.exception.api;
 
+import com.example.task_manager.exception.ErrorResponse.ErrorCode;
 import org.springframework.http.HttpStatus;
 
-import com.example.task_manager.exception.ErrorResponse.ErrorCode;
-
-/**
- * Thrown when a request conflicts with other resources
- */
+/** Thrown when a request conflicts with other resources */
 public class ConflictException extends ApiException {
 
   private static final String DEFAULT_MESSAGE = "Request conflicts with current resource state";
@@ -16,10 +13,9 @@ public class ConflictException extends ApiException {
   }
 
   public ConflictException(String message) {
-    super(HttpStatus.CONFLICT,
+    super(
+        HttpStatus.CONFLICT,
         ErrorCode.CONFLICT,
-        message == null || message.isBlank()
-            ? DEFAULT_MESSAGE
-            : message);
+        message == null || message.isBlank() ? DEFAULT_MESSAGE : message);
   }
 }

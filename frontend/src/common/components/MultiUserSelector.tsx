@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentPropsWithoutRef } from "react";
 import { Check, ChevronsUpDown, Users, X } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
@@ -17,12 +17,17 @@ import {
   PopoverTrigger,
 } from "../../components/ui/popover";
 import { cn } from "../../lib/utils";
-import type { TeamMember } from "../../features/teams/types/team.type";
-import type { User } from "../../features/users/types/userType";
+import type { UserIdentity } from "../../features/users/types/userType";
 
-interface Props {
-  users: User[] | TeamMember[];
+interface Props extends Pick<
+  ComponentPropsWithoutRef<"div">,
+  "id" | "aria-labelledby" | "aria-describedby" | "aria-invalid"
+> {
+  "aria-label"?: string;
+  users: UserIdentity[];
   value?: string[];
+  selectedUsers?: UserIdentity[];
+  disabled?: boolean;
   search: string;
   onSearchChange: (value: string) => void;
   placeholder?: string;
@@ -35,6 +40,8 @@ interface Props {
 export default function MultiUserSelector({
   users,
   value = [],
+  selectedUsers: selectedUserRecords,
+  disabled = false,
   search,
   onSearchChange,
   placeholder = "Select users",
@@ -42,14 +49,19 @@ export default function MultiUserSelector({
   popoverClassName,
   maxVisibleBadges = 3,
   onChange,
+  "aria-label": ariaLabel = placeholder,
+  ...controlProps
 }: Props) {
   const [open, setOpen] = useState(false);
 
   const selectedIds = useMemo(() => new Set(value), [value]);
-  const selectedUsers = users.filter((user) => selectedIds.has(user.id));
+  const selectedUsers = (selectedUserRecords ?? users).filter((user) =>
+    selectedIds.has(user.id),
+  );
   const hiddenCount = Math.max(selectedUsers.length - maxVisibleBadges, 0);
 
   function toggleUser(userId: string) {
+    if (disabled) return;
     if (selectedIds.has(userId)) {
       onChange(value.filter((id) => id !== userId));
       return;
@@ -67,12 +79,31 @@ export default function MultiUserSelector({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (!disabled) setOpen(next);
+      }}
+      modal={true}
+    >
       <PopoverTrigger asChild>
         <div
+          {...controlProps}
           role="combobox"
+          aria-label={ariaLabel}
+          onKeyDown={(event) => {
+            if (
+              !disabled &&
+              event.target === event.currentTarget &&
+              (event.key === "Enter" || event.key === " ")
+            ) {
+              event.preventDefault();
+              setOpen((value) => !value);
+            }
+          }}
           aria-expanded={open}
-          tabIndex={0}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
           className={cn(
             "h-auto min-h-11 w-full cursor-pointer justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-left font-normal shadow-none hover:bg-muted/20 flex items-center",
             value.length === 0 && "text-muted-foreground",
@@ -93,7 +124,7 @@ export default function MultiUserSelector({
                     className="max-w-full gap-1.5 rounded-full border border-border/60 bg-muted/60 px-1.5 py-1 text-xs font-medium text-foreground"
                   >
                     <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[9px]">
+                      <AvatarFallback className="text-[9px] text-foreground/75">
                         {user.lastName?.[0]}
                         {user.firstName?.[0]}
                       </AvatarFallback>
@@ -105,6 +136,7 @@ export default function MultiUserSelector({
 
                     <button
                       type="button"
+                      disabled={disabled}
                       aria-label={`Remove ${user.firstName} ${user.lastName}`}
                       className="rounded-full p-0.5 text-muted-foreground transition hover:bg-background hover:text-foreground"
                       onClick={(event) => {
@@ -139,20 +171,21 @@ export default function MultiUserSelector({
       <PopoverContent
         align="start"
         className={cn(
-          "max-h-[min(70vh,32rem)] w-[min(30rem,calc(100vw-2rem))] min-w-[20rem] overflow-hidden rounded-2xl border-border/70 p-0 shadow-xl",
+          "flex max-h-[min(70dvh,32rem,var(--radix-popover-content-available-height))] w-[min(30rem,calc(100vw-2rem))] min-w-0 flex-col overflow-hidden rounded-2xl border-border/70 p-0 shadow-xl",
           popoverClassName,
         )}
       >
-        <Command className="min-h-0">
-          <div className="border-b border-border/60 px-1 pb-1 pt-1">
+        <Command label="Search users" className="min-h-0">
+          <div className="shrink-0 border-b border-border/60 px-1 pb-1 pt-1">
             <CommandInput
+              disabled={disabled}
               value={search}
               onValueChange={onSearchChange}
               placeholder="Search users..."
             />
           </div>
 
-          <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-3 py-2">
             <div className="text-xs font-medium text-muted-foreground">
               {selectedUsers.length > 0
                 ? `${selectedUsers.length} selected`
@@ -163,6 +196,7 @@ export default function MultiUserSelector({
               <button
                 type="button"
                 className="text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                disabled={disabled}
                 onClick={clearAll}
               >
                 Clear all
@@ -170,7 +204,7 @@ export default function MultiUserSelector({
             )}
           </div>
 
-          <CommandList className="max-h-[min(52vh,24rem)] overscroll-contain">
+          <CommandList className="min-h-0 max-h-none flex-1 overscroll-contain">
             <CommandEmpty>No user found.</CommandEmpty>
 
             <CommandGroup className="p-2">
@@ -180,6 +214,7 @@ export default function MultiUserSelector({
 
                 return (
                   <CommandItem
+                    disabled={disabled}
                     key={user.id}
                     value={`${label} ${user.email}`}
                     className={cn(
@@ -189,7 +224,7 @@ export default function MultiUserSelector({
                     onSelect={() => toggleUser(user.id)}
                   >
                     <Avatar className="mt-0.5 h-9 w-9 shrink-0 ring-1 ring-border/50">
-                      <AvatarFallback className="text-[10px]">
+                      <AvatarFallback className="text-[10px] text-foreground/75">
                         {user.lastName?.[0]}
                         {user.firstName?.[0]}
                       </AvatarFallback>

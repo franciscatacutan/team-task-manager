@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 
 import AuthPage from "../pages/AuthPage";
 import ErrorPage from "../pages/ErrorPage";
@@ -10,7 +10,8 @@ import TeamSelectionPage from "../pages/TeamSelectionPage";
 import ProfilePage from "../pages/ProfilePage";
 import SettingsPage from "../pages/SettingsPage";
 import UsersPage from "../pages/UsersPage";
-import TaskDetails from "../features/tasks/components/TaskDetails";
+import TaskDetailsPage from "@/pages/TaskDetailsPage";
+import MyWorkPage from "@/pages/MyWorkPage";
 import ProjectDetails from "../features/projects/components/ProjectDetails";
 import ProjectsView from "../features/projects/components/ProjectsView";
 import WorkspaceLayout from "../layout/workspace/WorkspaceLayout";
@@ -19,6 +20,8 @@ import TeamMembersPage from "../features/teams/components/MembersView";
 import AppLayout from "../layout/AppLayout";
 import TeamActivity from "../features/teams/components/TeamActivity";
 import TeamInsightsPage from "../features/teams/components/TeamInsightsPage";
+import TeamOverdueTasksPage from "@/features/teams/components/TeamOverdueTasksPage";
+import TeamInsightsAccess from "@/features/teams/components/TeamInsightsAccess";
 import { useThemePreference } from "../features/settings/hooks/useThemePreference";
 
 export default function AppRoutes() {
@@ -50,6 +53,7 @@ export default function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route path="/my-work" element={<MyWorkPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/users" element={<UsersPage />} />
@@ -67,12 +71,18 @@ export default function AppRoutes() {
             <Route path="projects" element={<ProjectsView />} />
             <Route path="members" element={<TeamMembersPage />} />
             <Route path="activity" element={<TeamActivity />} />
-            <Route path="insights" element={<TeamInsightsPage />} />
+            <Route element={<TeamInsightsAccess />}>
+              <Route path="insights" element={<TeamInsightsPage />} />
+              <Route
+                path="insights/overdue"
+                element={<TeamOverdueTasksPage />}
+              />
+            </Route>
             <Route path="projects/:projectKey" element={<ProjectDetails />} />
 
             <Route
               path="projects/:projectKey/tasks/:taskNumber"
-              element={<TaskDetails />}
+              element={<TaskDetailsPage />}
             />
           </Route>
         </Route>

@@ -1,4 +1,7 @@
-import { ArrowUpDown, Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
+import { Link } from "react-router";
+import ArchiveBadge from "@/common/components/ArchiveBadge";
+import { ArrowUpDown } from "lucide-react";
 import type { SortField } from "@/common/types/sort.types";
 
 import {
@@ -20,6 +23,7 @@ import {
 } from "../utils/project.constants";
 
 interface Props {
+  teamKey: string;
   projects: Project[];
   isLoading: boolean;
   openProject: (projectKey: string) => void;
@@ -42,6 +46,7 @@ const SORT_COLUMNS = [
 ];
 
 export default function ProjectsList({
+  teamKey,
   projects,
   isLoading,
   openProject,
@@ -56,9 +61,9 @@ export default function ProjectsList({
   return (
     <>
       {isLoading ? (
-        <div className="flex flex-col">
-          <div className="flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col">
+          <div className="list-frame flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Projects table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
@@ -87,13 +92,14 @@ export default function ProjectsList({
           </div>
         </div>
       ) : projects.length > 0 ? (
-        <div className="flex flex-col h-full min-h-0">
-          <div className="flex flex-1 overflow-auto rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col h-full min-h-0">
+          <div className="list-frame flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Projects table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -113,7 +119,18 @@ export default function ProjectsList({
                   >
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
-                        {project.name}
+                        <Link
+                          to={`/teams/${teamKey}/projects/${project.key}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {project.name}
+                        </Link>
+                        <ArchiveBadge
+                          archived={Boolean(
+                            project.deletedAt || project.readOnly,
+                          )}
+                        />
                       </div>
                       <div className="mt-1 max-w-96 truncate text-xs text-muted-foreground">
                         {project.description?.trim() || "No description"}
@@ -170,10 +187,11 @@ export default function ProjectsList({
               Clear filters
             </Button>
           ) : canCreateProject ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateProject}>
-              <Plus className="h-4 w-4" />
-              Create project
-            </Button>
+            <CreateButton
+              entity="project"
+              className="mt-6"
+              onClick={onCreateProject}
+            />
           ) : null}
         </div>
       )}

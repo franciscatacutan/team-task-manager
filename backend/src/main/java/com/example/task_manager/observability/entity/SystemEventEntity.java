@@ -1,16 +1,7 @@
 package com.example.task_manager.observability.entity;
 
-import java.time.Instant;
-import java.util.UUID;
-
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.user.entity.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -24,20 +15,26 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Operational event stream for monitoring important system/domain moments.
- */
+/** Operational event stream for monitoring important system/domain moments. */
 @Getter
 @Setter
 @Entity
-@Table(name = "system_events", indexes = {
-    @Index(name = "idx_system_event_team_occurred_at", columnList = "team_id, occurred_at"),
-    @Index(name = "idx_system_event_name_occurred_at", columnList = "event_name, occurred_at"),
-    @Index(name = "idx_system_event_severity_occurred_at", columnList = "severity, occurred_at")
-})
+@Table(
+    name = "system_events",
+    indexes = {
+      @Index(name = "idx_system_event_team_occurred_at", columnList = "team_id, occurred_at"),
+      @Index(name = "idx_system_event_name_occurred_at", columnList = "event_name, occurred_at"),
+      @Index(name = "idx_system_event_severity_occurred_at", columnList = "severity, occurred_at")
+    })
 @EntityListeners(AuditingEntityListener.class)
 public class SystemEventEntity {
   @Id

@@ -1,31 +1,30 @@
 package com.example.task_manager.project.entity;
 
+import com.example.task_manager.team.entity.TeamEntity;
+import com.example.task_manager.user.entity.UserEntity;
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.example.task_manager.team.entity.TeamEntity;
-import com.example.task_manager.user.entity.UserEntity;
-
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
-/**
- * Entity representing a project.
- */
+/** Entity representing a project. */
 @Getter
 @Setter
 @Entity
 @EntityListeners(AuditingEntityListener.class) // Enable auditing for createdAt and updatedAt fields
-@Table(name = "projects", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_project_key", columnNames = "project_key") }, indexes = {
-        @Index(name = "idx_project_team_deleted", columnList = "team_id, deleted_at"),
-        @Index(name = "idx_project_team_name", columnList = "team_id, name"),
-        @Index(name = "idx_project_team_status_due", columnList = "team_id, status, planned_due_date, deleted_at")
+@Table(
+    name = "projects",
+    uniqueConstraints = {@UniqueConstraint(name = "uk_project_key", columnNames = "project_key")},
+    indexes = {
+      @Index(name = "idx_project_team_deleted", columnList = "team_id, deleted_at"),
+      @Index(name = "idx_project_team_name", columnList = "team_id, name"),
+      @Index(
+          name = "idx_project_team_status_due",
+          columnList = "team_id, status, planned_due_date, deleted_at")
     })
 public class ProjectEntity {
   @Id
@@ -91,6 +90,5 @@ public class ProjectEntity {
 
   private Instant deletedAt;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 }

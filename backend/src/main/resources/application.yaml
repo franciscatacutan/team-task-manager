@@ -10,7 +10,20 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
+
+  sql:
+    init:
+      mode: never
+
   jpa:
+    hibernate:
+      ddl-auto: validate
     open-in-view: false
     show-sql: false
 
@@ -36,8 +49,14 @@ auth:
   access-token-expiration-ms: 900000
   refresh-token-expiration-ms: 2592000000
   refresh-cookie-name: refresh_token
+  rate-limit:
+    window: 5m
+    login-per-client: 60
+    login-per-email-and-client: 8
+    registration-per-client: 20
 
 app:
+  planning-time-zone: ${APP_PLANNING_TIME_ZONE:Asia/Manila}
   bootstrap-admin:
     email: ${BOOTSTRAP_ADMIN_EMAIL}
     password: ${BOOTSTRAP_ADMIN_PASSWORD}

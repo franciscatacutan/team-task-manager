@@ -1,36 +1,78 @@
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
-import type { User } from "../../users/types/userType";
+import type { UserIdentity } from "../../users/types/userType";
 import type {
   AddMembersInput,
+  AddMembersResult,
+  RemoveMembersResult,
   RemoveMembersInput,
   TeamMember,
   TeamRole,
 } from "../types/team.type";
 
+export async function createTeamInvitation(teamKey: string, email: string) {
+  const { data } = await apiClient.post<{ token: string; expiresAt: string }>(
+    `/teams/${teamKey}/invitations`,
+    { email },
+  );
+  return data;
+}
+
+export interface PendingTeamInvitation {
+  id: string;
+  email: string;
+  expiresAt: string;
+}
+
+export async function getPendingTeamInvitations(
+  teamKey: string,
+  page: number,
+  signal: AbortSignal,
+) {
+  const { data } = await apiClient.get<PageResponse<PendingTeamInvitation>>(
+    `/teams/${teamKey}/invitations`,
+    { params: { page }, signal },
+  );
+  return data;
+}
+
+export async function revokeTeamInvitation(
+  teamKey: string,
+  invitationId: string,
+) {
+  await apiClient.delete(`/teams/${teamKey}/invitations/${invitationId}`);
+}
+
 export const getTeamMembers = async (
   teamKey: string,
-  params: BaseQueryParams & {
+  params: Omit<BaseQueryParams, "sort"> & {
+    sort?: string | string[];
     roles?: TeamRole[];
+    activeOnly?: boolean;
   },
+  signal?: AbortSignal,
 ): Promise<PageResponse<TeamMember>> => {
-  const response = await apiClient.get(`/teams/${teamKey}/members`, {
-    params: {
-      ...params,
-      role: params.roles?.length ? params.roles : undefined,
+  const response = await apiClient.get<PageResponse<TeamMember>>(
+    `/teams/${teamKey}/members`,
+    {
+      signal,
+      params: {
+        ...params,
+        role: params.roles?.length ? params.roles : undefined,
+      },
+      paramsSerializer: {
+        indexes: null,
+      },
     },
-    paramsSerializer: {
-      indexes: null,
-    },
-  });
+  );
   return response.data;
 };
 
 export const getAvailableUsers = async (
   teamKey: string,
   params: Pick<BaseQueryParams, "search" | "size">,
-): Promise<PageResponse<User>> => {
+): Promise<PageResponse<UserIdentity>> => {
   const response = await apiClient.get(`/teams/${teamKey}/available-users`, {
     params,
   });
@@ -40,8 +82,11 @@ export const getAvailableUsers = async (
 export const addMembers = async (
   teamKey: string,
   data: AddMembersInput,
-): Promise<TeamMember> => {
-  const res = await apiClient.post(`/teams/${teamKey}/members`, data);
+): Promise<AddMembersResult> => {
+  const res = await apiClient.post<AddMembersResult>(
+    `/teams/${teamKey}/members`,
+    data,
+  );
 
   return res.data;
 };
@@ -49,8 +94,12 @@ export const addMembers = async (
 export const removeMembers = async (
   teamKey: string,
   data: RemoveMembersInput,
-): Promise<void> => {
-  await apiClient.delete(`/teams/${teamKey}/members`, { data });
+): Promise<RemoveMembersResult> => {
+  const response = await apiClient.delete<RemoveMembersResult>(
+    `/teams/${teamKey}/members`,
+    { data },
+  );
+  return response.data;
 };
 
 export const updateMemberRole = async (
@@ -58,9 +107,12 @@ export const updateMemberRole = async (
   userId: string,
   role: "ADMIN" | "MEMBER",
 ): Promise<TeamMember> => {
-  const res = await apiClient.patch(`/teams/${teamKey}/members/${userId}/role`, {
-    role,
-  });
+  const res = await apiClient.patch(
+    `/teams/${teamKey}/members/${userId}/role`,
+    {
+      role,
+    },
+  );
 
   return res.data;
 };

@@ -13,11 +13,8 @@ import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
 
-import type { ProjectActivity } from "../../../features/projects/types/project.types";
-import type { TeamActivity } from "../../../features/teams/types/team.type";
-import type { TaskActivity } from "../../../features/tasks/types/task.types";
-
-export type ActivityRecord = ProjectActivity | TeamActivity | TaskActivity;
+import type { ActivityRecord } from "@/common/types/activity.types";
+export type { ActivityRecord } from "@/common/types/activity.types";
 
 export function ActivityItem({
   item,
@@ -49,7 +46,10 @@ export function ActivityItem({
   const taskNumber = item.task?.taskNumber;
   const projectName = hasProject ? (item.project?.name ?? null) : null;
   const isInteractive =
-    interactive && Boolean(onOpenTask) && Boolean(taskNumber);
+    interactive &&
+    Boolean(onOpenTask) &&
+    Boolean(taskNumber) &&
+    Boolean(item.targetPath);
 
   return (
     <article
@@ -59,6 +59,7 @@ export function ActivityItem({
         }
       }}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (
           (e.key === "Enter" || e.key === " ") &&
           isInteractive &&
