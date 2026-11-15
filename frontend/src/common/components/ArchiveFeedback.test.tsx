@@ -82,6 +82,34 @@ describe("archive confirmation feedback", () => {
       client.clear();
     },
   );
+  it("explains project recovery before archiving and lets the user cancel", async () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <DeleteProjectButton
+            teamKey="TEAM"
+            projectKey="PROJECT"
+            projectName="Website launch"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Archive project" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Archive project" });
+    expect(dialog).toHaveTextContent(
+      /Website launch.*tasks will become read-only/,
+    );
+    expect(dialog).toHaveTextContent(
+      /database operator and a backup from before archiving/,
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(deleteProject).not.toHaveBeenCalled();
+    client.clear();
+  });
+
   it("keeps pending confirmation open while waiting for the server", async () => {
     let finish!: () => void;
     vi.mocked(deleteTeam).mockReturnValue(

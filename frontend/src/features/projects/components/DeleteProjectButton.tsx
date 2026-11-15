@@ -70,17 +70,16 @@ export function DeleteProjectButton({
           <AlertDialogTitle>Archive project</AlertDialogTitle>
 
           <AlertDialogDescription className="space-y-2">
-            <span>
-              The project and its active tasks will become read-only. Workflow
-              status and history will be preserved.
-            </span>
-
             <span className="block">
-              You are about to archive
               <span className="font-medium text-foreground">
-                "{projectName}"
-              </span>
-              .
+                “{projectName}”
+              </span>{" "}
+              and its tasks will become read-only. Team owners, team admins, and
+              global admins can still view their history.
+            </span>
+            <span className="block">
+              Recovery requires a database operator and a backup from before
+              archiving.
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>

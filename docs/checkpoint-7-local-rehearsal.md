@@ -112,6 +112,8 @@ pwsh -File ./deploy/local/local.ps1 -Action Stop -Name desktop-test
 
 Replace the archive placeholder with the filename returned by `Backup`. A failed restore can leave its newly created target database for inspection; it never automatically drops it or overwrites it on retry. Use a new target name after reviewing the failure.
 
+For an accidental project archive, follow the [project archive recovery runbook](project-archive-recovery.md).
+
 Keep dumps private: real backups would contain account hashes, session records and project data. These local copies are **not** encrypted/off-host disaster-recovery backups; no schedule, retention deletion or production recovery target was silently selected. Provider, backup destination/cadence/retention and acceptable data loss/recovery time remain checkpoint-7 hosting decisions.
 
 Docker logs are bounded to three 10 MB files per service. `Check`/`Status` are manual diagnostics, not an external alerting service. For deeper diagnosis, use Docker Desktop or explicit Compose paths for the named project; avoid printing `docker compose config` without `--quiet`, because resolved configuration contains credentials.
