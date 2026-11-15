@@ -76,7 +76,7 @@ class DatabaseMigrationIntegrationTest {
       assertThat(managed.getConfiguration().isCleanDisabled()).isTrue();
       assertThat(managed.getConfiguration().isValidateOnMigrate()).isTrue();
       assertThat(managed.getConfiguration().isValidateMigrationNaming()).isTrue();
-      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("5");
+      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("6");
       assertThat(managed.migrate().migrationsExecuted).isZero();
       assertThat(database.jdbc().queryForObject("select count(*) from users", Integer.class))
           .isZero();
@@ -161,10 +161,41 @@ class DatabaseMigrationIntegrationTest {
             database.jdbc().queryForObject("select count(*) from team_invitations", Integer.class))
         .isZero();
     invitations.validate();
+
+    copyAsActiveProject(database, "MIGRATION-REUSED-NAME", "  archived PROJECT  ");
+    var beforeProjectNames = snapshot(database);
+    Flyway projectNames = flyway(database, "6");
+    assertThat(projectNames.migrate().migrationsExecuted).isEqualTo(1);
+    assertThat(snapshot(database)).isEqualTo(beforeProjectNames);
+    assertThat(projectNames.migrate().migrationsExecuted).isZero();
+    projectNames.validate();
   }
 
   @Test
-  void databaseEnforcesAllSixUniquenessRulesAndRequiredReferencesValuesAndEnums() {
+  void legacyDuplicateNamesBlockTheUpgradeAndPreserveAllRows() {
+    Database database = newDatabase();
+    flyway(database, "5").migrate();
+    seed(database);
+    database.jdbc().update("update teams set deleted_at = null");
+    copyAsActiveProject(database, "DUPLICATE-ONE", "Project to review");
+    copyAsActiveProject(database, "DUPLICATE-TWO", "  PROJECT to review  ");
+    var original = snapshot(database);
+    Flyway migration = flyway(database, null);
+
+    assertThatThrownBy(migration::migrate)
+        .isInstanceOf(FlywayException.class)
+        .hasMessageContaining("uk_project_active_team_name");
+    assertThat(snapshot(database)).isEqualTo(original);
+    assertThat(migration.info().applied()).hasSize(5);
+    assertThat(
+            database
+                .jdbc()
+                .queryForObject("select to_regclass('uk_project_active_team_name')", String.class))
+        .isNull();
+  }
+
+  @Test
+  void databaseEnforcesUniquenessAndRequiredReferencesValuesAndEnums() {
     Database database = newDatabase();
     flyway(database, null).migrate();
     seed(database);
@@ -179,6 +210,9 @@ class DatabaseMigrationIntegrationTest {
             "insert into refresh_tokens (id,user_id,token_hash,family_id,created_at,expires_at) select ?,user_id,token_hash,family_id,created_at,expires_at from refresh_tokens")) {
       assertSqlState(() -> jdbc.update(statement, UUID.randomUUID()), "23505");
     }
+    copyAsActiveProject(database, "MIGRATION-ACTIVE", " archived PROJECT ");
+    assertSqlState(
+        () -> copyAsActiveProject(database, "MIGRATION-CONFLICT", "Archived Project"), "23505");
     assertSqlState(
         () -> jdbc.update("update tasks set assignee_id = ?", UUID.randomUUID()), "23503");
     assertSqlState(() -> jdbc.update("update tasks set name = null"), "23502");
@@ -236,7 +270,7 @@ class DatabaseMigrationIntegrationTest {
     seed(database);
     var original = snapshot(database);
     Files.writeString(
-        temporary.resolve("V6__deliberate_test_failure.sql"),
+        temporary.resolve("V7__deliberate_test_failure.sql"),
         """
         CREATE TABLE should_rollback (id integer PRIMARY KEY);
         INSERT INTO deliberately_missing_table VALUES (1);
@@ -249,7 +283,7 @@ class DatabaseMigrationIntegrationTest {
             database.jdbc().queryForObject("select to_regclass('should_rollback')", String.class))
         .isNull();
     assertThat(snapshot(database)).isEqualTo(original);
-    assertThat(valid.info().applied()).hasSize(5);
+    assertThat(valid.info().applied()).hasSize(6);
     valid.validate();
   }
 
@@ -364,6 +398,22 @@ class DatabaseMigrationIntegrationTest {
         .validateOnMigrate(true)
         .validateMigrationNaming(true)
         .load();
+  }
+
+  private static void copyAsActiveProject(Database database, String projectKey, String name) {
+    database
+        .jdbc()
+        .update(
+            """
+        insert into projects
+            (id, team_id, owner_id, project_key, name, status, next_task_number,
+             created_at, updated_at, version)
+        select ?, team_id, owner_id, ?, ?, 'ACTIVE', 1, created_at, updated_at, 0
+        from projects where deleted_at is not null
+        """,
+            UUID.randomUUID(),
+            projectKey,
+            name);
   }
 
   private static void seed(Database database) {

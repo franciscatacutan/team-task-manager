@@ -36,8 +36,6 @@ public interface ProjectRepository
 
   boolean existsByIdAndTeamIdAndDeletedAtIsNull(UUID projectId, UUID teamId);
 
-  boolean existsByTeamIdAndNameIgnoreCaseAndDeletedAtIsNull(UUID teamId, String name);
-
   @Modifying(clearAutomatically = true)
   @Query(
       """

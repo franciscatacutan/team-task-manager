@@ -31,12 +31,12 @@ import com.example.task_manager.user.entity.UserEntity;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +50,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
+
+  private static final String UNIQUE_ACTIVE_PROJECT_NAME = "uk_project_active_team_name";
 
   private static final Set<String> ALLOWED_SORT_FIELDS =
       Set.of(
@@ -91,9 +93,6 @@ public class ProjectService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    String trimmedName = normalizeProjectName(request.name());
-
-    validateExistByTeamAndName(team.getId(), trimmedName);
     validateDates(request.plannedStartDate(), request.plannedDueDate());
 
     ProjectEntity project = new ProjectEntity();
@@ -109,13 +108,7 @@ public class ProjectService {
     project.setActualStartDate(Instant.now());
     project.setStatusChangedAt(Instant.now());
 
-    // Flush immediately so unique-constraint violations are caught here
-    // and mapped to a domain conflict.
-    try {
-      projectRepository.saveAndFlush(project);
-    } catch (DataIntegrityViolationException ex) {
-      throw new ConflictException("Project name already exists in this team");
-    }
+    saveProjectWithUniqueName(project);
 
     activityEventService.recordProjectEvent(
         project,
@@ -168,12 +161,6 @@ public class ProjectService {
       if (request.name().isBlank()) {
         throw new BadRequestInputException("Project name cannot be blank");
       }
-      String trimmedName = normalizeProjectName(request.name());
-
-      if (!project.getName().equalsIgnoreCase(request.name().trim())) {
-        validateExistByTeamAndName(team.getId(), trimmedName);
-      }
-
       project.setName(request.name().trim());
     }
 
@@ -193,6 +180,9 @@ public class ProjectService {
 
     project.setPlannedStartDate(newPlannedStart);
     project.setPlannedDueDate(newPlannedDue);
+    if (!previousName.equals(project.getName())) {
+      saveProjectWithUniqueName(project);
+    }
 
     ProjectDetailsUpdateMessage updateMessage =
         buildProjectUpdateMessage(
@@ -511,14 +501,16 @@ public class ProjectService {
     }
   }
 
-  /** Ensures: - Project exist - Project is active and unique for Team */
-  private void validateExistByTeamAndName(UUID teamId, String name) {
-
-    boolean project =
-        projectRepository.existsByTeamIdAndNameIgnoreCaseAndDeletedAtIsNull(teamId, name);
-
-    if (project) {
-      throw new ConflictException("Project name already exists for Team");
+  /** Flush name writes before recording activity so the API can report a specific conflict. */
+  private void saveProjectWithUniqueName(ProjectEntity project) {
+    try {
+      projectRepository.saveAndFlush(project);
+    } catch (DataIntegrityViolationException ex) {
+      if (ex.getCause() instanceof ConstraintViolationException violation
+          && UNIQUE_ACTIVE_PROJECT_NAME.equals(violation.getConstraintName())) {
+        throw new ConflictException("Project name already exists in this team");
+      }
+      throw ex;
     }
   }
 
@@ -528,11 +520,6 @@ public class ProjectService {
     var access = readPolicy.forTeam(project.getTeam().getId(), requesterId, isGlobalAdmin);
     if (!access.project(project)) throw new ResourceNotFoundException("Project not found");
     return access;
-  }
-
-  /** Checks if a Project Name is unique for an active project */
-  private String normalizeProjectName(String name) {
-    return name.trim().toLowerCase(Locale.ROOT);
   }
 
   private ProjectDetailsUpdateMessage buildProjectUpdateMessage(

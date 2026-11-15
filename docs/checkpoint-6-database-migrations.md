@@ -67,6 +67,21 @@ cd backend
 
 Use `bash ./mvnw` on Linux/macOS. The second command is useful for focused migration work; running it again after a successful unchanged full suite is unnecessary. Existing CI already runs Maven `verify` with Java 21/Docker and builds the backend image, so no duplicate CI job was added. SQL is reviewed as PostgreSQL SQL; Prettier and Google Java Format do not format these SQL files.
 
+## V6 project-name upgrade check
+
+V6 uses the team and the case-insensitive, trimmed project name to enforce uniqueness for every unarchived project, including Completed projects. An archived project keeps its name and history. Before upgrading a database with existing projects, run this read-only check against that database or a restored copy:
+
+```sql
+SELECT team_id, lower(btrim(name)) AS name, count(*) AS project_count
+FROM projects
+WHERE deleted_at IS NULL
+GROUP BY team_id, lower(btrim(name))
+HAVING count(*) > 1
+ORDER BY team_id, name;
+```
+
+If the query returns rows, have the team review which project names to change before installing the release. Flyway stops on conflicting rows and rolls back the index creation. The migration only adds the index.
+
 ## Failure diagnosis and recovery boundaries
 
 | Failure                                   | Review and next action                                                                                                                                                                                                                                                           |
