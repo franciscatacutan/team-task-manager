@@ -40,6 +40,8 @@ services:
 
     env_file:
       - .env
+    environment:
+      AUTH_TRUST_PROXY_CLIENT_IP: "true"
 
     ports:
       - "127.0.0.1:8080:8080"

@@ -67,7 +67,7 @@ pwsh -File ./deploy/local/local.ps1 -Action Check -Name desktop-test
 
 To use a normal browser, manually import this public CA into the appropriate device/browser trust store according to its documentation and verify its fingerprint. Some browsers maintain their own certificate store. The script never installs it for you. Remove that test CA from clients when it is no longer needed. Never export or distribute the private CA key in the certificate volume.
 
-Generated bootstrap credentials are in the ignored file `deploy/local/state/desktop-test/environment.env`; open it locally to obtain the administrator email/password. Do not paste it into chat or commit it. A new regular user can register through the existing app flow. There are no baked-in demo accounts, signing secrets or passwords in the images.
+Generated bootstrap credentials are in the ignored file `deploy/local/state/desktop-test/environment.env`; open it locally to obtain the administrator email/password. Do not paste it into chat or commit it. A team owner or admin can [invite a new regular user](pilot-onboarding.md). There are no baked-in demo accounts, signing secrets or passwords in the images.
 
 ## LAN testing with other devices
 

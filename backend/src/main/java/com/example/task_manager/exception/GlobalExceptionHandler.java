@@ -2,9 +2,12 @@ package com.example.task_manager.exception;
 
 import com.example.task_manager.exception.ErrorResponse.ErrorCode;
 import com.example.task_manager.exception.api.ApiException;
+import com.example.task_manager.exception.api.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.stream.Collectors;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,10 +25,22 @@ public class GlobalExceptionHandler {
       ErrorResponse.ErrorCode errorCode,
       String message,
       HttpServletRequest request) {
-    return ResponseEntity.status(status)
-        .body(
-            new ErrorResponse(
-                status.value(), errorCode, message, request.getRequestURI(), Instant.now()));
+    return ResponseEntity.status(status).body(errorResponse(status, errorCode, message, request));
+  }
+
+  private ErrorResponse errorResponse(
+      HttpStatus status, ErrorCode errorCode, String message, HttpServletRequest request) {
+    return new ErrorResponse(
+        status.value(), errorCode, message, request.getRequestURI(), Instant.now());
+  }
+
+  @ExceptionHandler(TooManyRequestsException.class)
+  public ResponseEntity<ErrorResponse> handleTooManyRequests(
+      TooManyRequestsException ex, HttpServletRequest request) {
+    return ResponseEntity.status(ex.getStatus())
+        .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+        .cacheControl(CacheControl.noStore())
+        .body(errorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request));
   }
 
   /** Handle all API exceptions. */

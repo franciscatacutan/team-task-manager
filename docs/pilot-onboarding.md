@@ -4,6 +4,14 @@ A team owner or team admin opens **Members → Invite new member**, enters the p
 
 The recipient opens the link while signed out, enters the invited email, and chooses a password. Signup creates a regular account and a **Member** role in the inviting team, then signs them in. If the link is expired or unavailable, the team manager can make a replacement. Account recovery uses the existing administrator reset and archive/restore controls. [Member handoff and account lifecycle](member-handoff.md)
 
+## Sign-in and signup limits
+
+The pilot defaults to a five-minute window. Sign-in allows eight attempts per email and client IP together, with a total of 60 attempts per IP. Signup has a separate limit of 20 attempts per IP. These limits count requests that pass form validation, including successful requests. When a limit is reached, the API returns HTTP 429 and the form shows how long to wait. Blocked attempts do not extend the window.
+
+Set `auth.rate-limit.window`, `auth.rate-limit.login-per-client`, `auth.rate-limit.login-per-email-and-client`, or `auth.rate-limit.registration-per-client` to adjust the defaults in the [backend configuration](../backend/src/main/resources/application.yaml). Counters are in memory per backend instance and reset when that instance restarts. Before running multiple replicas, verify the rate limits at the shared ingress or use shared counters.
+
+The packaged proxies overwrite `X-TTM-Client-IP` with the connecting client's address. Keep the backend private if you enable `AUTH_TRUST_PROXY_CLIENT_IP`. If a hosting provider puts another proxy in front of the app, verify the final proxy supplies the verified client address so unrelated users don't share one quota.
+
 ## Environment and verification
 
 Production and the local HTTPS rehearsal require an invite for signup. The `local` Spring profile keeps open registration for development. The server enforces this policy and serves it to the sign-in form. Bring the application up on the intended profile before testing onboarding. [Local rehearsal](checkpoint-7-local-rehearsal.md)

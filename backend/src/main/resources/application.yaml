@@ -49,6 +49,11 @@ auth:
   access-token-expiration-ms: 900000
   refresh-token-expiration-ms: 2592000000
   refresh-cookie-name: refresh_token
+  rate-limit:
+    window: 5m
+    login-per-client: 60
+    login-per-email-and-client: 8
+    registration-per-client: 20
 
 app:
   planning-time-zone: ${APP_PLANNING_TIME_ZONE:Asia/Manila}

@@ -24,6 +24,8 @@ public class AuthController {
 
   private final AuthService authService;
   private final RefreshTokenCookieService refreshTokenCookieService;
+  private final AuthRateLimiter rateLimiter;
+  private final AuthClientAddress clientAddress;
 
   @Value("${frontend.url}")
   private String frontendUrl;
@@ -41,9 +43,10 @@ public class AuthController {
       @Valid @RequestBody RegisterRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
+    String client = clientAddress.resolve(httpRequest);
+    rateLimiter.checkRegistration(client);
     AuthService.AuthSession session =
-        authService.register(
-            request, extractClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+        authService.register(request, client, httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
     return ResponseEntity.status(HttpStatus.CREATED)
         .cacheControl(CacheControl.noStore())
@@ -56,9 +59,10 @@ public class AuthController {
       @Valid @RequestBody LoginRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
+    String client = clientAddress.resolve(httpRequest);
+    rateLimiter.checkLogin(client, request.email());
     AuthService.AuthSession session =
-        authService.login(
-            request, extractClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+        authService.login(request, client, httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(session.response());
   }
@@ -74,7 +78,7 @@ public class AuthController {
 
     AuthService.AuthSession session =
         authService.refresh(
-            refreshToken, extractClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+            refreshToken, clientAddress.resolve(httpRequest), httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(session.response());
   }
@@ -89,14 +93,6 @@ public class AuthController {
     authService.logout(refreshTokenCookieService.extractRefreshToken(httpRequest), accessToken);
     refreshTokenCookieService.clearRefreshTokenCookie(httpResponse);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-  }
-
-  private String extractClientIp(HttpServletRequest request) {
-    String forwardedFor = request.getHeader("X-Forwarded-For");
-    if (forwardedFor == null || forwardedFor.isBlank()) {
-      return request.getRemoteAddr();
-    }
-    return forwardedFor.split(",")[0].trim();
   }
 
   private void requireTrustedRefreshOrigin(HttpServletRequest request) {

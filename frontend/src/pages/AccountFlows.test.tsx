@@ -57,11 +57,13 @@ const response = (
   config: InternalAxiosRequestConfig,
   data: unknown,
   status = 200,
-): AxiosResponse => ({ config, data, status, statusText: "", headers: {} });
+  headers: AxiosResponse["headers"] = {},
+): AxiosResponse => ({ config, data, status, statusText: "", headers });
 const reject = (
   config: InternalAxiosRequestConfig,
   status: number,
   message = "Rejected",
+  headers?: AxiosResponse["headers"],
 ) =>
   Promise.reject(
     new AxiosError(
@@ -76,6 +78,7 @@ const reject = (
           error: status === 401 ? "INVALID_CREDENTIALS" : "BAD_REQUEST",
         },
         status,
+        headers,
       ),
     ),
   );
@@ -286,6 +289,19 @@ describe("authentication feedback and validation", () => {
     ).toHaveAccessibleDescription("Passwords do not match");
     expect(requests("post")).toHaveLength(0);
   });
+  it("shows the sign-in retry delay and preserves the draft", async () => {
+    adapter.mockImplementation((config) =>
+      reject(config, 429, "Request limited", { "retry-after": "42" }),
+    );
+    mount("auth");
+    await fillLogin();
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Too many attempts. Try again in 42 seconds.",
+    );
+    expect(screen.getByLabelText(/^Password/)).toHaveValue("legacy");
+  });
+
   it.each([401, 500, 429, 0])(
     "reports a %s login failure accurately and retains its password",
     async (status) => {

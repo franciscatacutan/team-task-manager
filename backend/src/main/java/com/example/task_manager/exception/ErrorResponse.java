@@ -18,6 +18,7 @@ public record ErrorResponse(
     INVALID_PARAMETER,
     INVALID_METHOD,
     CONFLICT,
+    TOO_MANY_REQUESTS,
     BAD_REQUEST
   }
 }

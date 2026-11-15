@@ -23,8 +23,13 @@ export function accountRequestError(
         : operation === "credentials"
           ? "Could not confirm the change. It may have succeeded. Try signing in to verify before retrying."
           : "Unable to reach the sign-in service. Check your connection and try again.";
-    if (status === 429)
+    if (status === 429) {
+      const retryAfter = Number(error.response.headers?.["retry-after"]);
+      if (Number.isSafeInteger(retryAfter) && retryAfter > 0) {
+        return `Too many attempts. Try again in ${retryAfter} ${retryAfter === 1 ? "second" : "seconds"}.`;
+      }
       return "Too many attempts. Please wait before trying again.";
+    }
     if (status && status >= 500)
       return "The service is temporarily unavailable. Please try again.";
     if (operation === "login" && status === 401)

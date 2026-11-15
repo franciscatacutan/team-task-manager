@@ -12,7 +12,9 @@ https://{$APP_HOST}:{$APP_PORT} {
 
   @api path /api /api/*
   handle @api {
-    reverse_proxy backend:8080
+    reverse_proxy backend:8080 {
+      header_up X-TTM-Client-IP {http.request.remote.host}
+    }
   }
   handle /healthz {
     rewrite * /actuator/health
