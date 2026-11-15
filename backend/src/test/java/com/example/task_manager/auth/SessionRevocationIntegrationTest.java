@@ -305,6 +305,37 @@ class SessionRevocationIntegrationTest extends PostgresIntegrationTest {
   }
 
   @Test
+  void adminPasswordResetRejectsOrdinaryUsersAndImmediatelyRevokesEveryPriorSession()
+      throws Exception {
+    var first = login();
+    var second = login();
+    var target = workspace.owner().getId();
+    var path = "/api/admin/users/" + target + "/password";
+    var body = "{\"newPassword\":\"" + NEXT_PASSWORD + "\"}";
+    mvc.perform(
+            patch(path)
+                .header("Authorization", "Bearer " + first.response().token())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isForbidden());
+    me(first).andExpect(status().isOk());
+    me(second).andExpect(status().isOk());
+
+    mvc.perform(
+            patch(path)
+                .header("Authorization", TestFixtures.authorization(jwt, sessions, admin()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isNoContent());
+    me(first).andExpect(status().isUnauthorized());
+    me(second).andExpect(status().isUnauthorized());
+    refresh(first.refreshToken()).andExpect(status().isUnauthorized());
+    refresh(second.refreshToken()).andExpect(status().isUnauthorized());
+    httpLogin(PASSWORD).andExpect(status().isUnauthorized());
+    httpLogin(NEXT_PASSWORD).andExpect(status().isOk());
+  }
+
+  @Test
   void loginAndResetSerializeSoOnlyTheNewPasswordCanIssueASessionAfterReset() throws Exception {
     var admin = admin();
     var administrator =

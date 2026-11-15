@@ -1,5 +1,6 @@
 package com.example.task_manager.team;
 
+import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
 import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
 import com.example.task_manager.exception.api.BadRequestInputException;
@@ -16,7 +17,9 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,11 +62,44 @@ public class TeamInvitationService {
     return new CreatedInvitation(token, invitation.getExpiresAt());
   }
 
+  @Transactional(readOnly = true)
+  public PageResponse<PendingInvitation> listPending(
+      String teamKey, String requesterEmail, int page) {
+    var team = teamAuthorization.requireActiveTeam(teamKey);
+    var requester = globalAuthorization.getUserByEmail(requesterEmail);
+    teamAuthorization.validateManagerMembership(team.getId(), requester.getId());
+    var results =
+        invitations
+            .findByTeamIdAndConsumedAtIsNullAndExpiresAtAfterOrderByExpiresAtAscIdAsc(
+                team.getId(), Instant.now(), PageRequest.of(Math.max(0, page), 10))
+            .map(
+                invite ->
+                    new PendingInvitation(
+                        invite.getId(), invite.getEmail(), invite.getExpiresAt()));
+    return new PageResponse<>(
+        results.getContent(),
+        results.getNumber(),
+        results.getSize(),
+        results.getTotalElements(),
+        results.getTotalPages(),
+        results.isFirst(),
+        results.isLast());
+  }
+
+  @Transactional
+  public void revoke(String teamKey, UUID invitationId, String requesterEmail) {
+    var team = teamAuthorization.requireActiveTeamForUpdate(teamKey);
+    var requester = globalAuthorization.getUserByEmail(requesterEmail);
+    requester = teamAuthorization.requireEnabledAccountForUpdate(requester.getId());
+    teamAuthorization.validateManagerMembership(team.getId(), requester.getId());
+    invitations.deleteUnusedInvitation(team.getId(), invitationId);
+  }
+
   @Transactional(propagation = Propagation.MANDATORY)
   public TeamInvitation requireValidInvitation(String token, String normalizedEmail) {
     String hash = hash(token);
     String teamKey = invitations.findTeamKeyByTokenHash(hash).orElseThrow(this::unavailable);
-    // A team lock serializes invite replacement, redemption and membership changes.
+    // A team lock serializes invite replacement, revocation, redemption and membership changes.
     var team =
         teams
             .findByKeyForUpdate(teamKey)
@@ -114,4 +150,6 @@ public class TeamInvitationService {
   }
 
   public record CreatedInvitation(String token, Instant expiresAt) {}
+
+  public record PendingInvitation(UUID id, String email, Instant expiresAt) {}
 }

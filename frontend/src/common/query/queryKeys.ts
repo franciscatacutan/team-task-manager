@@ -33,6 +33,9 @@ export const queryKeys = {
     allMembers: (teamKey: string) => ["allTeamMembers", teamKey] as const,
     allMemberList: (teamKey: string, search?: string) =>
       ["allTeamMembers", teamKey, search] as const,
+    invitations: (teamKey: string) => ["team-invitations", teamKey] as const,
+    invitationPage: (teamKey: string, page: number) =>
+      ["team-invitations", teamKey, page] as const,
     availableUserLists: ["availableUsers"] as const,
     availableUsers: (teamKey: string) => ["availableUsers", teamKey] as const,
     availableUserList: (teamKey: string, search?: string) =>

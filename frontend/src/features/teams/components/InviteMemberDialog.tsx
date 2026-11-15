@@ -1,4 +1,6 @@
 import { useId, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/common/query/queryKeys";
 import CreationDialog from "@/common/components/CreationDialog";
 import CreationForm from "@/common/components/CreationForm";
 import FormField from "@/common/components/FormFieldWrapper";
@@ -46,6 +48,7 @@ function InviteMemberForm({
   const [error, setError] = useState("");
   const [invite, setInvite] = useState<{ link: string; expiresAt: string }>();
   const [copyStatus, setCopyStatus] = useState("");
+  const queryClient = useQueryClient();
   const linkId = useId();
   const linkInput = useRef<HTMLInputElement>(null);
 
@@ -59,6 +62,9 @@ function InviteMemberForm({
     setEmailError("");
     try {
       const created = await createTeamInvitation(teamKey, normalized.data);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.teams.invitations(teamKey),
+      });
       const link = new URL("/login", window.location.origin);
       link.hash = new URLSearchParams({ invite: created.token }).toString();
       setInvite({ link: link.toString(), expiresAt: created.expiresAt });

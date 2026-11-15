@@ -1,9 +1,11 @@
 import { ArrowLeftRight, Minus, Plus, Users } from "lucide-react";
 
 import { Button } from "../../../components/ui/button";
-import type { TeamPermissions } from "../../teams/utils/teamPermissions";
+import type { TeamPermissions } from "../utils/teamPermissions";
+import PendingInvitationsDialog from "./PendingInvitationsDialog";
 
 interface Props {
+  teamKey: string;
   setRemoveMembersOpen: () => void;
   setAddMembersOpen: () => void;
   setInviteOpen: () => void;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function MembersHeader({
+  teamKey,
   setRemoveMembersOpen,
   setAddMembersOpen,
   setInviteOpen,
@@ -49,6 +52,9 @@ export default function MembersHeader({
             >
               Invite new member
             </Button>
+          )}
+          {permissions.canAddMember && (
+            <PendingInvitationsDialog key={teamKey} teamKey={teamKey} />
           )}
           {permissions.canRemoveMember && (
             <Button className="rounded-xl" onClick={setRemoveMembersOpen}>

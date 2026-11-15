@@ -57,6 +57,26 @@ public class TeamController {
         .body(teamInvitationService.create(teamKey, request.email(), authentication.getName()));
   }
 
+  @GetMapping("/{teamKey}/invitations")
+  public ResponseEntity<PageResponse<TeamInvitationService.PendingInvitation>>
+      listPendingInvitations(
+          @PathVariable String teamKey,
+          @RequestParam(defaultValue = "0") int page,
+          Authentication authentication) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(teamInvitationService.listPending(teamKey, authentication.getName(), page));
+  }
+
+  @DeleteMapping("/{teamKey}/invitations/{invitationId}")
+  public ResponseEntity<Void> revokeInvitation(
+      @PathVariable String teamKey,
+      @PathVariable UUID invitationId,
+      Authentication authentication) {
+    teamInvitationService.revoke(teamKey, invitationId, authentication.getName());
+    return ResponseEntity.noContent().build();
+  }
+
   @PostMapping
   public ResponseEntity<TeamResponse> create(
       @Valid @RequestBody CreateTeamRequest request, Authentication authentication) {

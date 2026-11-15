@@ -2,7 +2,18 @@
 
 A team owner or team admin opens **Members → Invite new member**, enters the person's email, and copies the generated link. Share the link with that person through a private channel. It expires after 24 hours and can be used once. Creating another pending invite for the same email and team replaces the earlier link. For someone with an existing account, use **Add members**.
 
-The recipient opens the link while signed out, enters the invited email, and chooses a password. Signup creates a regular account and a **Member** role in the inviting team, then signs them in. If the link is expired or unavailable, the team manager can make a replacement. Account recovery uses the existing administrator reset and archive/restore controls. [Member handoff and account lifecycle](member-handoff.md)
+The recipient opens the link while signed out, enters the invited email, and chooses a password. Signup creates a regular account and a **Member** role in the inviting team, then signs them in. If the link is expired or unavailable, the team manager can make a replacement. Use account archive and restore to change whether someone can access the application. [Member handoff and account lifecycle](member-handoff.md)
+
+## Manage pending invites
+
+Open **Members → Pending invites** to see outstanding invites and their expiration times. Select **Revoke** next to an email and confirm to disable the link. If the person still needs an account, issue a new link from **Invite new member**. Accepted and expired invites are excluded from the list. If the person has already joined, manage their access from the member directory.
+
+## Recover an account
+
+1. The user contacts a global administrator. Verify their identity through your team's usual private channel before resetting the password.
+2. In **Users**, open the user's actions menu and select **Reset password**. Set and confirm a unique temporary password. A successful reset invalidates the old password and signs that user out of all existing sessions.
+3. Share the temporary password privately. Ask the user to sign in and change it in **Settings → Security**. The application does not force a password change at the next sign-in.
+4. To recover a `SUPER_ADMIN` account through the app, contact another `SUPER_ADMIN`. Keep a second authorized administrator available for this case.
 
 ## Sign-in and signup limits
 

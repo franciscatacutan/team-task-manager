@@ -85,6 +85,7 @@ export default function MembersPage() {
   return (
     <section className="list-layout flex flex-col h-full min-h-0 gap-6">
       <MembersHeader
+        teamKey={teamKey}
         setAddMembersOpen={() => setAddMembersOpen(true)}
         setInviteOpen={() => setInviteOpen(true)}
         setRemoveMembersOpen={() => setRemoveMembersOpen(true)}

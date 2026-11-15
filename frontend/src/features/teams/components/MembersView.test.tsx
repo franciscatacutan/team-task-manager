@@ -46,6 +46,9 @@ describe("members page global viewing and recovery actions", () => {
     render(<MembersView />);
     expect(screen.getByText("Member directory")).toBeInTheDocument();
     expect(
+      screen.queryByRole("button", { name: "Pending invites" }),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByRole("button", { name: "Transfer ownership" }),
     ).not.toBeInTheDocument();
     expect(
@@ -64,6 +67,9 @@ describe("members page global viewing and recovery actions", () => {
     } as ReturnType<typeof useTeamMe>);
     render(<MembersView />);
     expect(screen.getByText("Member directory")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Pending invites" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Transfer ownership" }),
     ).toBeInTheDocument();
@@ -89,6 +95,9 @@ describe("members page global viewing and recovery actions", () => {
       screen.getByRole("button", { name: "Transfer ownership" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("button", { name: "Pending invites" }),
+    ).toBeVisible();
+    expect(
       screen.getByRole("button", { name: "Add members" }),
     ).toBeInTheDocument();
     expect(
@@ -108,6 +117,9 @@ describe("members page global viewing and recovery actions", () => {
     } as ReturnType<typeof useTeamMe>);
     render(<MembersView />);
     expect(screen.getByText("Member directory")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Pending invites" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Transfer ownership" }),
     ).not.toBeInTheDocument();

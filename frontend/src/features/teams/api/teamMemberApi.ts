@@ -19,6 +19,31 @@ export async function createTeamInvitation(teamKey: string, email: string) {
   return data;
 }
 
+export interface PendingTeamInvitation {
+  id: string;
+  email: string;
+  expiresAt: string;
+}
+
+export async function getPendingTeamInvitations(
+  teamKey: string,
+  page: number,
+  signal: AbortSignal,
+) {
+  const { data } = await apiClient.get<PageResponse<PendingTeamInvitation>>(
+    `/teams/${teamKey}/invitations`,
+    { params: { page }, signal },
+  );
+  return data;
+}
+
+export async function revokeTeamInvitation(
+  teamKey: string,
+  invitationId: string,
+) {
+  await apiClient.delete(`/teams/${teamKey}/invitations/${invitationId}`);
+}
+
 export const getTeamMembers = async (
   teamKey: string,
   params: Omit<BaseQueryParams, "sort"> & {
