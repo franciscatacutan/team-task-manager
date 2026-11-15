@@ -19,6 +19,7 @@ import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** Unit tests for AuthService. */
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +47,11 @@ class AuthServiceTest {
 
   @InjectMocks private AuthService authService;
 
+  @BeforeEach
+  void allowDevelopmentRegistration() {
+    ReflectionTestUtils.setField(authService, "openRegistration", true);
+  }
+
   /** Tests successful user registration. */
   @Test
   void shouldRegisterUserSuccessfully() {
@@ -59,7 +66,7 @@ class AuthServiceTest {
 
     when(passwordEncoder.encode(password)).thenReturn("hashed-pass");
 
-    when(userRepository.save(any(UserEntity.class)))
+    when(userRepository.saveAndFlush(any(UserEntity.class)))
         .thenAnswer(
             invocation -> {
               UserEntity savedUser = invocation.getArgument(0);
@@ -80,7 +87,7 @@ class AuthServiceTest {
 
     // Verify interactions and response
     verify(passwordEncoder).encode("password123");
-    verify(userRepository).save(any(UserEntity.class));
+    verify(userRepository).saveAndFlush(any(UserEntity.class));
     verify(userRepository).existsByEmailIgnoreCase("test@test.com");
     // Verify that the token was generated
     assertThat(response.token()).isEqualTo("fake-jwt-token");

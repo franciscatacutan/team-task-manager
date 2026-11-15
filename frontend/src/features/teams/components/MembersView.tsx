@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useTeamMembers } from "../hooks/useTeamMembers";
 import { useDebounce } from "../../../common/hooks/useDebounce";
 import MembersHeader from "./MembersHeader";
+import InviteMemberDialog from "./InviteMemberDialog";
 import MembersToolbar from "./MembersToolbar";
 import MembersList from "./MembersList";
 import AddMembersModal from "./AddMembersModal";
@@ -21,6 +22,7 @@ export default function MembersPage() {
   const { teamKey } = useParams<{ teamKey: string }>();
 
   const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [removeMembersOpen, setRemoveMembersOpen] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
@@ -84,6 +86,7 @@ export default function MembersPage() {
     <section className="list-layout flex flex-col h-full min-h-0 gap-6">
       <MembersHeader
         setAddMembersOpen={() => setAddMembersOpen(true)}
+        setInviteOpen={() => setInviteOpen(true)}
         setRemoveMembersOpen={() => setRemoveMembersOpen(true)}
         setTransferOpen={() => setTransferOpen(true)}
         permissions={permissions}
@@ -134,6 +137,14 @@ export default function MembersPage() {
         isLoading={false}
         onOpenChange={setAddMembersOpen}
       />
+
+      {permissions.canAddMember && inviteOpen && (
+        <InviteMemberDialog
+          key={teamKey}
+          teamKey={teamKey}
+          onClose={() => setInviteOpen(false)}
+        />
+      )}
 
       <TransferOwnershipModal
         teamKey={teamKey}

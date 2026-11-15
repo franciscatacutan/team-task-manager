@@ -53,14 +53,7 @@ public class TeamMemberOperations {
     if (role == TeamRole.OWNER) throw new ConflictException("Cannot assign OWNER role");
     if (role == TeamRole.ADMIN)
       teamAuthorization.validateRoleAdministrator(context.team().getId(), context.requester());
-    var member = new TeamMemberEntity();
-    member.setTeam(context.team());
-    member.setUser(user);
-    member.setRole(role);
-    member.setAddedBy(context.requester());
-    members.saveAndFlush(member);
-    context.team().setMembershipChangedAt(Instant.now());
-    record(context, member, true);
+    var member = addMember(context.team(), context.requester(), user, role);
     return memberMapper.toResponse(member, context.requester());
   }
 
@@ -79,7 +72,25 @@ public class TeamMemberOperations {
     members.delete(member);
     members.flush();
     context.team().setMembershipChangedAt(Instant.now());
-    record(context, member, false);
+    record(context.team(), context.requester(), member, false);
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void addInvitedMember(TeamEntity team, UserEntity inviter, UserEntity user) {
+    addMember(team, inviter, user, TeamRole.MEMBER);
+  }
+
+  private TeamMemberEntity addMember(
+      TeamEntity team, UserEntity requester, UserEntity user, TeamRole role) {
+    var member = new TeamMemberEntity();
+    member.setTeam(team);
+    member.setUser(user);
+    member.setRole(role);
+    member.setAddedBy(requester);
+    members.saveAndFlush(member);
+    team.setMembershipChangedAt(Instant.now());
+    record(team, requester, member, true);
+    return member;
   }
 
   private Context context(String teamKey, String email) {
@@ -96,7 +107,8 @@ public class TeamMemberOperations {
     return new Context(team, requester, membership);
   }
 
-  private void record(Context context, TeamMemberEntity member, boolean added) {
+  private void record(
+      TeamEntity team, UserEntity requester, TeamMemberEntity member, boolean added) {
     String name = member.getUser().getFullName();
     String role = member.getRole().name();
     var details =
@@ -117,8 +129,8 @@ public class TeamMemberOperations {
             null,
             activity.reference(member.getUser()));
     activity.recordTeamEvent(
-        context.team(),
-        context.requester(),
+        team,
+        requester,
         added ? ActivityEventType.TEAM_MEMBER_ADDED : ActivityEventType.TEAM_MEMBER_REMOVED,
         details,
         null);

@@ -4,6 +4,7 @@ import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.team.dto.AddTeamMembersRequest;
 import com.example.task_manager.team.dto.AddTeamMembersResponse;
 import com.example.task_manager.team.dto.ChangeTeamRoleRequest;
+import com.example.task_manager.team.dto.CreateTeamInvitationRequest;
 import com.example.task_manager.team.dto.CreateTeamRequest;
 import com.example.task_manager.team.dto.RemoveTeamMembersRequest;
 import com.example.task_manager.team.dto.RemoveTeamMembersResponse;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -43,6 +45,17 @@ public class TeamController {
 
   private final TeamService teamService;
   private final TeamMembershipService teamMembershipService;
+  private final TeamInvitationService teamInvitationService;
+
+  @PostMapping("/{teamKey}/invitations")
+  public ResponseEntity<TeamInvitationService.CreatedInvitation> createInvitation(
+      @PathVariable String teamKey,
+      @Valid @RequestBody CreateTeamInvitationRequest request,
+      Authentication authentication) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .cacheControl(CacheControl.noStore())
+        .body(teamInvitationService.create(teamKey, request.email(), authentication.getName()));
+  }
 
   @PostMapping
   public ResponseEntity<TeamResponse> create(

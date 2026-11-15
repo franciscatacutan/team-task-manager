@@ -76,7 +76,7 @@ class DatabaseMigrationIntegrationTest {
       assertThat(managed.getConfiguration().isCleanDisabled()).isTrue();
       assertThat(managed.getConfiguration().isValidateOnMigrate()).isTrue();
       assertThat(managed.getConfiguration().isValidateMigrationNaming()).isTrue();
-      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("4");
+      assertThat(managed.info().current().getVersion().getVersion()).isEqualTo("5");
       assertThat(managed.migrate().migrationsExecuted).isZero();
       assertThat(database.jdbc().queryForObject("select count(*) from users", Integer.class))
           .isZero();
@@ -142,7 +142,7 @@ class DatabaseMigrationIntegrationTest {
     assertThat(snapshot(database)).isEqualTo(original);
     accountArchive.validate();
 
-    Flyway myWork = flyway(database, null);
+    Flyway myWork = flyway(database, "4");
     assertThat(myWork.migrate().migrationsExecuted).isEqualTo(1);
     assertThat(snapshot(database)).isEqualTo(original);
     assertThat(
@@ -153,6 +153,14 @@ class DatabaseMigrationIntegrationTest {
                     String.class))
         .contains("(support_id, deleted_at)");
     myWork.validate();
+
+    Flyway invitations = flyway(database, "5");
+    assertThat(invitations.migrate().migrationsExecuted).isEqualTo(1);
+    assertThat(snapshot(database)).isEqualTo(original);
+    assertThat(
+            database.jdbc().queryForObject("select count(*) from team_invitations", Integer.class))
+        .isZero();
+    invitations.validate();
   }
 
   @Test
@@ -228,7 +236,7 @@ class DatabaseMigrationIntegrationTest {
     seed(database);
     var original = snapshot(database);
     Files.writeString(
-        temporary.resolve("V5__deliberate_test_failure.sql"),
+        temporary.resolve("V6__deliberate_test_failure.sql"),
         """
         CREATE TABLE should_rollback (id integer PRIMARY KEY);
         INSERT INTO deliberately_missing_table VALUES (1);
@@ -241,7 +249,7 @@ class DatabaseMigrationIntegrationTest {
             database.jdbc().queryForObject("select to_regclass('should_rollback')", String.class))
         .isNull();
     assertThat(snapshot(database)).isEqualTo(original);
-    assertThat(valid.info().applied()).hasSize(4);
+    assertThat(valid.info().applied()).hasSize(5);
     valid.validate();
   }
 
@@ -271,11 +279,13 @@ class DatabaseMigrationIntegrationTest {
 
   private static void assertCatalog(ConfigurableApplicationContext context, JdbcTemplate jdbc) {
     var entities = context.getBean(EntityManagerFactory.class).getMetamodel().getEntities();
-    assertThat(entities).hasSize(12);
+    assertThat(entities).hasSize(13);
+    var catalogTables = new java.util.ArrayList<>(TABLES);
+    catalogTables.add("team_invitations");
     int expectedIndexes = 0;
     for (var entity : entities) {
       Table table = entity.getJavaType().getAnnotation(Table.class);
-      assertThat(TABLES).contains(table.name());
+      assertThat(catalogTables).contains(table.name());
       for (var index : table.indexes()) {
         expectedIndexes++;
         String definition =
@@ -293,7 +303,7 @@ class DatabaseMigrationIntegrationTest {
     }
     assertThat(expectedIndexes).isEqualTo(31);
     // Counts exclude Flyway's own history table; Hibernate validation alone does not cover these.
-    for (var expected : Map.of("p", 12, "u", 6, "f", 25, "c", 15).entrySet()) {
+    for (var expected : Map.of("p", 13, "u", 7, "f", 27, "c", 15).entrySet()) {
       assertThat(
               jdbc.queryForObject(
                   """
@@ -314,7 +324,7 @@ class DatabaseMigrationIntegrationTest {
         and table_name <> 'flyway_schema_history'
         """,
                 String.class))
-        .containsExactlyInAnyOrderElementsOf(TABLES);
+        .containsExactlyInAnyOrderElementsOf(catalogTables);
   }
 
   private static Database newDatabase() {

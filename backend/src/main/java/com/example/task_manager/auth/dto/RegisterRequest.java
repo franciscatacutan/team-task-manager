@@ -29,4 +29,11 @@ public record RegisterRequest(
             regexp =
                 "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-\\[\\]{};':\"\\\\|,.<>/?]).{8,}$",
             message = "Password must contain upper, lower, digit, and special character")
-        String confirmPassword) {}
+        String confirmPassword,
+    @Pattern(regexp = "^[A-Za-z0-9_-]{43}$", message = "Invalid invite link") String inviteToken) {
+
+  public RegisterRequest(
+      String email, String firstName, String lastName, String password, String confirmPassword) {
+    this(email, firstName, lastName, password, confirmPassword, null);
+  }
+}

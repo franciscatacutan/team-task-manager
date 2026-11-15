@@ -4,5 +4,6 @@ spring:
       on-profile: local
 
 auth:
+  open-registration: true
   refresh-cookie-secure: false
   refresh-cookie-same-site: Lax

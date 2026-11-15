@@ -6,6 +6,7 @@ import type { TeamPermissions } from "../../teams/utils/teamPermissions";
 interface Props {
   setRemoveMembersOpen: () => void;
   setAddMembersOpen: () => void;
+  setInviteOpen: () => void;
   setTransferOpen: () => void;
   permissions: TeamPermissions;
 }
@@ -13,6 +14,7 @@ interface Props {
 export default function MembersHeader({
   setRemoveMembersOpen,
   setAddMembersOpen,
+  setInviteOpen,
   setTransferOpen,
   permissions,
 }: Props) {
@@ -37,6 +39,15 @@ export default function MembersHeader({
             <Button className="rounded-xl" onClick={setAddMembersOpen}>
               <Plus className="h-4 w-4" />
               Add members
+            </Button>
+          )}
+          {permissions.canAddMember && (
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={setInviteOpen}
+            >
+              Invite new member
             </Button>
           )}
           {permissions.canRemoveMember && (

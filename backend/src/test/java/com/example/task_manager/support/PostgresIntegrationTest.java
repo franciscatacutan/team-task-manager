@@ -15,6 +15,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
       "auth.jwt.secret=phase-one-test-only-secret-at-least-thirty-two-bytes-long",
       "auth.jwt.issuer=team-task-manager-tests",
       "auth.refresh-cookie-secure=false",
+      "auth.open-registration=true",
       "auth.refresh-cookie-same-site=Lax",
       "frontend.url=http://localhost:5173",
       "app.bootstrap-admin.email=",

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/common/query/queryKeys";
+import { getRegistrationPolicy } from "@/features/auth/api/auth.api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -35,17 +38,31 @@ type Values = {
 };
 export default function AuthPage() {
   const { user } = useAuth();
+  const { hash } = useLocation();
+  const inviteToken =
+    new URLSearchParams(hash.slice(1)).get("invite") ?? undefined;
   return (
-    <AuthForm key={JSON.stringify([user?.id, authStorage.getRevision()])} />
+    <AuthForm
+      key={JSON.stringify([user?.id, authStorage.getRevision(), inviteToken])}
+      inviteToken={inviteToken}
+    />
   );
 }
 
-function AuthForm() {
+function AuthForm({ inviteToken }: { inviteToken?: string }) {
   const navigate = useNavigate();
   const login = useLogin(),
     register = useRegister();
   const submission = useSessionFormSubmission();
-  const [isRegister, setIsRegister] = useState(false);
+  const invited = inviteToken !== undefined;
+  const [showRegistration, setShowRegistration] = useState(false);
+  const policy = useQuery({
+    queryKey: queryKeys.session.registrationPolicy,
+    queryFn: ({ signal }) => getRegistrationPolicy(signal),
+    enabled: !invited,
+  });
+  const openRegistration = policy.data?.openRegistration === true;
+  const isRegister = invited || (openRegistration && showRegistration);
   const [serverError, setServerError] = useState("");
   const errorRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
@@ -72,7 +89,7 @@ function AuthForm() {
         if (!isCurrent()) return;
         try {
           const data = isRegister
-            ? await register.mutateAsync(values)
+            ? await register.mutateAsync({ ...values, inviteToken })
             : await login.mutateAsync({
                 email: values.email,
                 password: values.password,
@@ -100,7 +117,7 @@ function AuthForm() {
     setServerError("");
     setShowPassword(false);
     setShowConfirmation(false);
-    setIsRegister(next);
+    setShowRegistration(next);
     login.reset();
     register.reset();
   }
@@ -113,9 +130,11 @@ function AuthForm() {
             <h1>{isRegister ? "Create your account" : "Welcome back"}</h1>
           </CardTitle>
           <CardDescription>
-            {isRegister
-              ? "Enter your details to get started"
-              : "Sign in to continue"}
+            {invited
+              ? "Use the email address your team manager invited."
+              : isRegister
+                ? "Enter your details to get started"
+                : "Sign in to continue"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -289,17 +308,29 @@ function AuthForm() {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            {isRegister
-              ? "Already have an account? "
-              : "Don’t have an account? "}
-            <Button
-              type="button"
-              variant="link"
-              disabled={busy}
-              onClick={() => changeMode(!isRegister)}
-            >
-              {isRegister ? "Sign in" : "Create account"}
-            </Button>
+            {invited || openRegistration ? (
+              <>
+                {isRegister
+                  ? "Already have an account? "
+                  : "Don’t have an account? "}
+                <Button
+                  type="button"
+                  variant="link"
+                  disabled={busy}
+                  onClick={() =>
+                    invited
+                      ? navigate("/login", { replace: true })
+                      : changeMode(!isRegister)
+                  }
+                >
+                  {isRegister ? "Sign in" : "Create account"}
+                </Button>
+              </>
+            ) : !policy.isPending ? (
+              <p className="text-muted-foreground">
+                Ask your team manager for an invitation.
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>

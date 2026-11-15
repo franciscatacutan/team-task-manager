@@ -11,6 +11,14 @@ import type {
   TeamRole,
 } from "../types/team.type";
 
+export async function createTeamInvitation(teamKey: string, email: string) {
+  const { data } = await apiClient.post<{ token: string; expiresAt: string }>(
+    `/teams/${teamKey}/invitations`,
+    { email },
+  );
+  return data;
+}
+
 export const getTeamMembers = async (
   teamKey: string,
   params: Omit<BaseQueryParams, "sort"> & {

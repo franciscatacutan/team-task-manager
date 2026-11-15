@@ -1,6 +1,9 @@
 /** One definition for query identities and invalidation prefixes. Full keys include every filter. */
 export const queryKeys = {
-  session: { current: ["me"] as const },
+  session: {
+    current: ["me"] as const,
+    registrationPolicy: ["registration-policy"] as const,
+  },
   users: {
     lists: ["users"] as const,
     list: (params: object) => ["users", params] as const,

@@ -130,14 +130,25 @@ afterEach(() => {
   authStorage.clearToken();
   window.localStorage.clear();
 });
-function mount(page: "auth" | "settings", seed = true) {
+function mount(page: "auth" | "settings", seed = true, loginPath = "/login") {
+  if (page === "auth") {
+    client.setQueryDefaults(queryKeys.session.registrationPolicy, {
+      staleTime: Infinity,
+    });
+    if (seed)
+      client.setQueryData(queryKeys.session.registrationPolicy, {
+        openRegistration: true,
+      });
+  }
   if (page === "settings") {
     authStorage.setToken("current-login");
     if (seed) client.setQueryData(queryKeys.session.current, user);
   }
   const view = () => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[page === "auth" ? "/login" : "/settings"]}>
+      <MemoryRouter
+        initialEntries={[page === "auth" ? loginPath : "/settings"]}
+      >
         <Routes>
           <Route path="/login" element={<AuthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
@@ -160,6 +171,9 @@ async function fillLogin(password = "legacy") {
 }
 async function registration() {
   await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+  await fillRegistration();
+}
+async function fillRegistration() {
   await userEvent.type(screen.getByLabelText(/^First name/), " Éva-Marie ");
   await userEvent.type(screen.getByLabelText(/^Last name/), "O'Neil");
   await fillLogin("Strong123!");
@@ -177,6 +191,37 @@ function held() {
 }
 
 describe("authentication feedback and validation", () => {
+  it("shows invitation guidance instead of a signup button with closed registration", async () => {
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      response(config, { openRegistration: false }),
+    );
+    mount("auth", false);
+    expect(
+      await screen.findByText("Ask your team manager for an invitation."),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Create account" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the invited signup form and submits the link token with the invited email", async () => {
+    const token = "A".repeat(43);
+    mount("auth", false, "/login#invite=" + token);
+    expect(
+      screen.getByRole("heading", { name: "Create your account" }),
+    ).toBeVisible();
+    await fillRegistration();
+    await userEvent.click(
+      within(screen.getByRole("form")).getByRole("button", {
+        name: "Create account",
+      }),
+    );
+    await screen.findByRole("heading", { name: "Teams destination" });
+    expect(body(requests("post")[0])).toMatchObject({
+      email: user.email,
+      inviteToken: token,
+    });
+  });
   it("authenticates a short existing password without transforming it", async () => {
     mount("auth");
     await fillLogin(" a ");

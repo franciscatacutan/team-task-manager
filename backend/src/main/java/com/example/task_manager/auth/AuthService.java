@@ -8,6 +8,8 @@ import com.example.task_manager.config.jwt.JwtService;
 import com.example.task_manager.exception.api.AuthException;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.EmailAlreadyInUseException;
+import com.example.task_manager.exception.api.ForbiddenException;
+import com.example.task_manager.team.TeamInvitationService;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
 import com.example.task_manager.user.entity.UserRole;
@@ -15,6 +17,7 @@ import io.jsonwebtoken.JwtException;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -34,15 +37,30 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
   private final RefreshTokenService refreshTokenService;
+  private final TeamInvitationService invitations;
+
+  @Value("${auth.open-registration:false}")
+  private boolean openRegistration;
+
+  public boolean isOpenRegistration() {
+    return openRegistration;
+  }
 
   @Transactional
   public AuthSession register(RegisterRequest request, String ipAddress, String userAgent) {
     String normalizedEmail = normalizeEmail(request.email());
+    if (request.inviteToken() == null && !openRegistration) {
+      throw new ForbiddenException("An invitation is required to create an account.");
+    }
 
     if (!request.password().equals(request.confirmPassword())) {
       throw new BadRequestInputException("Passwords do not match");
     }
 
+    var invitation =
+        request.inviteToken() == null
+            ? null
+            : invitations.requireValidInvitation(request.inviteToken(), normalizedEmail);
     if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
       throw new EmailAlreadyInUseException();
     }
@@ -55,11 +73,14 @@ public class AuthService {
     user.setPassword(passwordEncoder.encode(request.password()));
 
     try {
-      user = userRepository.save(user);
+      user = userRepository.saveAndFlush(user);
     } catch (DataIntegrityViolationException ex) {
       throw new EmailAlreadyInUseException();
     }
 
+    if (invitation != null) {
+      invitations.redeem(invitation, user);
+    }
     RefreshTokenService.RefreshTokenSession refreshTokenSession =
         refreshTokenService.createSession(user, ipAddress, userAgent);
     return new AuthSession(

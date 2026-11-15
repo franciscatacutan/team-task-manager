@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.Map;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
@@ -26,6 +27,13 @@ public class AuthController {
 
   @Value("${frontend.url}")
   private String frontendUrl;
+
+  @GetMapping("/registration")
+  public ResponseEntity<Map<String, Boolean>> registrationPolicy() {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(Map.of("openRegistration", authService.isOpenRegistration()));
+  }
 
   /** Registers a new user. */
   @PostMapping("/register")

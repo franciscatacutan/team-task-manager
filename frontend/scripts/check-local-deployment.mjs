@@ -139,9 +139,19 @@ for (const firstName of ["Alice", "Bob"]) {
     lastName: "Local",
     password: `Local1!${randomUUID()}`,
   };
+  let inviteToken;
+  if (!development) {
+    const invitation = await call(`/api/teams/${team.json.key}/invitations`, {
+      method: "POST",
+      token: administrator.json.token,
+      body: { email: account.email },
+    });
+    assert.equal(invitation.status, 201);
+    inviteToken = invitation.json.token;
+  }
   const registered = await call("/api/auth/register", {
     method: "POST",
-    body: { ...account, confirmPassword: account.password },
+    body: { ...account, confirmPassword: account.password, inviteToken },
   });
   assert.equal(registered.status, 201);
   accounts.push({ ...account, id: registered.json.user.userId });

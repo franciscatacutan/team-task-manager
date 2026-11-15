@@ -14,12 +14,21 @@ export const login = async (payload: { email: string; password: string }) => {
   });
 };
 
+export async function getRegistrationPolicy(signal: AbortSignal) {
+  const { data } = await apiClient.get<{ openRegistration: boolean }>(
+    "/auth/registration",
+    { signal },
+  );
+  return data;
+}
+
 export const register = async (payload: {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
+  inviteToken?: string;
 }) => {
   return browserSession.authenticate(async () => {
     const { data } = await apiClient.post<AuthResponse>(
