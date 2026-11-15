@@ -25,6 +25,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -72,6 +76,69 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(1))
         .andExpect(jsonPath("$.content[0].taskNumber").value(1));
+  }
+
+  @Test
+  void concurrentCreationsInTheSameProjectKeepAllTasksAndDistinctNumbers() throws Exception {
+    var admin = user(UserRole.USER, TeamRole.ADMIN);
+    var assignee = user(UserRole.USER, TeamRole.MEMBER);
+    String adminAuth = TestFixtures.authorization(jwt, sessions, admin);
+    int count = 6;
+    var ready = new CountDownLatch(count);
+    var start = new CountDownLatch(1);
+    List<Future<Integer>> creations = new ArrayList<>();
+    try (var executor = Executors.newFixedThreadPool(count)) {
+      try {
+        for (int index = 0; index < count; index++) {
+          String name = "Parallel task " + index;
+          String auth = index % 2 == 0 ? ownerAuth : adminAuth;
+          creations.add(
+              executor.submit(
+                  () -> {
+                    ready.countDown();
+                    assertThat(start.await(10, TimeUnit.SECONDS)).isTrue();
+                    String response =
+                        create(name, TaskPriority.MEDIUM, auth, assignee.getId())
+                            .andExpect(status().isCreated())
+                            .andExpect(jsonPath("$.name").value(name))
+                            .andReturn()
+                            .getResponse()
+                            .getContentAsString();
+                    return JsonPath.read(response, "$.taskNumber");
+                  }));
+        }
+        assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+      } finally {
+        start.countDown();
+      }
+      List<Integer> taskNumbers = new ArrayList<>();
+      for (Future<Integer> creation : creations) {
+        taskNumbers.add(creation.get(20, TimeUnit.SECONDS));
+      }
+      assertThat(taskNumbers).containsExactlyInAnyOrder(2, 3, 4, 5, 6, 7);
+    }
+
+    mvc.perform(get(tasksPath()).header("Authorization", ownerAuth))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(count + 1));
+    assertThat(
+            jdbc.queryForObject(
+                """
+                select count(*) from activity_events
+                where project_id = ? and event_type = 'TASK_CREATED'
+                """,
+                Long.class,
+                workspace.project().getId()))
+        .isEqualTo(count);
+    mvc.perform(
+            get("/api/notifications")
+                .header("Authorization", TestFixtures.authorization(jwt, sessions, assignee)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(count));
+
+    create("After concurrent writes", TaskPriority.MEDIUM)
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.taskNumber").value(8));
   }
 
   @Test
@@ -725,9 +792,14 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
   }
 
   private ResultActions create(String name, TaskPriority priority) throws Exception {
+    return create(name, priority, ownerAuth, workspace.owner().getId());
+  }
+
+  private ResultActions create(
+      String name, TaskPriority priority, String authorization, UUID assigneeId) throws Exception {
     return mvc.perform(
         post(tasksPath())
-            .header("Authorization", ownerAuth)
+            .header("Authorization", authorization)
             .contentType(MediaType.APPLICATION_JSON)
             .content(
                 "{\"name\":\""
@@ -735,7 +807,7 @@ class TaskConsistencyIntegrationTest extends PostgresIntegrationTest {
                     + "\",\"priority\":\""
                     + priority.name()
                     + "\",\"assigneeId\":\""
-                    + workspace.owner().getId()
+                    + assigneeId
                     + "\",\"plannedStartDate\":\"2026-01-01T00:00:00Z\",\"plannedDueDate\":\"2026-01-02T00:00:00Z\"}"));
   }
 

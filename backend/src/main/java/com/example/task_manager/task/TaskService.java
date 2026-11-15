@@ -89,8 +89,9 @@ public class TaskService {
 
     TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
+    // Hold the project row lock until the task and its next number commit together.
     ProjectEntity project =
-        projectAuthorizationService.requireActiveProject(projectKey, team.getId());
+        projectAuthorizationService.requireActiveProjectForUpdate(projectKey, team.getId());
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
     Instant plannedStart = planningCalendar.parse(request.plannedStartDate());

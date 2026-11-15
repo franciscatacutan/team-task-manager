@@ -20,6 +20,12 @@ public class ProjectAuthorizationService {
         .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
   }
 
+  public ProjectEntity requireActiveProjectForUpdate(String projectKey, UUID teamId) {
+    return projectRepository
+        .findForUpdateByKeyAndTeamIdAndDeletedAtIsNull(projectKey, teamId)
+        .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+  }
+
   /** Ensure project exist Return an existing project */
   public ProjectEntity requireProject(String projectKey, String teamKey) {
     return projectRepository

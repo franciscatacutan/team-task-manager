@@ -2,6 +2,7 @@ package com.example.task_manager.project;
 
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.project.entity.ProjectStatus;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
@@ -25,6 +27,10 @@ public interface ProjectRepository
   Optional<ProjectEntity> findByIdAndTeamId(UUID projectId, UUID teamId);
 
   Optional<ProjectEntity> findByKeyAndTeamIdAndDeletedAtIsNull(String projectKey, UUID teamId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<ProjectEntity> findForUpdateByKeyAndTeamIdAndDeletedAtIsNull(
+      String projectKey, UUID teamId);
 
   boolean existsByKey(String projectKey);
 
