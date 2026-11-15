@@ -1,11 +1,8 @@
 import type { UserRole } from "../../users/types/userRole";
-import type {
-  ActivityDetails,
-  ActivityType,
-} from "../../../common/types/activity.types";
+import type { ActivityRecord } from "../../../common/types/activity.types";
 
 export interface Team {
-  id: string;
+  key: string;
   name: string;
   description?: string;
   owner?: User;
@@ -19,6 +16,20 @@ export interface Team {
   deletedAt?: string | null;
   isDeleted?: boolean;
 }
+
+export interface FailedMember {
+  userId: string;
+  reason: string;
+  code: string;
+}
+
+export interface MemberBatchResult<T> {
+  success: T[];
+  failed: FailedMember[];
+}
+
+export type AddMembersResult = MemberBatchResult<TeamMember>;
+export type RemoveMembersResult = MemberBatchResult<string>;
 
 export interface AddMembersInput {
   members: { userId: string; role: "ADMIN" | "MEMBER" }[];
@@ -39,7 +50,7 @@ export interface TeamMember {
   lastName: string;
   email: string;
   teamRole: NullableTeamRole;
-  globalRole: UserRole;
+  globalRole?: UserRole;
   joinedAt: string;
 }
 
@@ -50,26 +61,7 @@ type User = {
   email: string;
 };
 
-type Project = {
-  id: string;
-  title: string;
-};
-
-type Task = {
-  id: string;
-  title: string;
-};
-
-export type TeamActivity = {
-  id: string;
-  message: string;
-  type: ActivityType;
-  details: ActivityDetails;
-  user: User;
-  project?: Project | null;
-  task?: Task | null;
-  createdAt: string;
-};
+export type TeamActivity = ActivityRecord;
 
 export interface TeamMe {
   userId: string;

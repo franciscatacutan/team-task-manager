@@ -4,19 +4,19 @@ import type { Task } from "../types/task.types";
 import type { TaskPermissions } from "../utils/taskPermissions";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   task: Task;
   permissions: TaskPermissions;
 }
 
 export default function TaskDescription({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   task,
   permissions,
 }: Props) {
-  const updateTask = useUpdateTask(teamId, projectId, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <section className="space-y-2 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">
@@ -25,13 +25,14 @@ export default function TaskDescription({
       </div>
 
       <EditableField
-        value={task.description}
+        value={task.description ?? undefined}
         displayClassName="text-sm leading-7 text-foreground/90"
         placeholder="No Description Yet"
         multiline
+        allowEmpty
         maxLength={2000}
         inputClassName="text-sm leading-7 text-foreground"
-        onSave={(value) => updateTask.mutate({ description: value })}
+        onSave={(value) => updateTask.mutateAsync({ description: value })}
         disabled={!permissions.canEditTaskDetails}
       />
     </section>

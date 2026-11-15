@@ -1,10 +1,12 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
 
 import { getProjectAuditLogs } from "../api/projectApi";
 
 export const useProjectAuditLogs = (
-  teamId: string,
-  projectId: string,
+  teamKey: string,
+  projectKey: string,
   params: {
     page?: number;
     size?: number;
@@ -12,16 +14,14 @@ export const useProjectAuditLogs = (
   },
 ) => {
   return useQuery({
-    queryKey: [
-      "project-audit-logs",
-      teamId,
-      projectId,
-      params.page,
-      params.size,
-      params.sort,
-    ],
-    queryFn: () => getProjectAuditLogs(teamId, projectId, params),
-    enabled: Boolean(teamId && projectId),
-    placeholderData: keepPreviousData,
+    queryKey: queryKeys.projects.audit(teamKey, projectKey, params),
+    queryFn: () => getProjectAuditLogs(teamKey, projectKey, params),
+    enabled: Boolean(teamKey && projectKey),
+    placeholderData: (data, previous) =>
+      keepPreviousDataInScope(
+        data,
+        previous,
+        queryKeys.projects.audits(teamKey, projectKey),
+      ),
   });
 };

@@ -1,12 +1,23 @@
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { useState } from "react";
+import QueryFailure from "@/common/components/QueryFailure";
+import {
+  useNavigate,
+  useOutletContext,
+  useParams,
+  useSearchParams,
+} from "react-router";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import ProjectAssigneeFilter from "@/features/tasks/components/ProjectAssigneeFilter";
+import { isTaskPriority } from "@/features/tasks/constants/task.constants";
+import type { TaskQueryParams } from "@/features/tasks/types/task.types";
 
 import { useProject } from "../hooks/useProject";
 
 import TaskBoard from "../../tasks/components/TaskBoard";
-import TaskModal from "../../tasks/components/TaskModal";
+import { TaskModal } from "@/features/tasks";
 
 import type { Task } from "../../tasks/types/task.types";
+import { getTaskPermissions } from "../../tasks/utils/taskPermissions";
 import {
   isTaskStatus,
   TASK_LIST_SORT_OPTIONS,
@@ -35,19 +46,30 @@ import {
   DELETED_FILTER,
   type DeletedFilter,
 } from "../../../common/types/deletedFilter.types";
-import { getUserFromToken } from "../../users/api/userApi";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useProjectInsights } from "../hooks/useProjectInsights";
 import { BASE_SORT_OPTIONS } from "@/common/constants/sort.constants";
 import Toolbar from "@/common/components/toolbar/ToolBar";
-import { TASK_STATUS_FILTER } from "@/features/tasks/constants/taksFilter.constants";
+import { PROJECT_TASK_FILTERS } from "@/features/tasks/constants/taksFilter.constants";
 import type { SortField, SortOrder } from "@/common/types/sort.types";
 import { Pagination } from "@/common/components/pagination/Pagination";
 import type { WorkspaceOutletContext } from "@/layout/workspace/WorkspaceLayout";
 
+const projectViews = ["board", "list", "activity", "insights"] as const;
+type ProjectView = (typeof projectViews)[number];
+
+function isProjectView(value: string | null): value is ProjectView {
+  return projectViews.some((view) => view === value);
+}
+
+function getPaginationOptions(view: ProjectView) {
+  return view === "list" ? [10, 20, 40] : [12, 24, 36];
+}
+
 export default function ProjectDetails() {
-  const { teamId, projectId } = useParams<{
-    teamId: string;
-    projectId: string;
+  const { teamKey, projectKey } = useParams<{
+    teamKey: string;
+    projectKey: string;
   }>();
 
   const navigate = useNavigate();
@@ -55,28 +77,43 @@ export default function ProjectDetails() {
   // ---------------- STATE ----------------
   const [open, setOpen] = useState(false);
 
-  const [view, setView] = useState<"board" | "list">("board");
-
-  const getPaginationOptions = (type: "board" | "list") =>
-    type === "board" ? [12, 24, 36] : [10, 20, 40];
-
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState<number>(getPaginationOptions("board")[0]);
-
-  const [search, setSearch] = useState("");
-
-  const [sortField, setSortField] = useState<SortField>("lastActivityAt");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  const [statusFilter, setStatusFilter] = useState<TaskStatus[]>([]);
-
-  const [deletedFilter, setDeletedFilter] = useState<DeletedFilter>("ACTIVE");
+  const [params, setParams] = useSearchParams();
+  const requestedView = params.get("view");
+  const view = isProjectView(requestedView) ? requestedView : "board";
+  const sizes = getPaginationOptions(view);
+  const requestedSize = Number(params.get("size"));
+  const size = sizes.includes(requestedSize) ? requestedSize : sizes[0];
+  const requestedPage = Number(params.get("page"));
+  const page =
+    Number.isInteger(requestedPage) &&
+    requestedPage >= 0 &&
+    requestedPage * size <= 2_147_483_647
+      ? requestedPage
+      : 0;
+  const search = params.get("q") ?? "";
+  const requestedSort = params.get("sort");
+  const sortField =
+    requestedSort === "taskNumber"
+      ? requestedSort
+      : (TASK_LIST_SORT_OPTIONS.find(({ value }) => value === requestedSort)
+          ?.value ?? "lastActivityAt");
+  const sortOrder: SortOrder = params.get("order") === "asc" ? "asc" : "desc";
+  const statusFilter = params.getAll("status").filter(isTaskStatus);
+  const priorityFilter = [
+    ...new Set(params.getAll("priority").filter(isTaskPriority)),
+  ];
+  const assigneeId = z.uuid().safeParse(params.get("assigneeId")).data;
+  const overdue = params.get("overdue") === "true";
+  const visibility = params.get("visibility");
+  const deletedFilter: DeletedFilter =
+    visibility === "DELETED" || visibility === "ALL" ? visibility : "ACTIVE";
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // ---------------- DERIVED ----------------
 
-  const debouncedSearch = useDebounce(search, 400);
+  const delayedSearch = useDebounce(search, 400);
+  const debouncedSearch = search.trim() ? delayedSearch : "";
   const sort = `${sortField},${sortOrder}`;
 
   const sortOptions =
@@ -84,6 +121,9 @@ export default function ProjectDetails() {
   const hasActiveFilters =
     search.trim().length > 0 ||
     statusFilter.length > 0 ||
+    priorityFilter.length > 0 ||
+    Boolean(assigneeId) ||
+    overdue ||
     deletedFilter !== "ACTIVE";
 
   // ---------------- DATA ----------------
@@ -92,133 +132,189 @@ export default function ProjectDetails() {
     data: project,
     isLoading,
     isError,
-  } = useProject(teamId || "", projectId || "");
+  } = useProject(teamKey || "", projectKey || "");
 
   const { team } = useOutletContext<WorkspaceOutletContext>();
-  const isWorkspaceReadOnly = Boolean(team.deletedAt);
-  const effectiveDeletedFilter: DeletedFilter = isWorkspaceReadOnly
+  const isProjectReadOnly = Boolean(
+    team.deletedAt || project?.deletedAt || project?.readOnly,
+  );
+  const effectiveDeletedFilter: DeletedFilter = isProjectReadOnly
     ? "ALL"
     : deletedFilter;
   const filterValues = {
     statusFilter,
+    priorityFilter,
+    overdueFilter: overdue ? "true" : undefined,
     deletedFilter: effectiveDeletedFilter,
+  };
+  const taskFilters: TaskQueryParams = {
+    search: debouncedSearch,
+    sort,
+    status: statusFilter,
+    deletedFilter: effectiveDeletedFilter,
+    ...(priorityFilter.length ? { priority: priorityFilter } : {}),
+    ...(assigneeId ? { assigneeId } : {}),
+    ...(overdue ? { overdue: true } : {}),
   };
 
   const {
-    data: projectInsights,
-    isLoading: isProjectInsightsLoading,
-    isError: isProjectInsightsError,
-  } = useProjectInsights(teamId || "", projectId || "");
-
-  const { data: tasksData, isLoading: isTasksLoading } = useTasks(
-    teamId || "",
-    projectId || "",
+    data: tasksData,
+    isLoading: isTasksLoading,
+    isError: tasksError,
+    refetch: retryTasks,
+    isFetching: fetchingTasks,
+    isPlaceholderData: isTaskPagePlaceholder,
+  } = useTasks(
+    teamKey || "",
+    projectKey || "",
     {
       page,
       size,
-      search: debouncedSearch,
-      sort,
-      status: statusFilter,
-      deletedFilter: effectiveDeletedFilter,
+      ...taskFilters,
     },
+    view === "list",
   );
 
   const tasks = tasksData?.content ?? [];
   const totalPages = tasksData?.totalPages ?? 0;
   const totalElements = tasksData?.totalElements ?? 0;
+  const lastTaskPage = Math.max(0, totalPages - 1);
+  const taskPageOutOfRange =
+    view === "list" &&
+    !isTaskPagePlaceholder &&
+    tasksData?.page === page &&
+    page > lastTaskPage;
 
-  const updateStatus = useUpdateTaskStatus(teamId || "", projectId || "");
+  useEffect(() => {
+    if (!taskPageOutOfRange || tasksError || fetchingTasks) return;
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (lastTaskPage > 0) next.set("page", String(lastTaskPage));
+        else next.delete("page");
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [taskPageOutOfRange, tasksError, fetchingTasks, lastTaskPage, setParams]);
+
+  const updateStatus = useUpdateTaskStatus(teamKey || "", projectKey || "");
 
   // ---------------- HANDLERS ----------------
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(0);
-  };
+  function updateView(values: Record<string, string | string[] | null>) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(values)) {
+          next.delete(key);
+          if (Array.isArray(value)) {
+            value.forEach((entry) => next.append(key, entry));
+          } else if (value) {
+            next.set(key, value);
+          }
+        }
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }
+
+  const handleSearchChange = (value: string) =>
+    updateView({ q: value, page: null });
 
   const handleViewChange = (value: string) => {
-    const nextView = value as "board" | "list";
-
-    setView(nextView);
-    setPage(0);
-    setSize(getPaginationOptions(nextView)[0]);
+    if (isProjectView(value))
+      updateView({ view: value, page: null, size: null });
   };
 
-  const handleSort = (field: SortField) => {
-    setSortField((prevField) => {
-      if (prevField === field) {
-        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-        return prevField;
-      }
-
-      setSortOrder("desc");
-      return field;
+  const handleSort = (field: SortField) =>
+    updateView({
+      sort: field,
+      order: sortField === field && sortOrder === "desc" ? "asc" : null,
+      page: null,
     });
 
-    setPage(0);
-  };
-
-  const handleToggleSortOrder = () => {
-    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    setPage(0);
-  };
+  const handleToggleSortOrder = () =>
+    updateView({ order: sortOrder === "desc" ? "asc" : null, page: null });
 
   const handleFilterChange = (key: string, value: string | string[]) => {
-    setPage(0);
-
     if (key === "statusFilter") {
       const statuses = Array.isArray(value) ? value : value ? [value] : [];
-      setStatusFilter(statuses.filter(isTaskStatus));
-    }
-
-    if (key === "deletedFilter") {
-      setDeletedFilter(
-        (typeof value === "string" && value
-          ? value
-          : "ACTIVE") as DeletedFilter,
-      );
+      updateView({ status: statuses.filter(isTaskStatus), page: null });
+    } else if (key === "priorityFilter") {
+      const priorities = Array.isArray(value) ? value : [value];
+      updateView({ priority: priorities.filter(isTaskPriority), page: null });
+    } else if (key === "overdueFilter") {
+      updateView({ overdue: value === "true" ? value : null, page: null });
+    } else if (key === "deletedFilter") {
+      updateView({
+        visibility: value === "DELETED" || value === "ALL" ? value : null,
+        page: null,
+      });
     }
   };
 
-  const handleClearFilters = () => {
-    setSearch("");
-    setStatusFilter([]);
-    setDeletedFilter("ACTIVE");
-    setPage(0);
-  };
+  const handleClearFilters = () =>
+    updateView({
+      q: null,
+      status: null,
+      priority: null,
+      assigneeId: null,
+      overdue: null,
+      visibility: null,
+      page: null,
+    });
 
-  function handleStatusChange(taskId: string, status: TaskStatus) {
-    updateStatus.mutate({
-      taskId,
+  function handleStatusChange(
+    taskNumber: number,
+    status: TaskStatus,
+    checkCurrent = false,
+  ) {
+    return updateStatus.mutateAsync({
+      taskNumber,
       status,
+      ...(checkCurrent ? { checkCurrent: true } : {}),
     });
   }
 
   // ---------------- PERMISSIONS ----------------
 
-  const user = getUserFromToken();
-  const { data: teamMe } = useTeamMe(teamId || "");
+  const { user } = useAuth();
+  const membership = useTeamMe(teamKey || "");
+  const teamMe = membership.isError ? undefined : membership.data;
 
   const permissions = getProjectPermissions({
     globalRole: user?.role,
     teamRole: teamMe?.role,
-    isReadOnly: isWorkspaceReadOnly,
+    isReadOnly: isProjectReadOnly,
   });
+
+  const visibleView =
+    view === "insights" && !permissions.canViewInsights ? "board" : view;
+  const showInsights = Boolean(
+    project && !isError && visibleView === "insights",
+  );
+  const {
+    data: projectInsights,
+    isLoading: isProjectInsightsLoading,
+    isError: isProjectInsightsError,
+    refetch: retryProjectInsights,
+  } = useProjectInsights(teamKey || "", projectKey || "", showInsights);
 
   // ------------------ FILTERS ------------------
   const filterConfig = permissions.canViewDeleteTask
-    ? [...TASK_STATUS_FILTER, ...DELETED_FILTER]
-    : TASK_STATUS_FILTER;
+    ? [...PROJECT_TASK_FILTERS, ...DELETED_FILTER]
+    : PROJECT_TASK_FILTERS;
 
   const filters = {
     config: filterConfig,
     values: filterValues,
     onChange: handleFilterChange,
-    onDeletedChange: setDeletedFilter,
     onClear: handleClearFilters,
   };
 
-  if (!teamId || !projectId) {
+  if (!teamKey || !projectKey) {
     return (
       <ProjectDetailsState
         title="Invalid project"
@@ -241,28 +337,29 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-6 ">
+    <div className="list-layout flex flex-col h-full min-h-0 gap-6 ">
       <ProjectHeader
-        teamId={teamId}
+        teamKey={teamKey}
         project={project}
         onCreateTask={() => setOpen(true)}
-        onProjectDeleted={() => navigate(`/teams/${teamId}/projects`)}
+        onProjectDeleted={() => navigate(`/teams/${teamKey}/projects`)}
         permissions={permissions}
       />
       <CreateTaskModal
-        teamId={teamId}
-        projectId={projectId}
-        open={open}
+        teamKey={teamKey}
+        projectKey={projectKey}
+        open={open && !isProjectReadOnly}
         onOpenChange={setOpen}
       />
-      {(view == "board" || view == "list") && (
+      {(visibleView === "board" || visibleView === "list") && (
         <Toolbar
           search={{
+            label: "Search tasks",
             value: search,
             onChange: handleSearchChange,
           }}
           filters={filters}
-          view={view}
+          view={visibleView}
           sort={{
             field: sortField,
             order: sortOrder,
@@ -270,15 +367,24 @@ export default function ProjectDetails() {
             onFieldChange: handleSort,
             onToggleOrder: handleToggleSortOrder,
           }}
-        />
+        >
+          <ProjectAssigneeFilter
+            key={JSON.stringify([teamKey, projectKey])}
+            teamKey={teamKey}
+            projectKey={projectKey}
+            deletedFilter={effectiveDeletedFilter}
+            value={assigneeId}
+            onChange={(value) => updateView({ assigneeId: value, page: null })}
+          />
+        </Toolbar>
       )}
 
       <Tabs
-        value={view}
+        value={visibleView}
         onValueChange={handleViewChange}
-        className="flex flex-col flex-1 min-h-0"
+        className="list-fill flex min-w-0 flex-col flex-1 min-h-0"
       >
-        <TabsList className="inline-flex gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm">
+        <TabsList className="grid group-data-horizontal/tabs:h-auto w-full grid-cols-2 gap-1 rounded-xl border border-border/60 bg-background/70 p-1 shadow-sm sm:inline-flex sm:w-fit">
           <TabsTrigger
             value="board"
             className=" flex items-center gap-2 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:bg-muted transition-all "
@@ -303,7 +409,7 @@ export default function ProjectDetails() {
             Activity
           </TabsTrigger>
 
-          {permissions.canManageProject && (
+          {permissions.canViewInsights && (
             <TabsTrigger
               value="insights"
               className=" flex items-center gap-2 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground hover:bg-muted transition-all "
@@ -313,50 +419,73 @@ export default function ProjectDetails() {
             </TabsTrigger>
           )}
         </TabsList>
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="list-fill flex min-w-0 flex-col flex-1 min-h-0">
           <TabsContent
             value="board"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
             <TaskBoard
-              teamId={teamId}
-              projectId={projectId}
-              params={{
-                search: debouncedSearch,
-                status: statusFilter[0],
-                sort,
-                deletedFilter: effectiveDeletedFilter,
-              }}
+              isUpdating={updateStatus.isPending}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              params={taskFilters}
+              canChangeTaskStatus={(task) =>
+                !updateStatus.isPending &&
+                getTaskPermissions({
+                  globalRole: user?.role,
+                  teamRole: teamMe?.role,
+                  userId: teamMe?.userId,
+                  assigneeId: task.assignedUser?.id,
+                  supportId: task.supportUser?.id,
+                  isReadOnly:
+                    isProjectReadOnly ||
+                    Boolean(task.deletedAt || task.readOnly),
+                }).canChangeStatus
+              }
               onStatusChange={handleStatusChange}
               onOpenTask={setSelectedTask}
             />
           </TabsContent>
           <TabsContent
             value="list"
-            className="flex flex-col flex-1 min-h-0 gap-3"
+            className="list-fill flex flex-col flex-1 min-h-0 gap-3"
           >
-            <TaskList
-              tasks={tasks}
-              isLoading={isTasksLoading}
-              teamId={teamId}
-              projectId={projectId}
-              onCreateTask={() => setOpen(true)}
-              onClearFilters={handleClearFilters}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-              canCreateTask={permissions.canCreateTask}
-              hasActiveFilters={hasActiveFilters}
-            />
+            {tasksError ? (
+              <QueryFailure
+                label="tasks"
+                onRetry={retryTasks}
+                pending={fetchingTasks}
+              />
+            ) : (
+              <TaskList
+                tasks={tasks}
+                isLoading={
+                  isTasksLoading ||
+                  taskPageOutOfRange ||
+                  (Boolean(isTaskPagePlaceholder) && tasks.length === 0)
+                }
+                teamKey={teamKey}
+                projectKey={projectKey}
+                onCreateTask={() => setOpen(true)}
+                onClearFilters={handleClearFilters}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                canCreateTask={permissions.canCreateTask}
+                hasActiveFilters={hasActiveFilters}
+              />
+            )}
           </TabsContent>
           <TabsContent
             value="activity"
-            className="flex flex-col flex-1 min-h-0"
+            className="list-fill flex min-w-0 flex-col flex-1 min-h-0"
           >
             <ProjectActivity
-              teamId={teamId}
-              projectId={projectId}
-              onOpenTask={(taskId) => setSelectedTask({ id: taskId } as Task)}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              onOpenTask={(taskNumber) =>
+                setSelectedTask({ taskNumber: taskNumber } as Task)
+              }
             />
           </TabsContent>
           <TabsContent value="insights" className="flex flex-col min-h-0 gap-4">
@@ -364,35 +493,43 @@ export default function ProjectDetails() {
               insights={projectInsights}
               isLoading={isProjectInsightsLoading}
               isError={isProjectInsightsError}
+              onRetry={retryProjectInsights}
+              overdueTasksPath="?view=list&overdue=true"
             />
             <div className="pb-4">
-              <ProjectObservabilityLogs teamId={teamId} projectId={projectId} />
+              <ProjectObservabilityLogs
+                teamKey={teamKey}
+                projectKey={projectKey}
+              />
             </div>
           </TabsContent>
         </div>
       </Tabs>
-      {(view == "board" || view == "list") && totalPages > 1 && (
-        <Pagination
-          page={page}
-          size={size}
-          totalPages={totalPages}
-          totalElements={totalElements}
-          onPageChange={setPage}
-          onSizeChange={(size) => {
-            setPage(0);
-            setSize(size);
-          }}
-          options={getPaginationOptions(view)}
-        />
-      )}
+      {view === "list" &&
+        !tasksError &&
+        !taskPageOutOfRange &&
+        totalPages > 1 && (
+          <Pagination
+            page={page}
+            size={size}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            onPageChange={(nextPage) => updateView({ page: String(nextPage) })}
+            onSizeChange={(nextSize) =>
+              updateView({ page: null, size: String(nextSize) })
+            }
+            options={sizes}
+          />
+        )}
       {selectedTask && (
         <TaskModal
+          isWorkspaceReadOnly={isProjectReadOnly}
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onTaskDeleted={() => setSelectedTask(null)}
-          taskId={selectedTask.id}
-          teamId={teamId}
-          projectId={projectId}
+          taskNumber={selectedTask.taskNumber}
+          teamKey={teamKey}
+          projectKey={projectKey}
         />
       )}
     </div>

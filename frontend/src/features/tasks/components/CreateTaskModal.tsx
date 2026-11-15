@@ -1,38 +1,36 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
+import CreationDialog from "@/common/components/CreationDialog";
 import { CreateTaskForm } from "./CreateTaskForm";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateTaskModal({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   open,
   onOpenChange,
 }: Props) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" aria-describedby={undefined}>
-        <DialogHeader>
-          <DialogTitle>Create Task</DialogTitle>
-        </DialogHeader>
-
+    <CreationDialog
+      key={JSON.stringify([teamKey, projectKey])}
+      open={open}
+      onOpenChange={onOpenChange}
+      name="Create Task"
+      description="Add a task to this project. Required fields are marked with *."
+    >
+      {(onPendingChange) => (
         <CreateTaskForm
-          teamId={teamId}
-          projectId={projectId}
+          teamKey={teamKey}
+          projectKey={projectKey}
+          onPendingChange={onPendingChange}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />
-      </DialogContent>
-    </Dialog>
+      )}
+    </CreationDialog>
   );
 }

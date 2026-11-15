@@ -1,5 +1,7 @@
-import { Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { requestError } from "@/common/utils/requestError";
+import { Archive } from "lucide-react";
+import { useNavigate } from "react-router";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,18 +17,20 @@ import { Button } from "../../../components/ui/button";
 import { useDeleteTeam } from "../hooks/UseDeleteTeam";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   teamName: string;
   onTeamDeleted?: () => void;
 }
 
-export function DeleteTeam({ teamId, teamName, onTeamDeleted }: Props) {
+export function DeleteTeam({ teamKey, teamName, onTeamDeleted }: Props) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const deleteTeamMutation = useDeleteTeam();
 
   const handleDelete = () => {
-    deleteTeamMutation.mutate(teamId, {
+    deleteTeamMutation.mutate(teamKey, {
       onSuccess: () => {
+        setOpen(false);
         if (onTeamDeleted) {
           onTeamDeleted();
         }
@@ -36,43 +40,67 @@ export function DeleteTeam({ teamId, teamName, onTeamDeleted }: Props) {
   };
 
   return (
-    <AlertDialog>
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!deleteTeamMutation.isPending) {
+          if (value) deleteTeamMutation.reset();
+          setOpen(value);
+        }
+      }}
+    >
       <AlertDialogTrigger asChild>
         <Button
+          aria-label="Archive team"
           variant="ghost"
           className=" hover:text-destructive hover:bg-destructive/10"
         >
-          <Trash2 className="h-4 w-4" />
+          <Archive className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Team</AlertDialogTitle>
+          <AlertDialogTitle>Archive team</AlertDialogTitle>
 
           <AlertDialogDescription className="space-y-2">
-            <span>This action cannot be undone.</span>
+            <span>
+              The team and its active projects and tasks will become read-only.
+              Workflow status and history will be preserved.
+            </span>
 
             <span className="block">
-              You are about to delete
+              You are about to archive
               <span className="font-medium text-foreground">"{teamName}"</span>.
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {deleteTeamMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {requestError(deleteTeamMutation.error)}
+          </p>
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel size="sm" variant="outline">
+          <AlertDialogCancel
+            disabled={deleteTeamMutation.isPending}
+            size="sm"
+            variant="outline"
+          >
             Cancel
           </AlertDialogCancel>
 
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={(event) => {
+              event.preventDefault();
+              handleDelete();
+            }}
             disabled={deleteTeamMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             variant="destructive"
             size="sm"
           >
-            {deleteTeamMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteTeamMutation.isPending ? "Archiving..." : "Archive"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

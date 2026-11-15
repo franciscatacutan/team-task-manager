@@ -1,5 +1,7 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowUpDown, Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
+import ArchiveBadge from "@/common/components/ArchiveBadge";
+import { Link, useNavigate } from "react-router";
+import { ArrowUpDown } from "lucide-react";
 
 import type { Task } from "../types/task.types";
 import {
@@ -23,8 +25,8 @@ import { Button } from "@/components/ui/button";
 interface Props {
   tasks: Task[];
   isLoading?: boolean;
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   onCreateTask?: () => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
@@ -51,8 +53,8 @@ const SORT_COLUMNS = [
 export default function TaskList({
   tasks,
   isLoading,
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   onCreateTask,
   onClearFilters,
   hasActiveFilters,
@@ -63,16 +65,16 @@ export default function TaskList({
 }: Props) {
   const navigate = useNavigate();
 
-  function openTask(taskId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}/tasks/${taskId}`);
+  function openTask(taskNumber: number) {
+    navigate(`/teams/${teamKey}/projects/${projectKey}/tasks/${taskNumber}`);
   }
 
   return (
     <>
       {isLoading ? (
-        <div className="flex flex-col">
-          <div className="flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col">
+          <div className="list-frame flex h-full min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Tasks table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
@@ -104,13 +106,14 @@ export default function TaskList({
           </div>
         </div>
       ) : tasks.length > 0 ? (
-        <div className="flex flex-col h-full min-h-0">
-          <div className="flex flex-1 overflow-auto rounded-2xl border border-border/60 bg-background shadow-sm">
-            <Table>
+        <div className="list-fill flex flex-col h-full min-h-0">
+          <div className="list-frame flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background shadow-sm">
+            <Table scrollLabel="Tasks table">
               <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
                 <TableRow className="hover:bg-transparent">
                   {SORT_COLUMNS.map(([field, label]) => (
                     <SortHeader
+                      key={field}
                       label={label}
                       field={field as SortField}
                       sortField={sortField}
@@ -124,8 +127,8 @@ export default function TaskList({
               <TableBody>
                 {tasks.map((task) => (
                   <TableRow
-                    key={task.id}
-                    onClick={() => openTask(task.id)}
+                    key={task.taskNumber}
+                    onClick={() => openTask(task.taskNumber)}
                     className="group cursor-pointer transition-colors hover:bg-muted/40"
                   >
                     <TableCell className="px-4 py-3">
@@ -135,7 +138,16 @@ export default function TaskList({
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="max-w-72 font-medium truncate group-hover:text-primary transition-colors">
-                        {task.title}
+                        <Link
+                          to={`/teams/${teamKey}/projects/${projectKey}/tasks/${task.taskNumber}`}
+                          onClick={(event) => event.stopPropagation()}
+                          className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {task.name}
+                        </Link>
+                        <ArchiveBadge
+                          archived={Boolean(task.deletedAt || task.readOnly)}
+                        />
                       </div>
                       <div className="mt-1 max-w-96 truncate text-xs text-muted-foreground">
                         {task.description?.trim() || "No description"}
@@ -173,10 +185,12 @@ export default function TaskList({
                     </TableCell>
 
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(task.plannedStartDate)}
+                      {formatDate(
+                        task.plannedStartDay ?? task.plannedStartDate,
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-                      {formatDate(task.plannedDueDate)}
+                      {formatDate(task.plannedDueDay ?? task.plannedDueDate)}
                     </TableCell>
 
                     <TableCell className="px-4 py-3 text-sm text-muted-foreground">
@@ -213,10 +227,11 @@ export default function TaskList({
               Clear filters
             </Button>
           ) : canCreateTask ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateTask}>
-              <Plus className="h-4 w-4" />
-              Create task
-            </Button>
+            <CreateButton
+              entity="task"
+              className="mt-6"
+              onClick={onCreateTask}
+            />
           ) : null}
         </div>
       )}

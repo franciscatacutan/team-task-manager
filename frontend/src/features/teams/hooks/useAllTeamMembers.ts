@@ -1,3 +1,4 @@
+import { queryKeys } from "@/common/query/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import { getTeamMembers } from "../api/teamMemberApi";
@@ -7,11 +8,11 @@ interface Params {
   search?: string;
 }
 
-export const useAllTeamMembers = (teamId: string, params?: Params) => {
+export const useAllTeamMembers = (teamKey: string, params?: Params) => {
   return useQuery<PageResponse<TeamMember>>({
-    queryKey: ["allTeamMembers", teamId, params?.search],
+    queryKey: queryKeys.teams.allMemberList(teamKey, params?.search),
     queryFn: () =>
-      getTeamMembers(teamId, {
+      getTeamMembers(teamKey, {
         page: 0,
         size: 1000,
         search: params?.search,

@@ -1,30 +1,29 @@
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Dialog,
-} from "../../../components/ui/dialog";
+import CreationDialog from "@/common/components/CreationDialog";
 import { CreateProjectForm } from "./CreateProjectForm";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateProjectModal({ teamId, open, onOpenChange }: Props) {
+export function CreateProjectModal({ teamKey, open, onOpenChange }: Props) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" aria-describedby={undefined}>
-        <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-        </DialogHeader>
+    <CreationDialog
+      key={teamKey}
+      open={open}
+      onOpenChange={onOpenChange}
+      name="Create Project"
+      description="Create a project in this team. Required fields are marked with *."
+    >
+      {(onPendingChange) => (
         <CreateProjectForm
-          teamId={teamId}
+          teamKey={teamKey}
+          onPendingChange={onPendingChange}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />
-      </DialogContent>
-    </Dialog>
+      )}
+    </CreationDialog>
   );
 }

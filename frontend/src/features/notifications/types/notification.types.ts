@@ -36,9 +36,9 @@ export type AppNotification = {
   title: string;
   body: string;
   targetPath: string;
-  teamId?: string | null;
-  projectId?: string | null;
-  taskId?: string | null;
+  teamKey?: string | null;
+  projectKey?: string | null;
+  taskNumber?: string | null;
   actor: NotificationActor;
   read: boolean;
   readAt?: string | null;
@@ -47,4 +47,16 @@ export type AppNotification = {
 
 export type UnreadNotificationCount = {
   unreadCount: number;
+};
+
+export type NotificationInboxParams = {
+  page: number;
+  size: number;
+  unreadOnly: boolean;
+  sort: string;
+};
+
+export type NotificationDestination = {
+  available: boolean;
+  targetPath: string | null;
 };

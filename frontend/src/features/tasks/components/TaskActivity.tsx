@@ -1,34 +1,31 @@
-import { useState } from "react";
+import { useActivityFeedState } from "@/common/hooks/useActivityFeedState";
 import { useTaskActivities } from "../hooks/useTaskActivities";
-import {
-  ActivityFeed,
-  type ActivityFeedGroupBy,
-} from "../../../common/components/activity/ActivityFeed";
+import { ActivityFeed } from "../../../common/components/activity/ActivityFeed";
 import { cn } from "../../../lib/utils";
 
 interface Props {
-  teamId: string;
-  projectId: string;
-  taskId: string;
+  teamKey: string;
+  projectKey: string;
+  taskNumber: number;
   className?: string;
 }
 
 export default function TaskActivity({
-  teamId,
-  projectId,
-  taskId,
+  teamKey,
+  projectKey,
+  taskNumber,
   className,
 }: Props) {
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("createdAt,desc");
-  const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
-
-  const { data, isLoading } = useTaskActivities(teamId, projectId, taskId, {
-    page,
-    size: 10,
-    sort,
-  });
+  const feed = useActivityFeedState(
+    JSON.stringify([teamKey, projectKey, taskNumber]),
+  );
+  const { data, isPending, isError, isFetching, refetch } = useTaskActivities(
+    teamKey,
+    projectKey,
+    taskNumber,
+    feed.params,
+  );
+  feed.recoverPage(!isError ? data?.totalPages : undefined);
 
   return (
     <section
@@ -52,27 +49,21 @@ export default function TaskActivity({
           }}
           data={{
             items: data?.content ?? [],
-            isLoading,
-            page: data?.page ?? page,
+            isLoading: isPending || feed.searching,
+            isError: isError && !feed.searching,
+            isFetching: isFetching || feed.searching,
+            onRetry: refetch,
+            page: data?.page ?? feed.params.page,
             totalPages: data?.totalPages ?? 0,
             totalElements: data?.totalElements ?? 0,
           }}
           controls={{
-            search,
-            sort,
-            groupBy,
+            ...feed.controls,
             groupByOptions: [
               { value: "date", label: "Date" },
               { value: "person", label: "Person" },
               { value: "type", label: "Type" },
             ],
-            onSearchChange: setSearch,
-            onSortChange: (value) => {
-              setSort(value);
-              setPage(0);
-            },
-            onGroupByChange: setGroupBy,
-            onPageChange: setPage,
           }}
           behavior={{
             interactiveItems: false,

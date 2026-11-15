@@ -2,13 +2,12 @@ package com.example.task_manager.project.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-/**
- * Enum representing the status of a project.
- */
+/** Enum representing the status of a project. */
 public enum ProjectStatus {
   ACTIVE,
   ON_HOLD,
   COMPLETED,
+  // Legacy persisted value only. New archives use deletedAt and preserve workflow status.
   DELETED;
 
   // Converts a string to a Project Status enum, ignoring case

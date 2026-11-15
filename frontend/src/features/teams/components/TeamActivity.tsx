@@ -1,32 +1,20 @@
-import { useState } from "react";
+import { useActivityFeedState } from "@/common/hooks/useActivityFeedState";
 
-import {
-  ActivityFeed,
-  type ActivityFeedGroupBy,
-} from "../../../common/components/activity/ActivityFeed";
+import { ActivityFeed } from "../../../common/components/activity/ActivityFeed";
 import { useTeamActivities } from "../hooks/useTeamActivities";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 export default function TeamActivity() {
-  const { teamId } = useParams<{ teamId: string }>();
+  const { teamKey } = useParams<{ teamKey: string }>();
 
   const navigate = useNavigate();
 
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("createdAt,desc");
-  const [groupBy, setGroupBy] = useState<ActivityFeedGroupBy>("date");
-
-  const { data, isLoading } = useTeamActivities(teamId || "", {
-    page: page,
-    size: 1000,
-    search,
-    sort,
-  });
-
-  function openTask(projectId: string, taskId: string) {
-    navigate(`/teams/${teamId}/projects/${projectId}/tasks/${taskId}`);
-  }
+  const feed = useActivityFeedState(JSON.stringify([teamKey]));
+  const { data, isPending, isError, isFetching, refetch } = useTeamActivities(
+    teamKey || "",
+    feed.params,
+  );
+  feed.recoverPage(!isError ? data?.totalPages : undefined);
 
   return (
     <ActivityFeed
@@ -37,15 +25,16 @@ export default function TeamActivity() {
       }}
       data={{
         items: data?.content ?? [],
-        isLoading,
-        page: data?.page ?? page,
+        isLoading: isPending || feed.searching,
+        isError: isError && !feed.searching,
+        isFetching: isFetching || feed.searching,
+        onRetry: refetch,
+        page: data?.page ?? feed.params.page,
         totalPages: data?.totalPages ?? 0,
         totalElements: data?.totalElements ?? 0,
       }}
       controls={{
-        search,
-        sort,
-        groupBy,
+        ...feed.controls,
         groupByOptions: [
           { value: "date", label: "Date" },
           { value: "project", label: "Project" },
@@ -53,22 +42,10 @@ export default function TeamActivity() {
           { value: "type", label: "Type" },
           { value: "task", label: "Task" },
         ],
-        onSearchChange: (value) => {
-          setSearch(value);
-          setPage(0);
-        },
-        onSortChange: (value) => {
-          setSort(value);
-          setPage(0);
-        },
-        onGroupByChange: setGroupBy,
-        onPageChange: setPage,
       }}
       behavior={{
         onOpenTask: (item) => {
-          if ("project" in item && item.project?.id && item.task?.id) {
-            openTask(item.project.id, item.task.id);
-          }
+          if (item.targetPath) navigate(item.targetPath);
         },
       }}
     />

@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router";
 import type { JSX } from "react/jsx-dev-runtime";
 import { useAuth } from "../features/auth/hooks/useAuth";
 
@@ -13,7 +13,11 @@ export default function PublicRoute({ children }: Props) {
   const { isAuthenticated, isBootstrapping } = useAuth();
 
   if (isBootstrapping) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Checking session...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Checking session...
+      </div>
+    );
   }
 
   if (isAuthenticated) {

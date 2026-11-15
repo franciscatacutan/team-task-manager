@@ -2,8 +2,8 @@ package com.example.task_manager.common;
 
 import java.util.List;
 
-/* 
-* Common DTO for returning pagination format
+/*
+ * Common DTO for returning pagination format
  */
 public record PageResponse<T>(
     List<T> content,
@@ -12,5 +12,4 @@ public record PageResponse<T>(
     long totalElements,
     int totalPages,
     boolean first,
-    boolean last) {
-}
+    boolean last) {}

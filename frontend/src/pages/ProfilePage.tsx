@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { useUser } from "@/features/users/hooks/useUser";
 import { useTeams } from "@/features/teams/hooks/useTeams";
@@ -16,7 +16,7 @@ import {
 import type { SortField, SortOrder } from "@/common/types/sort.types";
 import { useDebounce } from "@/common/hooks/useDebounce";
 import { TEAM_LIST_SORT_OPTIONS } from "@/features/teams/constants/team.constants";
-import { getUserFromToken } from "@/features/users/api/userApi";
+import { canEditUser } from "@/features/users/utils/userPermissions";
 import TeamsList from "@/features/teams/components/TeamsList";
 import { Pagination } from "@/common/components/pagination/Pagination";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -62,8 +62,14 @@ export default function ProfilePage() {
 
   const profileUserId = userId ?? currentUser?.id ?? "";
 
-  const { data: profileUser, isLoading: profileUserLoading } =
-    useUser(profileUserId);
+  const {
+    data: profileData,
+    isLoading: profileUserLoading,
+    isError: profileError,
+    isFetching: profileFetching,
+    refetch: refetchProfile,
+  } = useUser(profileUserId);
+  const profileUser = profileError ? undefined : profileData;
 
   const isLoading = currentUserLoading || profileUserLoading;
 
@@ -74,14 +80,17 @@ export default function ProfilePage() {
     isError,
     isLoading: teamLoading,
     refetch,
-  } = useTeams({
-    page,
-    size,
-    search: debouncedSearch,
-    sort,
-    deletedFilter,
-    memberId: profileUserId,
-  });
+  } = useTeams(
+    {
+      page,
+      size,
+      search: debouncedSearch,
+      sort,
+      deletedFilter,
+      memberId: profileUserId,
+    },
+    Boolean(profileUser),
+  );
 
   const teams = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
@@ -129,17 +138,16 @@ export default function ProfilePage() {
     }
   };
 
-  const openTeam = (teamId: string) => {
-    navigate(`/teams/${teamId}`);
+  const openTeam = (teamKey: string) => {
+    navigate(`/teams/${teamKey}`);
   };
 
   // ---------------- PERMISSIONS ----------------
 
-  const user = getUserFromToken();
-
-  const permissions = getBasePermissions(user?.role);
-
-  const canEditProfile = isSelf || permissions.canManageUsers;
+  const permissions = getBasePermissions(currentUser?.role);
+  const canEditProfile = Boolean(
+    currentUser && profileUser && canEditUser(currentUser, profileUser),
+  );
 
   // ------------------ FILTERS ------------------
   const filters = permissions.canManageTeams
@@ -152,29 +160,58 @@ export default function ProfilePage() {
       }
     : undefined;
 
+  if (profileError)
+    return (
+      <section role="alert" className="m-6 rounded-2xl border p-6 space-y-3">
+        <h1 className="text-xl font-semibold">Profile unavailable</h1>
+        <p>
+          This profile could not be loaded. It may not exist, or you may no
+          longer have access.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={profileFetching}
+            onClick={() => void refetchProfile()}
+          >
+            {profileFetching ? "Retrying profile..." : "Retry profile"}
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/teams">Open workspace</Link>
+          </Button>
+        </div>
+      </section>
+    );
+
   return (
-    <div className="min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
+    <div className="list-page min-h-0 h-full bg-muted/10 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="list-layout flex flex-1 flex-col h-full mx-auto max-w-7xl gap-6">
         <ProfileHeader
           user={profileUser}
           isLoading={isLoading}
           isSelf={isSelf}
           canEditProfile={canEditProfile}
           teamCount={totalElements}
-          editUser={(user) => setEditingUser(user || null)}
+          editUser={(user) => {
+            if (user && currentUser && canEditUser(currentUser, user))
+              setEditingUser(user);
+          }}
           onEditUser={() => setEditOpen(true)}
         />
 
-        <EditUserDialog
-          currentUser={currentUser!}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          user={editingUser}
-          allowEmailEdit={!isSelf && permissions.canManageUsers}
-        />
+        {currentUser && (
+          <EditUserDialog
+            currentUser={currentUser}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            user={editingUser}
+            allowEmailEdit={!isSelf && permissions.canManageUsers}
+          />
+        )}
 
         <Toolbar
           search={{
+            label: "Search teams",
             value: search,
             onChange: handleSearchChange,
           }}
@@ -188,7 +225,7 @@ export default function ProfilePage() {
             onToggleOrder: handleToggleSortOrder,
           }}
         />
-        <section className="flex min-h-0 h-full flex-col gap-3 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">
+        <section className="list-fill flex min-h-0 h-full flex-col gap-3 rounded-2xl border border-border/60 bg-background p-5 shadow-xs">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="text-lg">Teams</div>

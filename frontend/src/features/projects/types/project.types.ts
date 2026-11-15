@@ -1,18 +1,21 @@
+import type { ActivityRecord } from "@/common/types/activity.types";
 export type ProjectStatus = "ACTIVE" | "ON_HOLD" | "COMPLETED" | "DELETED";
 
 export type Project = {
-  id: string;
+  key: string;
   name: string;
   description?: string;
   status: ProjectStatus;
-  teamId: string;
+  teamKey: string;
   owner?: User;
   createdBy: User;
   completedBy?: User | null;
   deletedBy?: User | null;
   lastActivityAt: string;
   plannedStartDate?: string;
-  plannedDueDate?: string;
+  plannedDueDate?: string | null;
+  plannedStartDay?: string | null;
+  plannedDueDay?: string | null;
   actualStartDate?: string;
   actualCompletionDate?: string;
   createdAt: string;
@@ -20,6 +23,7 @@ export type Project = {
   statusChangedAt?: string;
   deletedAt?: string | null;
   deleted?: boolean;
+  readOnly?: boolean;
 };
 
 type User = {
@@ -30,22 +34,11 @@ type User = {
   email: string;
 };
 
-type Task = {
-  id: string;
-  title: string;
-};
-
-export type ProjectActivity = {
-  id: string;
-  message: string;
-  user: User;
-  task: Task;
-  createdAt: string;
-};
+export type ProjectActivity = ActivityRecord;
 
 export interface UpdateProjectInput {
   name?: string;
   description?: string;
   plannedStartDate?: string;
-  plannedDueDate?: string;
+  plannedDueDate?: string | null;
 }

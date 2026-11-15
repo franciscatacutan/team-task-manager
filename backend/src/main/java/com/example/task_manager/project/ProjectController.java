@@ -1,24 +1,5 @@
 package com.example.task_manager.project;
 
-import java.util.UUID;
-
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.example.task_manager.common.PageResponse;
 import com.example.task_manager.project.dto.ChangeProjectStatusRequest;
 import com.example.task_manager.project.dto.CreateProjectRequest;
@@ -26,15 +7,32 @@ import com.example.task_manager.project.dto.ProjectActivityResponse;
 import com.example.task_manager.project.dto.ProjectResponse;
 import com.example.task_manager.project.dto.ProjectSearchRequest;
 import com.example.task_manager.project.dto.UpdateProjectDetailsRequest;
-
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-/**
- * REST controller for managing projects.
- */
+/** REST controller for managing projects. */
 @RestController
-@RequestMapping("/api/teams/{teamId}/projects")
+@RequestMapping("/api/teams/{teamKey}/projects")
 @RequiredArgsConstructor
 public class ProjectController {
 
@@ -42,70 +40,84 @@ public class ProjectController {
 
   @PostMapping
   public ResponseEntity<ProjectResponse> createProject(
-      @PathVariable UUID teamId,
+      @PathVariable String teamKey,
       @Valid @RequestBody CreateProjectRequest request,
       Authentication authentication) {
 
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(projectService.createProject(teamId, request, authentication.getName()));
-
+        .body(projectService.createProject(teamKey, request, authentication.getName()));
   }
 
-  @PatchMapping("/{projectId}")
+  @PatchMapping("/{projectKey}")
   public ResponseEntity<ProjectResponse> updateProject(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       @Valid @RequestBody UpdateProjectDetailsRequest request,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.updateProject(teamId, projectId, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.updateProject(teamKey, projectKey, request, authentication.getName()));
   }
 
-  @DeleteMapping("/{projectId}")
+  @DeleteMapping("/{projectKey}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public ResponseEntity<Void> deleteProject(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       Authentication authentication) {
 
-    projectService.deleteProject(teamId, projectId, authentication.getName());
+    projectService.deleteProject(teamKey, projectKey, authentication.getName());
 
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping
   public ResponseEntity<PageResponse<ProjectResponse>> getProjects(
-      @PathVariable UUID teamId,
+      @PathVariable String teamKey,
       @ModelAttribute ProjectSearchRequest request,
-      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PageableDefault(page = 0, size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
 
-    return ResponseEntity.ok(projectService.getProjects(teamId, request, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjects(teamKey, request, pageable, authentication));
   }
 
-  @GetMapping("/{projectId}")
+  @GetMapping("/{projectKey}")
   public ResponseEntity<ProjectResponse> getProjectById(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       Authentication authentication) {
-    return ResponseEntity.ok(projectService.getProjectById(teamId, projectId, authentication));
+    return ResponseEntity.ok(projectService.getProjectById(teamKey, projectKey, authentication));
   }
 
-  @GetMapping("/{projectId}/activities")
+  @GetMapping("/{projectKey}/activities")
   public ResponseEntity<PageResponse<ProjectActivityResponse>> getProjectActivities(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
-      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
+      @RequestParam(required = false) String search,
+      @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
       Authentication authentication) {
-    return ResponseEntity.ok(projectService.getProjectActivities(teamId, projectId, pageable, authentication));
+    return ResponseEntity.ok(
+        projectService.getProjectActivities(teamKey, projectKey, search, pageable, authentication));
   }
 
-  @PatchMapping("/{projectId}/status")
+  @PatchMapping("/{projectKey}/status")
   public ResponseEntity<ProjectResponse> changeStatus(
-      @PathVariable UUID teamId,
-      @PathVariable UUID projectId,
+      @PathVariable String teamKey,
+      @PathVariable String projectKey,
       @Valid @RequestBody ChangeProjectStatusRequest request,
       Authentication authentication) {
-    return ResponseEntity.ok(projectService.changeProjectStatus(teamId, projectId, request, authentication.getName()));
+    return ResponseEntity.ok(
+        projectService.changeProjectStatus(teamKey, projectKey, request, authentication.getName()));
+  }
+
+  @ExceptionHandler(ProjectCompletionConfirmationRequired.class)
+  public ProblemDetail handleCompletionConfirmation(ProjectCompletionConfirmationRequired warning) {
+    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, warning.getMessage());
+    problem.setType(URI.create("urn:ttm:project-completion-confirmation-required"));
+    problem.setProperty("openTaskCount", warning.openTaskCount());
+    return problem;
   }
 }

@@ -1,20 +1,29 @@
 package com.example.task_manager.activity;
 
-import java.util.UUID;
+import com.example.task_manager.activity.entity.ActivityEventEntity;
 import java.time.Instant;
-
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
-import com.example.task_manager.activity.entity.ActivityEventEntity;
+/** Repository for unified activity events. */
+public interface ActivityEventRepository
+    extends JpaRepository<ActivityEventEntity, UUID>,
+        JpaSpecificationExecutor<ActivityEventEntity> {
+  /** Only to-one associations are fetched, so paging and counts stay in the database. */
+  @Override
+  @EntityGraph(attributePaths = {"user", "task", "task.project", "task.project.team"})
+  Page<ActivityEventEntity> findAll(
+      @Nullable Specification<ActivityEventEntity> spec, Pageable pageable);
 
-/**
- * Repository for unified activity events.
- */
-public interface ActivityEventRepository extends JpaRepository<ActivityEventEntity, UUID> {
-  @Query("""
+  @Query(
+      """
       SELECT e FROM ActivityEventEntity e
       LEFT JOIN e.task t
       WHERE e.taskId = :taskId
@@ -24,13 +33,15 @@ public interface ActivityEventRepository extends JpaRepository<ActivityEventEnti
 
   Page<ActivityEventEntity> findByTaskId(UUID taskId, Pageable pageable);
 
-  @Query("""
+  @Query(
+      """
       SELECT e FROM ActivityEventEntity e
       WHERE e.projectId = :projectId
       """)
   Page<ActivityEventEntity> findByProjectId(UUID projectId, Pageable pageable);
 
-  @Query("""
+  @Query(
+      """
       SELECT e FROM ActivityEventEntity e
       WHERE e.teamId = :teamId
       """)

@@ -1,44 +1,51 @@
 package com.example.task_manager.config.jwt;
 
+import com.example.task_manager.auth.RefreshTokenService;
+import com.example.task_manager.config.security.CustomUserDetailsService;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.task_manager.config.security.CustomUserDetailsService;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-
-/**
- * Filter for handling JWT authentication.
- */
+/** Filter for handling JWT authentication. */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
   private final JwtService jwtService;
+  private final RefreshTokenService refreshTokenService;
   private final CustomUserDetailsService userDetailsService;
   private final AuthenticationEntryPoint authenticationEntryPoint;
 
   /**
-   * Processes incoming requests and validates JWT tokens.
-   * Validate the token and set authentication in the security context
-   * 
+   * Credential/refresh endpoints validate their own credentials. Logout also handles its optional
+   * bearer directly for idempotent revocation. An expired access token must not prevent refresh or
+   * logout from reaching that validation.
    */
   @Override
-  protected void doFilterInternal(HttpServletRequest request,
-      HttpServletResponse response,
-      FilterChain filterChain)
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    return request.getRequestURI().startsWith("/api/auth/");
+  }
+
+  /**
+   * Processes incoming requests and validates JWT tokens. Validate the token and set authentication
+   * in the security context
+   */
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
 
     String authHeader = request.getHeader("Authorization");
@@ -54,34 +61,36 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       return;
     }
 
+    JwtService.AccessTokenClaims claims;
     try {
-      String email = jwtService.extractEmail(token);
-
-      if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-        if (jwtService.isTokenValid(token, userDetails)) {
-          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-              userDetails, null, userDetails.getAuthorities());
-
-          authToken.setDetails(
-              new WebAuthenticationDetailsSource().buildDetails(request));
-          SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-      }
-
-      filterChain.doFilter(request, response);
-    } catch (AuthenticationException ex) {
-      SecurityContextHolder.clearContext();
-      authenticationEntryPoint.commence(request, response, ex);
-    } catch (RuntimeException ex) {
+      claims = jwtService.parseAccessToken(token);
+    } catch (JwtException | IllegalArgumentException ex) {
       SecurityContextHolder.clearContext();
       authenticationEntryPoint.commence(
-          request,
-          response,
-          new org.springframework.security.authentication.BadCredentialsException(
-              "Invalid or expired bearer token",
-              ex));
+          request, response, new BadCredentialsException("Invalid or expired bearer token", ex));
+      return;
     }
+
+    if (SecurityContextHolder.getContext().getAuthentication() == null) {
+      UserDetails userDetails;
+      try {
+        userDetails = userDetailsService.loadUserByUsername(claims.email());
+      } catch (UsernameNotFoundException ex) {
+        SecurityContextHolder.clearContext();
+        authenticationEntryPoint.commence(request, response, ex);
+        return;
+      }
+
+      if (userDetails.isEnabled()
+          && claims.matches(userDetails)
+          && refreshTokenService.isSessionActive(claims.sessionId(), claims.userId())) {
+        UsernamePasswordAuthenticationToken authToken =
+            new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+      }
+    }
+    filterChain.doFilter(request, response);
   }
 }

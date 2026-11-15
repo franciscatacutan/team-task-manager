@@ -2,6 +2,7 @@ export type SortField =
   | "createdAt"
   | "createdBy"
   | "name"
+  | "taskNumber"
   | "assignee"
   | "support"
   | "lastActivityAt"
@@ -11,7 +12,6 @@ export type SortField =
   | "plannedDueDate"
   | "actualStartDate"
   | "actualCompletionDate"
-  | "title"
   | "role"
   | "priority"
   | "deletedAt";

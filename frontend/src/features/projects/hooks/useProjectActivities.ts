@@ -1,34 +1,23 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/common/query/queryKeys";
+import { useQuery } from "@tanstack/react-query";
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { getProjectActivities } from "../api/projectApi";
 
 export const useProjectActivity = (
-  teamId: string,
-  projectId: string,
-  params: {
-    page?: number;
-    size?: number;
-    search?: string;
-    sort?: string;
-  },
+  teamKey: string,
+  projectKey: string,
+  params: ActivityQueryParams = {},
 ) => {
+  const request = {
+    page: params.page ?? 0,
+    size: params.size ?? 10,
+    search: params.search?.trim() ?? "",
+    sort: params.sort ?? "createdAt,desc",
+  };
   return useQuery({
-    queryKey: [
-      "projectActivities",
-      teamId,
-      projectId,
-      params.page,
-      params.size,
-      params.search,
-      params.sort,
-    ],
-    queryFn: async () =>
-      getProjectActivities(teamId, projectId, {
-        page: params.page,
-        size: params.size,
-        search: params.search,
-        sort: params.sort,
-      }),
-
-    placeholderData: keepPreviousData,
+    queryKey: queryKeys.projects.activity(teamKey, projectKey, request),
+    queryFn: ({ signal }) =>
+      getProjectActivities(teamKey, projectKey, request, signal),
+    enabled: Boolean(teamKey && projectKey),
   });
 };

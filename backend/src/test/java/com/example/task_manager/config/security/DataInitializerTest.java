@@ -5,8 +5,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.task_manager.user.UserRepository;
+import com.example.task_manager.user.entity.UserEntity;
 import java.lang.reflect.Field;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,20 +16,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.example.task_manager.user.UserRepository;
-import com.example.task_manager.user.entity.UserEntity;
-
 @ExtendWith(MockitoExtension.class)
 class DataInitializerTest {
 
-  @Mock
-  private UserRepository userRepository;
+  @Mock private UserRepository userRepository;
 
-  @Mock
-  private PasswordEncoder passwordEncoder;
+  @Mock private PasswordEncoder passwordEncoder;
 
-  @InjectMocks
-  private DataInitializer dataInitializer;
+  @InjectMocks private DataInitializer dataInitializer;
 
   @Test
   void shouldSkipBootstrapCreationWhenCredentialsAreMissing() throws Exception {

@@ -6,6 +6,8 @@ export interface ProjectInsights {
   status: ProjectStatus;
   plannedStartDate?: string | null;
   plannedDueDate?: string | null;
+  plannedStartDay?: string | null;
+  plannedDueDay?: string | null;
   actualStartDate?: string | null;
   actualCompletionDate?: string | null;
   generatedAt: string;

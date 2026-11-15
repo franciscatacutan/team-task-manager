@@ -1,7 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ComponentPropsWithoutRef } from "react";
 import { cn } from "../../lib/utils";
 
-interface Props {
+interface Props extends Omit<
+  ComponentPropsWithoutRef<"textarea">,
+  "value" | "onChange" | "onInput"
+> {
   value: string;
   onChange: (value: string) => void;
   onFocus?: () => void;
@@ -19,6 +22,7 @@ export default function AutoResizeTextareaBase({
   maxLength = 500,
   disabled,
   className,
+  ...props
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -39,6 +43,7 @@ export default function AutoResizeTextareaBase({
 
   return (
     <textarea
+      {...props}
       ref={textareaRef}
       value={value}
       disabled={disabled}

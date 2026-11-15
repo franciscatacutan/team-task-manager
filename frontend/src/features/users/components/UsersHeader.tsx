@@ -36,7 +36,7 @@ export default function UsersHeader({ users }: Props) {
             <CardHeader className="gap-2">
               <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <UsersRound className="h-3.5 w-3.5" />
-                Total users
+                Users on this page
               </div>
               <CardTitle className="text-xl font-semibold">
                 {users.length}
@@ -51,7 +51,7 @@ export default function UsersHeader({ users }: Props) {
             <CardHeader className="gap-2">
               <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Shield className="h-3.5 w-3.5" />
-                Global admins
+                Global admins on this page
               </div>
               <CardTitle className="text-xl font-semibold">
                 {countByRole(users, "ADMIN")}
@@ -66,7 +66,7 @@ export default function UsersHeader({ users }: Props) {
             <CardHeader className="gap-2">
               <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Shield className="h-3.5 w-3.5" />
-                Super admins
+                Super admins on this page
               </div>
               <CardTitle className="text-xl font-semibold">
                 {countByRole(users, "SUPER_ADMIN")}

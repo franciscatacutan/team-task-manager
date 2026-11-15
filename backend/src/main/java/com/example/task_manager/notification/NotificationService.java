@@ -1,21 +1,13 @@
 package com.example.task_manager.notification;
 
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.common.WorkspacePaths;
+import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ResourceNotFoundException;
+import com.example.task_manager.notification.dto.NotificationDestinationResponse;
 import com.example.task_manager.notification.dto.NotificationResponse;
 import com.example.task_manager.notification.dto.UnreadNotificationCountResponse;
 import com.example.task_manager.notification.entity.NotificationEntity;
@@ -25,19 +17,36 @@ import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
 import com.example.task_manager.team.TeamMemberRepository;
+import com.example.task_manager.team.TeamRepository;
+import com.example.task_manager.team.entity.TeamEntity;
 import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.entity.UserEntity;
-
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final NotificationDestinationResolver destinations;
   private final UserRepository userRepository;
   private final TeamMemberRepository teamMemberRepository;
+  private final TeamRepository teamRepository;
   private final TaskRepository taskRepository;
   private final ProjectRepository projectRepository;
 
@@ -46,17 +55,31 @@ public class NotificationService {
     Map<UUID, UserEntity> recipients = resolveRecipients(event);
 
     recipients.values().stream()
-        .filter(recipient -> event.getUser() == null || !recipient.getId().equals(event.getUser().getId()))
+        .filter(
+            recipient ->
+                event.getUser() == null || !recipient.getId().equals(event.getUser().getId()))
+        .filter(recipient -> canReceiveActivity(event, recipient))
         .map(recipient -> buildNotification(event, recipient))
         .forEach(notificationRepository::save);
   }
 
   @Transactional(readOnly = true)
-  public PageResponse<NotificationResponse> getInbox(String recipientEmail, Pageable pageable) {
-    Page<NotificationEntity> page = notificationRepository.findInbox(recipientEmail, pageable);
+  public PageResponse<NotificationResponse> getInbox(
+      String recipientEmail, boolean unreadOnly, Pageable pageable) {
+    Page<NotificationEntity> page =
+        notificationRepository.findInbox(
+            getUserByEmail(recipientEmail).getId(), unreadOnly, inboxPage(pageable));
 
+    var routes = pageRoutes(page.getContent());
     return new PageResponse<>(
-        page.map(this::toResponse).getContent(),
+        page.map(
+                item ->
+                    toResponse(
+                        item,
+                        item.getActivityEvent() == null
+                            ? item.getTargetPath()
+                            : routes.getOrDefault(item.getActivityEvent().getId(), "/teams")))
+            .getContent(),
         page.getNumber(),
         page.getSize(),
         page.getTotalElements(),
@@ -65,15 +88,47 @@ public class NotificationService {
         page.isLast());
   }
 
+  private Pageable inboxPage(Pageable pageable) {
+    Set<String> allowed = Set.of("createdAt", "readAt", "id", "type", "title");
+    Sort sort =
+        pageable.getSort().isSorted()
+            ? pageable.getSort()
+            : Sort.by(Sort.Direction.DESC, "createdAt");
+    for (Sort.Order order : sort) {
+      if (!allowed.contains(order.getProperty())) {
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
+      }
+    }
+    // Notifications created in the same transaction can share a timestamp; break ties consistently.
+    if (sort.getOrderFor("id") == null) sort = sort.and(Sort.by(Sort.Direction.DESC, "id"));
+    return PageRequest.of(
+        pageable.isPaged() ? pageable.getPageNumber() : 0,
+        pageable.isPaged() ? pageable.getPageSize() : 12,
+        sort);
+  }
+
   @Transactional(readOnly = true)
   public UnreadNotificationCountResponse getUnreadCount(String recipientEmail) {
-    return new UnreadNotificationCountResponse(notificationRepository.countUnread(recipientEmail));
+    return new UnreadNotificationCountResponse(
+        notificationRepository.countUnread(getUserByEmail(recipientEmail).getId()));
+  }
+
+  @Transactional(readOnly = true)
+  public NotificationDestinationResponse getDestination(
+      UUID notificationId, String recipientEmail) {
+    NotificationEntity notification =
+        notificationRepository
+            .findOwned(notificationId, recipientEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+    return destinations.resolve(notification, getUserByEmail(recipientEmail));
   }
 
   @Transactional
   public NotificationResponse markRead(UUID notificationId, String recipientEmail) {
-    NotificationEntity notification = notificationRepository.findOwned(notificationId, recipientEmail)
-        .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
+    NotificationEntity notification =
+        notificationRepository
+            .findOwned(notificationId, recipientEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
     if (notification.getReadAt() == null) {
       notification.setReadAt(Instant.now());
@@ -86,7 +141,21 @@ public class NotificationService {
   public UnreadNotificationCountResponse markAllRead(String recipientEmail) {
     UserEntity recipient = getUserByEmail(recipientEmail);
     notificationRepository.markAllRead(recipient.getId(), Instant.now());
-    return getUnreadCount(recipientEmail);
+    return new UnreadNotificationCountResponse(
+        notificationRepository.countUnread(recipient.getId()));
+  }
+
+  private boolean canReceiveActivity(ActivityEventEntity event, UserEntity recipient) {
+    if (recipient.isArchived()) return false;
+    // The removal notice must reach its subject after the membership is deleted.
+    if (event.getEventType() == ActivityEventType.TEAM_MEMBER_REMOVED
+        && isSubjectRecipient(event.getDetails(), recipient)) {
+      return true;
+    }
+
+    // Keep archive notices for current members, even when the team is now archived.
+    // Stale assignment/ownership references alone must not grant notification access.
+    return teamMemberRepository.existsByTeamIdAndUserId(event.getTeamId(), recipient.getId());
   }
 
   private Map<UUID, UserEntity> resolveRecipients(ActivityEventEntity event) {
@@ -94,18 +163,21 @@ public class NotificationService {
     ActivityEventDetails details = event.getDetails();
 
     if (details != null && details.subjectUser() != null) {
-      userRepository.findById(details.subjectUser().id())
+      userRepository
+          .findById(details.subjectUser().id())
           .ifPresent(user -> addRecipient(recipients, user));
     }
 
     if (event.getTaskId() != null) {
-      taskRepository.findById(event.getTaskId())
+      taskRepository
+          .findById(event.getTaskId())
           .ifPresent(task -> addTaskRecipients(recipients, task));
       return recipients;
     }
 
     if (event.getProjectId() != null) {
-      projectRepository.findById(event.getProjectId())
+      projectRepository
+          .findById(event.getProjectId())
           .ifPresent(project -> addProjectRecipients(recipients, project));
       return recipients;
     }
@@ -136,9 +208,8 @@ public class NotificationService {
   }
 
   private boolean shouldNotifyTeamMembers(ActivityEventType eventType) {
-    return List.of(
-        ActivityEventType.TEAM_DELETED,
-        ActivityEventType.TEAM_OWNERSHIP_TRANSFERRED).contains(eventType);
+    return List.of(ActivityEventType.TEAM_DELETED, ActivityEventType.TEAM_OWNERSHIP_TRANSFERRED)
+        .contains(eventType);
   }
 
   private NotificationEntity buildNotification(ActivityEventEntity event, UserEntity recipient) {
@@ -178,81 +249,101 @@ public class NotificationService {
     boolean recipientIsSubject = isSubjectRecipient(details, recipient);
 
     return switch (event.getEventType()) {
-      case TEAM_MEMBER_ADDED -> new NotificationCopy(
-          recipientIsSubject ? "You were added to a team" : "Team member added",
-          recipientIsSubject
-              ? "%s added you to %s as %s.".formatted(actorName, team, roleName(details == null ? null : details.to()))
-              : "%s added %s to %s.".formatted(actorName, targetName(details), team));
-      case TEAM_MEMBER_REMOVED -> new NotificationCopy(
-          recipientIsSubject ? "You were removed from a team" : "Team member removed",
-          recipientIsSubject
-              ? "%s removed you from %s.".formatted(actorName, team)
-              : "%s removed %s from %s.".formatted(actorName, targetName(details), team));
-      case TEAM_MEMBER_ROLE_CHANGED -> new NotificationCopy(
-          recipientIsSubject ? "Your team role changed" : "Team role changed",
-          recipientIsSubject
-              ? "%s changed your role in %s to %s.".formatted(actorName, team,
-                  roleName(details == null ? null : details.to()))
-              : "%s changed %s's role in %s to %s.".formatted(actorName, targetName(details), team,
-                  roleName(details == null ? null : details.to())));
-      case TEAM_OWNERSHIP_TRANSFERRED -> new NotificationCopy(
-          recipientIsSubject ? "You are now the team owner" : "Team ownership transferred",
-          recipientIsSubject
-              ? "%s transferred ownership of %s to you.".formatted(actorName, team)
-              : "%s transferred ownership of %s.".formatted(actorName, team));
-      case TEAM_CREATED -> throw new UnsupportedOperationException("Unimplemented case: " + event.getEventType());
-      case TEAM_UPDATED -> new NotificationCopy(
-          "Team details updated",
-          "%s updated %s%s.".formatted(actorName, team, changedFieldsSuffix(details)));
-      case TEAM_DELETED -> new NotificationCopy(
-          "Team archived",
-          "%s archived %s.".formatted(actorName, team));
+      case TEAM_MEMBER_ADDED ->
+          new NotificationCopy(
+              recipientIsSubject ? "You were added to a team" : "Team member added",
+              recipientIsSubject
+                  ? "%s added you to %s as %s."
+                      .formatted(actorName, team, roleName(details == null ? null : details.to()))
+                  : "%s added %s to %s.".formatted(actorName, targetName(details), team));
+      case TEAM_MEMBER_REMOVED ->
+          new NotificationCopy(
+              recipientIsSubject ? "You were removed from a team" : "Team member removed",
+              recipientIsSubject
+                  ? "%s removed you from %s.".formatted(actorName, team)
+                  : "%s removed %s from %s.".formatted(actorName, targetName(details), team));
+      case TEAM_MEMBER_ROLE_CHANGED ->
+          new NotificationCopy(
+              recipientIsSubject ? "Your team role changed" : "Team role changed",
+              recipientIsSubject
+                  ? "%s changed your role in %s to %s."
+                      .formatted(actorName, team, roleName(details == null ? null : details.to()))
+                  : "%s changed %s's role in %s to %s."
+                      .formatted(
+                          actorName,
+                          targetName(details),
+                          team,
+                          roleName(details == null ? null : details.to())));
+      case TEAM_OWNERSHIP_TRANSFERRED ->
+          new NotificationCopy(
+              recipientIsSubject ? "You are now the team owner" : "Team ownership transferred",
+              recipientIsSubject
+                  ? "%s transferred ownership of %s to you.".formatted(actorName, team)
+                  : "%s transferred ownership of %s.".formatted(actorName, team));
+      case TEAM_CREATED ->
+          throw new UnsupportedOperationException("Unimplemented case: " + event.getEventType());
+      case TEAM_UPDATED ->
+          new NotificationCopy(
+              "Team details updated",
+              "%s updated %s%s.".formatted(actorName, team, changedFieldsSuffix(details)));
+      case TEAM_DELETED ->
+          new NotificationCopy("Team archived", "%s archived %s.".formatted(actorName, team));
 
-      case PROJECT_CREATED -> new NotificationCopy(
-          "New project created",
-          "%s created %s in %s.".formatted(actorName, project, team));
-      case PROJECT_UPDATED -> new NotificationCopy(
-          "Project details updated",
-          "%s updated %s%s.".formatted(actorName, project, changedFieldsSuffix(details)));
-      case PROJECT_STATUS_CHANGED -> new NotificationCopy(
-          "Project status changed",
-          "%s moved %s to %s.".formatted(actorName, project, statusName(details == null ? null : details.to())));
-      case PROJECT_DELETED -> new NotificationCopy(
-          "Project archived",
-          "%s archived %s.".formatted(actorName, project));
+      case PROJECT_CREATED ->
+          new NotificationCopy(
+              "New project created", "%s created %s in %s.".formatted(actorName, project, team));
+      case PROJECT_UPDATED ->
+          new NotificationCopy(
+              "Project details updated",
+              "%s updated %s%s.".formatted(actorName, project, changedFieldsSuffix(details)));
+      case PROJECT_STATUS_CHANGED ->
+          new NotificationCopy(
+              "Project status changed",
+              "%s moved %s to %s."
+                  .formatted(
+                      actorName, project, statusName(details == null ? null : details.to())));
+      case PROJECT_DELETED ->
+          new NotificationCopy("Project archived", "%s archived %s.".formatted(actorName, project));
 
-      case TASK_CREATED -> new NotificationCopy(
-          recipientIsSubject ? "New task assigned to you" : "New task created",
-          recipientIsSubject
-              ? "%s assigned you to %s in %s.".formatted(actorName, task, project)
-              : "%s created %s in %s.".formatted(actorName, task, project));
-      case TASK_ASSIGNEE_CHANGED -> new NotificationCopy(
-          recipientIsSubject ? "Task assigned to you" : "Task assignee changed",
-          recipientIsSubject
-              ? "%s assigned %s to you.".formatted(actorName, task)
-              : "%s changed the assignee for %s.".formatted(actorName, task));
-      case TASK_SUPPORT_ASSIGNED, TASK_SUPPORT_CHANGED -> new NotificationCopy(
-          recipientIsSubject ? "You were added as support" : "Task support changed",
-          recipientIsSubject
-              ? "%s added you as support on %s.".formatted(actorName, task)
-              : "%s updated support on %s.".formatted(actorName, task));
-      case TASK_SUPPORT_REMOVED -> new NotificationCopy(
-          recipientIsSubject ? "You were removed from support" : "Task support removed",
-          recipientIsSubject
-              ? "%s removed you from support on %s.".formatted(actorName, task)
-              : "%s removed support from %s.".formatted(actorName, task));
-      case TASK_COMMENTED -> new NotificationCopy(
-          "New comment on " + task,
-          "%s commented: %s".formatted(actorName, truncate(event.getMessage(), 180)));
-      case TASK_STATUS_CHANGED -> new NotificationCopy(
-          "Task status changed",
-          "%s moved %s to %s.".formatted(actorName, task, statusName(details == null ? null : details.to())));
-      case TASK_UPDATED -> new NotificationCopy(
-          "Task details updated",
-          "%s updated %s%s.".formatted(actorName, task, changedFieldsSuffix(details)));
-      case TASK_DELETED -> new NotificationCopy(
-          "Task archived",
-          "%s archived %s.".formatted(actorName, task));
+      case TASK_CREATED ->
+          new NotificationCopy(
+              recipientIsSubject ? "New task assigned to you" : "New task created",
+              recipientIsSubject
+                  ? "%s assigned you to %s in %s.".formatted(actorName, task, project)
+                  : "%s created %s in %s.".formatted(actorName, task, project));
+      case TASK_ASSIGNEE_CHANGED ->
+          new NotificationCopy(
+              recipientIsSubject ? "Task assigned to you" : "Task assignee changed",
+              recipientIsSubject
+                  ? "%s assigned %s to you.".formatted(actorName, task)
+                  : "%s changed the assignee for %s.".formatted(actorName, task));
+      case TASK_SUPPORT_ASSIGNED, TASK_SUPPORT_CHANGED ->
+          new NotificationCopy(
+              recipientIsSubject ? "You were added as support" : "Task support changed",
+              recipientIsSubject
+                  ? "%s added you as support on %s.".formatted(actorName, task)
+                  : "%s updated support on %s.".formatted(actorName, task));
+      case TASK_SUPPORT_REMOVED ->
+          new NotificationCopy(
+              recipientIsSubject ? "You were removed from support" : "Task support removed",
+              recipientIsSubject
+                  ? "%s removed you from support on %s.".formatted(actorName, task)
+                  : "%s removed support from %s.".formatted(actorName, task));
+      case TASK_COMMENTED ->
+          new NotificationCopy(
+              "New comment on " + task,
+              "%s commented: %s".formatted(actorName, truncate(event.getMessage(), 180)));
+      case TASK_STATUS_CHANGED ->
+          new NotificationCopy(
+              "Task status changed",
+              "%s moved %s to %s."
+                  .formatted(actorName, task, statusName(details == null ? null : details.to())));
+      case TASK_UPDATED ->
+          new NotificationCopy(
+              "Task details updated",
+              "%s updated %s%s.".formatted(actorName, task, changedFieldsSuffix(details)));
+      case TASK_DELETED ->
+          new NotificationCopy("Task archived", "%s archived %s.".formatted(actorName, task));
 
       default -> throw new IllegalArgumentException("Unexpected value: " + event.getEventType());
     };
@@ -302,13 +393,14 @@ public class NotificationService {
       return "";
     }
 
-    String fields = details.changes().stream()
-        .map(ActivityEventDetails.ActivityChange::label)
-        .filter(label -> label != null && !label.isBlank())
-        .distinct()
-        .limit(3)
-        .reduce((left, right) -> left + ", " + right)
-        .orElse("");
+    String fields =
+        details.changes().stream()
+            .map(ActivityEventDetails.ActivityChange::label)
+            .filter(label -> label != null && !label.isBlank())
+            .distinct()
+            .limit(3)
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("");
 
     return fields.isBlank() ? "" : " (" + fields + ")";
   }
@@ -340,41 +432,100 @@ public class NotificationService {
 
   private String resolveTargetPath(ActivityEventEntity event) {
     if (event.getTaskId() != null) {
-      return "/teams/%s/projects/%s/tasks/%s".formatted(
-          event.getTeamId(),
-          event.getProjectId(),
-          event.getTaskId());
+      return taskRepository
+          .findById(event.getTaskId())
+          .map(
+              task ->
+                  "/teams/%s/projects/%s/tasks/%d"
+                      .formatted(
+                          task.getProject().getTeam().getKey(),
+                          task.getProject().getKey(),
+                          task.getTaskNumber()))
+          .orElse("/teams");
     }
 
     if (event.getProjectId() != null) {
-      return "/teams/%s/projects/%s".formatted(
-          event.getTeamId(),
-          event.getProjectId());
+      return projectRepository
+          .findById(event.getProjectId())
+          .map(
+              project ->
+                  "/teams/%s/projects/%s".formatted(project.getTeam().getKey(), project.getKey()))
+          .orElse("/teams");
     }
 
-    if (isMembershipEvent(event.getEventType())) {
-      return "/teams/%s/members".formatted(event.getTeamId());
-    }
-
-    return "/teams/%s".formatted(event.getTeamId());
+    return teamRepository
+        .findById(event.getTeamId())
+        .map(
+            team ->
+                "/teams/%s%s"
+                    .formatted(
+                        team.getKey(), isMembershipEvent(event.getEventType()) ? "/members" : ""))
+        .orElse("/teams");
   }
 
   private boolean isMembershipEvent(ActivityEventType eventType) {
     return List.of(
-        ActivityEventType.TEAM_MEMBER_ADDED,
-        ActivityEventType.TEAM_MEMBER_REMOVED,
-        ActivityEventType.TEAM_MEMBER_ROLE_CHANGED,
-        ActivityEventType.TEAM_OWNERSHIP_TRANSFERRED).contains(eventType);
+            ActivityEventType.TEAM_MEMBER_ADDED,
+            ActivityEventType.TEAM_MEMBER_REMOVED,
+            ActivityEventType.TEAM_MEMBER_ROLE_CHANGED,
+            ActivityEventType.TEAM_OWNERSHIP_TRANSFERRED)
+        .contains(eventType);
+  }
+
+  private Map<UUID, String> pageRoutes(List<NotificationEntity> items) {
+    var events =
+        items.stream().map(NotificationEntity::getActivityEvent).filter(Objects::nonNull).toList();
+    var projectIds = new LinkedHashSet<UUID>();
+    var teamIds = new LinkedHashSet<UUID>();
+    for (var event : events) {
+      if (event.getTaskId() != null) continue;
+      if (event.getProjectId() != null) projectIds.add(event.getProjectId());
+      else if (event.getTeamId() != null) teamIds.add(event.getTeamId());
+    }
+    Map<UUID, ProjectEntity> projects = new LinkedHashMap<>();
+    if (!projectIds.isEmpty())
+      for (var project : projectRepository.findRouteProjects(projectIds))
+        projects.put(project.getId(), project);
+    Map<UUID, TeamEntity> teams = new LinkedHashMap<>();
+    if (!teamIds.isEmpty())
+      for (var team : teamRepository.findAllById(teamIds)) teams.put(team.getId(), team);
+    Map<UUID, String> routes = new LinkedHashMap<>();
+    for (var event : events) {
+      String path = "/teams";
+      if (event.getTaskId() != null) {
+        if (event.getTask() != null) path = WorkspacePaths.task(event.getTask());
+      } else if (event.getProjectId() != null) {
+        var project = projects.get(event.getProjectId());
+        if (project != null) path = WorkspacePaths.project(project);
+      } else {
+        var team = teams.get(event.getTeamId());
+        if (team != null)
+          path =
+              WorkspacePaths.team(team)
+                  + (isMembershipEvent(event.getEventType()) ? "/members" : "");
+      }
+      routes.put(event.getId(), path);
+    }
+    return routes;
   }
 
   private NotificationResponse toResponse(NotificationEntity entity) {
-    NotificationResponse.User actor = entity.getActor() == null
-        ? null
-        : new NotificationResponse.User(
-            entity.getActor().getId(),
-            entity.getActor().getFirstName(),
-            entity.getActor().getLastName(),
-            entity.getActor().getEmail());
+    return toResponse(
+        entity,
+        entity.getActivityEvent() == null
+            ? entity.getTargetPath()
+            : resolveTargetPath(entity.getActivityEvent()));
+  }
+
+  private NotificationResponse toResponse(NotificationEntity entity, String targetPath) {
+    NotificationResponse.User actor =
+        entity.getActor() == null
+            ? null
+            : new NotificationResponse.User(
+                entity.getActor().getId(),
+                entity.getActor().getFirstName(),
+                entity.getActor().getLastName(),
+                entity.getActor().getEmail());
 
     return new NotificationResponse(
         entity.getId(),
@@ -382,7 +533,7 @@ public class NotificationService {
         entity.getActivityEvent() == null ? null : entity.getActivityEvent().getEventType(),
         entity.getTitle(),
         entity.getBody(),
-        entity.getTargetPath(),
+        targetPath,
         entity.getTeamId(),
         entity.getProjectId(),
         entity.getTaskId(),
@@ -393,10 +544,10 @@ public class NotificationService {
   }
 
   private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmailIgnoreCase(email)
+    return userRepository
+        .findByEmailIgnoreCase(email)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
-  private record NotificationCopy(String title, String body) {
-  }
+  private record NotificationCopy(String title, String body) {}
 }

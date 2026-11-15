@@ -1,30 +1,15 @@
 package com.example.task_manager.team;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.example.task_manager.activity.ActivityEventRepository;
 import com.example.task_manager.activity.ActivityEventService;
+import com.example.task_manager.activity.ActivityHistoryQuery;
 import com.example.task_manager.activity.dto.ActivityEventDetails;
 import com.example.task_manager.activity.dto.ActivityEventType;
 import com.example.task_manager.activity.entity.ActivityEventEntity;
+import com.example.task_manager.common.KeyGenerator;
 import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.config.security.Authorization.GlobalAuthorizationService;
+import com.example.task_manager.config.security.Authorization.TeamAuthorizationService;
+import com.example.task_manager.config.security.Authorization.WorkspaceReadPolicy;
 import com.example.task_manager.exception.api.BadRequestInputException;
 import com.example.task_manager.exception.api.ConflictException;
 import com.example.task_manager.exception.api.ForbiddenException;
@@ -33,15 +18,9 @@ import com.example.task_manager.project.ProjectRepository;
 import com.example.task_manager.project.entity.ProjectEntity;
 import com.example.task_manager.task.TaskRepository;
 import com.example.task_manager.task.entity.TaskEntity;
-import com.example.task_manager.team.dto.AddTeamMembersRequest;
-import com.example.task_manager.team.dto.AddTeamMembersResponse;
 import com.example.task_manager.team.dto.CreateTeamRequest;
-import com.example.task_manager.team.dto.FailedMember;
-import com.example.task_manager.team.dto.RemoveTeamMembersRequest;
-import com.example.task_manager.team.dto.RemoveTeamMembersResponse;
 import com.example.task_manager.team.dto.TeamActivityResponse;
 import com.example.task_manager.team.dto.TeamMeResponse;
-import com.example.task_manager.team.dto.TeamMemberRequest;
 import com.example.task_manager.team.dto.TeamMemberResponse;
 import com.example.task_manager.team.dto.TeamMemberSearchRequest;
 import com.example.task_manager.team.dto.TeamResponse;
@@ -52,55 +31,73 @@ import com.example.task_manager.team.entity.TeamMemberEntity;
 import com.example.task_manager.team.entity.TeamRole;
 import com.example.task_manager.user.UserRepository;
 import com.example.task_manager.user.UserSpecification;
+import com.example.task_manager.user.UserVisibilityPolicy;
 import com.example.task_manager.user.dto.UserResponse;
 import com.example.task_manager.user.entity.UserEntity;
-import com.example.task_manager.user.entity.UserRole;
-
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Contains business logic for managing teams.
- */
+/** Contains business logic for managing teams. */
 @Service
 @RequiredArgsConstructor
 public class TeamService {
 
-  private static final Set<TeamRole> TEAM_MANAGEMENT_ROLES = Set.of(TeamRole.OWNER, TeamRole.ADMIN);
-  private static final Set<UserRole> GLOBAL_ADMIN_ROLES = Set.of(UserRole.ADMIN, UserRole.SUPER_ADMIN);
-
-  private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-      "name",
-      "lastName",
-      "owner",
-      "lastActivityAt",
-      "joinedAt",
-      "createdAt",
-      "updatedAt",
-      "user.lastName",
-      "user.email",
-      "role");
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of(
+          "name",
+          "lastName",
+          "owner",
+          "lastActivityAt",
+          "joinedAt",
+          "createdAt",
+          "updatedAt",
+          "user.lastName",
+          "user.email",
+          "role");
 
   private final TeamRepository teamRepository;
+  private final TeamMemberMapper memberMapper;
+  private final UserVisibilityPolicy userVisibility;
   private final TeamMemberRepository teamMemberRepository;
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
   private final TaskRepository taskRepository;
-  private final ActivityEventRepository activityEventRepository;
+  private final ActivityHistoryQuery activityHistoryQuery;
+  private final WorkspaceReadPolicy readPolicy;
   private final ActivityEventService activityEventService;
+  private final GlobalAuthorizationService globalAuthorizationService;
+  private final TeamAuthorizationService teamAuthorizationService;
+  private final KeyGenerator keyGenerator;
 
   /**
-   * Creates a new team for the authenticated user.
-   * Sets user as the owner
-   * Team name must be unique
-   * 
+   * Creates a new team for the authenticated user. Sets user as the owner Team name must be unique
    */
   @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
-  public TeamResponse createTeam(
-      CreateTeamRequest request,
-      String userEmail) {
+  public TeamResponse createTeam(CreateTeamRequest request, String userEmail) {
 
-    UserEntity owner = getUserByEmail(userEmail);
+    UserEntity owner =
+        userRepository
+            .findByEmailForUpdate(userEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    if (owner.isArchived() || owner.getRole() == com.example.task_manager.user.entity.UserRole.USER)
+      throw new ForbiddenException("Only active global admins can create a team.");
 
     String trimmedName = normalizeTeamName(request.name());
 
@@ -109,6 +106,7 @@ public class TeamService {
     TeamEntity team = new TeamEntity();
     team.setName(request.name().trim());
     team.setDescription(request.description());
+    team.setKey(generateUniqueKey());
     team.setOwner(owner);
     team.setCreatedBy(owner);
     team.setOwnerChangedAt(Instant.now());
@@ -141,7 +139,8 @@ public class TeamService {
             null,
             List.of(
                 activityEventService.change("name", "name", null, team.getName()),
-                activityEventService.change("description", "description", null, team.getDescription()),
+                activityEventService.change(
+                    "description", "description", null, team.getDescription()),
                 activityEventService.change("owner", "owner", null, owner.getFullName())),
             owner),
         null);
@@ -149,21 +148,15 @@ public class TeamService {
     return mapToResponse(team);
   }
 
-  /**
-   * Updates team information.
-   * Only Owner can update the team
-   */
-  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+  /** Updates team information. Only Owner can update the team */
   @Transactional
-  public TeamResponse updateTeam(
-      UUID teamId,
-      UpdateTeamRequest request,
-      String requesterEmail) {
+  public TeamResponse updateTeam(String teamKey, UpdateTeamRequest request, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
-    validateOwnerMembership(teamId, requester.getId());
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    TeamEntity team = requireActiveTeam(teamId);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
+
+    validateOwnerMembership(team.getId(), requester.getId());
 
     String previousName = team.getName();
     String previousDescription = team.getDescription();
@@ -187,11 +180,9 @@ public class TeamService {
       team.setDescription(request.description().trim());
     }
 
-    TeamDetailsUpdateMessage updateMessage = buildTeamUpdateMessage(
-        previousName,
-        previousDescription,
-        team.getName(),
-        team.getDescription());
+    TeamDetailsUpdateMessage updateMessage =
+        buildTeamUpdateMessage(
+            previousName, previousDescription, team.getName(), team.getDescription());
 
     if (!updateMessage.fields().isEmpty()) {
       activityEventService.recordTeamEvent(
@@ -199,12 +190,7 @@ public class TeamService {
           requester,
           ActivityEventType.TEAM_UPDATED,
           buildTeamActivityDetails(
-              updateMessage.fields(),
-              null,
-              null,
-              null,
-              updateMessage.changes(),
-              null),
+              updateMessage.fields(), null, null, null, updateMessage.changes(), null),
           updateMessage.message());
     }
 
@@ -212,32 +198,30 @@ public class TeamService {
   }
 
   /**
-   * Soft-deletes a team and cascades soft-delete to all dependent data.
-   * Only Owner can soft-delete team
+   * Soft-deletes a team and cascades soft-delete to all dependent data. Only Owner can soft-delete
+   * team
    */
-  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
   @Transactional
-  public void deleteTeam(
-      UUID teamId,
-      String requesterEmail) {
+  public void deleteTeam(String teamKey, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    validateOwnerMembership(teamId, requester.getId());
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    TeamEntity team = requireActiveTeam(teamId);
+    validateOwnerMembership(team.getId(), requester.getId());
 
     Instant now = Instant.now();
-    List<TaskEntity> activeTasks = taskRepository
-        .findAllByProjectTeamIdAndDeletedAtIsNull(teamId);
-    List<ProjectEntity> activeProjects = projectRepository
-        .findAllByTeamIdAndDeletedAtIsNull(teamId);
+    List<TaskEntity> activeTasks =
+        taskRepository.findAllByProjectTeamIdAndDeletedAtIsNull(team.getId());
+    List<ProjectEntity> activeProjects =
+        projectRepository.findAllByTeamIdAndDeletedAtIsNull(team.getId());
 
     team.setDeletedAt(now);
     team.setDeletedBy(requester);
 
     for (TaskEntity task : activeTasks) {
       task.setDeletedAt(now);
+      task.setDeletedBy(requester);
       activityEventService.recordTaskEvent(
           task,
           requester,
@@ -248,6 +232,7 @@ public class TeamService {
 
     for (ProjectEntity project : activeProjects) {
       project.setDeletedAt(now);
+      project.setDeletedBy(requester);
       activityEventService.recordProjectEvent(
           project,
           requester,
@@ -257,37 +242,28 @@ public class TeamService {
     }
 
     activityEventService.recordTeamEvent(
-        team,
-        requester,
-        ActivityEventType.TEAM_DELETED,
-        activityEventService.emptyDetails(),
-        null);
+        team, requester, ActivityEventType.TEAM_DELETED, activityEventService.emptyDetails(), null);
   }
 
   /**
-   * Retrieves teams with support for:
-   * - Search
-   * - Filtering
-   * - Sorting
-   * - Pagination
-   * - Role-based soft-delete visibility
+   * Retrieves teams with support for: - Search - Filtering - Sorting - Pagination - Role-based
+   * soft-delete visibility
    */
   @Transactional(readOnly = true)
   public PageResponse<TeamResponse> getTeams(
-      TeamSearchRequest request,
-      Pageable pageable,
-      Authentication authentication) {
+      TeamSearchRequest request, Pageable pageable, Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    boolean isGlobalAdmin = isGlobalAdmin(requester);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    boolean isGlobalAdmin = globalAuthorizationService.isGlobalAdmin(requester);
 
-    Specification<TeamEntity> spec = TeamSpecification.build(
-        requester.getId(),
-        request.search(),
-        request.ownerId(),
-        request.memberId(),
-        request.deletedFilter(),
-        isGlobalAdmin);
+    Specification<TeamEntity> spec =
+        TeamSpecification.build(
+            requester.getId(),
+            request.search(),
+            request.ownerId(),
+            request.memberId(),
+            request.deletedFilter(),
+            isGlobalAdmin);
 
     pageable = requireSortable(pageable);
 
@@ -296,249 +272,126 @@ public class TeamService {
     return toPageResponse(page, this::mapToResponse);
   }
 
-  /**
-   * Returns a team by id.
-   * Only Global Admin, Owner and Team Admin can view deleted team
-   */
+  /** Returns a team by id. Only Global Admin, Owner and Team Admin can view deleted team */
   @Transactional(readOnly = true)
-  public TeamResponse getTeamById(
-      UUID teamId,
-      Authentication authentication) {
+  public TeamResponse getTeamByKey(String teamKey, Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
 
     validateCanReadTeam(team, requester);
 
     return mapToResponse(team);
   }
 
-  /**
-   * Returns all the team's members.
-   */
+  /** Returns all the team's members. */
   @Transactional(readOnly = true)
   public PageResponse<TeamMemberResponse> getTeamMembers(
       TeamMemberSearchRequest request,
-      UUID teamId,
+      String teamKey,
       Pageable pageable,
       Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
     validateCanReadTeam(team, requester);
 
-    Specification<TeamMemberEntity> spec = TeamMemberSpecification.build(
-        teamId,
-        request.search(),
-        request.roles());
+    Specification<TeamMemberEntity> spec =
+        TeamMemberSpecification.build(
+            team.getId(),
+            request.search(),
+            request.roles(),
+            Boolean.TRUE.equals(request.activeOnly()));
 
     pageable = requireSortable(pageable);
 
     Page<TeamMemberEntity> page = teamMemberRepository.findAll(spec, pageable);
 
-    return toPageResponse(page, this::mapToMemberResponse);
+    return toPageResponse(page, member -> memberMapper.toResponse(member, requester));
   }
 
-  /**
-   * Returns all the user that's not part of the team .
-   */
+  /** Returns all the user that's not part of the team . */
   @Transactional(readOnly = true)
   public PageResponse<UserResponse> getAvailableUsers(
-      String search,
-      UUID teamId,
-      Pageable pageable,
-      Authentication authentication) {
+      String search, String teamKey, Pageable pageable, Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
 
-    boolean isGlobalAdmin = isGlobalAdmin(requester);
+    TeamEntity team = teamAuthorizationService.requireActiveTeam(teamKey);
 
-    if (isGlobalAdmin) {
-      requireActiveTeam(teamId);
-    } else {
-      requireManagerMembership(teamId, requester.getId());
+    if (!globalAuthorizationService.isGlobalAdmin(requester)) {
+      requireManagerMembership(team.getId(), requester.getId());
     }
 
-    Specification<UserEntity> spec = UserSpecification.availableUsers(teamId, search);
+    if (!globalAuthorizationService.isGlobalAdmin(requester)
+        && pageable.getSort().getOrderFor("role") != null) {
+      throw new BadRequestInputException("Global account role sorting is not available.");
+    }
+
+    Specification<UserEntity> spec = UserSpecification.availableUsers(teamKey, search);
 
     pageable = requireSortable(pageable);
 
     Page<UserEntity> page = userRepository.findAll(spec, pageable);
 
-    return toPageResponse(page, this::mapToNonMemberResponse);
+    return toPageResponse(page, user -> userVisibility.toResponse(user, requester));
   }
 
-  /**
-   * Returns user's team role.
-   */
+  /** Returns user's team role. */
   @Transactional(readOnly = true)
-  public TeamMeResponse getMyTeamRole(UUID teamId, String requesterEmail) {
+  public TeamMeResponse getMyTeamRole(String teamKey, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
-    TeamEntity team = requireTeam(teamId);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
 
-    return teamMemberRepository.findByTeamIdAndUserId(teamId, requester.getId())
-        .map(member -> {
-          validateCanReadTeam(team, requester);
-          return new TeamMeResponse(member.getUser().getId(), member.getRole());
-        })
-        .orElseGet(() -> {
-          if (isGlobalAdmin(requester)) {
-            return new TeamMeResponse(requester.getId(), null);
-          }
+    return teamMemberRepository
+        .findByTeamIdAndUserId(team.getId(), requester.getId())
+        .map(
+            member -> {
+              validateCanReadTeam(team, requester);
+              return new TeamMeResponse(member.getUser().getId(), member.getRole());
+            })
+        .orElseGet(
+            () -> {
+              if (globalAuthorizationService.isGlobalAdmin(requester)) {
+                return new TeamMeResponse(requester.getId(), null);
+              }
 
-          throw new ForbiddenException("User is not a member of this team");
-        });
+              throw new ForbiddenException("User is not a member of this team");
+            });
   }
 
-  /**
-   * Returns team activity visible to the requester.
-   */
+  /** Returns team activity visible to the requester. */
   @Transactional(readOnly = true)
   public PageResponse<TeamActivityResponse> getTeamActivities(
-      UUID teamId,
-      Pageable pageable,
-      Authentication authentication) {
+      String teamKey, String search, Pageable pageable, Authentication authentication) {
 
-    UserEntity requester = getUserByEmail(authentication.getName());
-    TeamEntity team = requireTeam(teamId);
-    validateCanReadTeam(team, requester);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(authentication.getName());
+    TeamEntity team = teamAuthorizationService.requireTeam(normalizeTeamKey(teamKey));
+    var readAccess = validateCanReadTeam(team, requester);
 
-    Page<ActivityEventEntity> page = activityEventRepository.findTeamActivity(teamId, pageable);
+    Page<ActivityEventEntity> page = activityHistoryQuery.team(team.getId(), search, pageable);
 
-    return toPageResponse(page, activityEventService::toTeamActivitiesResponse);
+    var pageProjects = activityEventService.loadPageProjects(page.getContent());
+    return toPageResponse(
+        page,
+        event -> activityEventService.toTeamActivitiesResponse(event, readAccess, pageProjects));
   }
 
-  /**
-   * Adds members in a team
-   * User must be unique for the team
-   */
-  @Transactional
-  public AddTeamMembersResponse addMembers(
-      UUID teamId,
-      AddTeamMembersRequest request,
-      String requesterEmail) {
-
-    UserEntity requester = getUserByEmail(requesterEmail);
-
-    validateManagerMembership(teamId, requester.getId());
-
-    TeamEntity team = requireActiveTeam(teamId);
-
-    List<TeamMemberResponse> success = new ArrayList<>();
-    List<FailedMember> failed = new ArrayList<>();
-
-    for (TeamMemberRequest user : request.members()) {
-
-      try {
-        TeamMemberEntity member = addTeamMember(team, user, requester);
-
-        teamMemberRepository.flush();
-
-        success.add(mapToMemberResponse(member));
-
-        activityEventService.recordTeamEvent(
-            team,
-            requester,
-            ActivityEventType.TEAM_MEMBER_ADDED,
-            buildTeamActivityDetails(
-                List.of("member", "role"),
-                null,
-                member.getRole().name(),
-                member.getUser().getFullName(),
-                List.of(
-                    activityEventService.change("member", "member", null,
-                        member.getUser().getFullName()),
-                    activityEventService.change("role", "role", null, member.getRole())),
-                member.getUser()),
-            null);
-        team.setMembershipChangedAt(Instant.now());
-      } catch (Exception ex) {
-        failed.add(new FailedMember(user.userId(), ex.getMessage()));
-      }
-    }
-
-    return new AddTeamMembersResponse(success, failed);
-  }
-
-  /**
-   * Removes a member in a team
-   * Only Team Admin and Owner can remove member
-   * Only Owner can remove an Admin and can't remove themselves
-   */
-  @Transactional
-  public RemoveTeamMembersResponse removeMembers(
-      UUID teamId,
-      RemoveTeamMembersRequest request,
-      String requesterEmail) {
-
-    UserEntity requester = getUserByEmail(requesterEmail);
-    TeamMemberEntity requesterMembership = requireManagerMembership(teamId, requester.getId());
-
-    List<UUID> success = new ArrayList<>();
-    List<FailedMember> failed = new ArrayList<>();
-
-    for (UUID userId : request.userIds()) {
-
-      try {
-        TeamMemberEntity memberToRemove = requireActiveMembership(teamId, userId);
-        TeamEntity team = memberToRemove.getTeam();
-
-        if (memberToRemove.getRole() == TeamRole.OWNER) {
-          throw new IllegalStateException("Transfer ownership before removing OWNER");
-        }
-
-        if (requesterMembership.getRole() == TeamRole.ADMIN &&
-            memberToRemove.getRole() != TeamRole.MEMBER) {
-          throw new IllegalStateException("ADMIN can only remove MEMBER");
-        }
-
-        teamMemberRepository.delete(memberToRemove);
-
-        teamMemberRepository.flush();
-        team.setMembershipChangedAt(Instant.now());
-
-        activityEventService.recordTeamEvent(
-            team,
-            requester,
-            ActivityEventType.TEAM_MEMBER_REMOVED,
-            buildTeamActivityDetails(
-                List.of("member", "role"),
-                memberToRemove.getRole().name(),
-                null,
-                memberToRemove.getUser().getFullName(),
-                List.of(
-                    activityEventService.change("member", "member", memberToRemove.getUser().getFullName(), null),
-                    activityEventService.change("role", "role", memberToRemove.getRole(), null)),
-                memberToRemove.getUser()),
-            null);
-
-        success.add(userId);
-
-      } catch (Exception ex) {
-        failed.add(new FailedMember(userId, ex.getMessage()));
-      }
-    }
-
-    return new RemoveTeamMembersResponse(success, failed);
-  }
-
-  /**
-   * Change User's Role
-   * Only Owner and Admin can change
-   */
+  /** Owners and super admins can grant or revoke team-admin roles. */
   @Transactional
   public TeamMemberResponse changeTeamRole(
-      UUID teamId,
-      UUID targetUserId,
-      TeamRole newRole,
-      String requesterEmail) {
+      String teamKey, UUID targetUserId, TeamRole newRole, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    validateManagerMembership(teamId, requester.getId());
+    TeamEntity team = teamAuthorizationService.requireActiveTeamForUpdate(teamKey);
 
-    TeamMemberEntity targetMember = requireActiveMembership(teamId, targetUserId);
+    teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.requireEnabledAccountForUpdate(targetUserId);
+
+    TeamMemberEntity targetMember =
+        teamAuthorizationService.requireActiveMembership(team.getId(), targetUserId);
 
     if (targetMember.getRole() == TeamRole.OWNER) {
       throw new ConflictException("Owner role cannot be modified.");
@@ -554,7 +407,7 @@ public class TeamService {
 
     TeamRole previousRole = targetMember.getRole();
     if (previousRole == newRole) {
-      return mapToMemberResponse(targetMember);
+      return memberMapper.toResponse(targetMember, requester);
     }
 
     targetMember.setRole(newRole);
@@ -573,31 +426,27 @@ public class TeamService {
             targetMember.getUser()),
         null);
 
-    return mapToMemberResponse(targetMember);
+    return memberMapper.toResponse(targetMember, requester);
   }
 
-  /**
-   * Transfers Team Ownership to another Global Admin or Super Admin
-   * New Owner must be a member
-   */
-  @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
+  /** Owners and super admins can transfer ownership to any current member. */
   @Transactional
   public TeamMemberResponse transferOwnership(
-      UUID teamId,
-      UUID newOwnerUserId,
-      String requesterEmail) {
+      String teamKey, UUID newOwnerUserId, String requesterEmail) {
 
-    UserEntity requester = getUserByEmail(requesterEmail);
+    UserEntity requester = globalAuthorizationService.getUserByEmail(requesterEmail);
 
-    TeamMemberEntity owner = requireOwnerMembership(teamId, requester.getId());
+    TeamEntity team = teamAuthorizationService.requireActiveTeamForUpdate(teamKey);
+    teamAuthorizationService.validateRoleAdministrator(team.getId(), requester);
+    teamAuthorizationService.requireEnabledAccountForUpdate(newOwnerUserId);
+    TeamMemberEntity owner = requireOwnerMembership(team.getId(), team.getOwner().getId());
 
-    if (requester.getId().equals(newOwnerUserId)) {
-      throw new ConflictException("You are already the OWNER");
+    if (owner.getUser().getId().equals(newOwnerUserId)) {
+      throw new ConflictException("This user is already the owner");
     }
 
-    TeamMemberEntity newOwner = requireActiveMembership(teamId, newOwnerUserId);
-
-    validateGlobalAdmin(newOwner.getUser().getRole());
+    TeamMemberEntity newOwner =
+        teamAuthorizationService.requireActiveMembership(team.getId(), newOwnerUserId);
 
     owner.setRole(TeamRole.ADMIN);
     newOwner.setRole(TeamRole.OWNER);
@@ -614,12 +463,16 @@ public class TeamService {
             owner.getUser().getFullName(),
             newOwner.getUser().getFullName(),
             newOwner.getUser().getFullName(),
-            List.of(activityEventService.change("owner", "owner", owner.getUser().getFullName(),
-                newOwner.getUser().getFullName())),
+            List.of(
+                activityEventService.change(
+                    "owner",
+                    "owner",
+                    owner.getUser().getFullName(),
+                    newOwner.getUser().getFullName())),
             newOwner.getUser()),
         null);
 
-    return mapToMemberResponse(newOwner);
+    return memberMapper.toResponse(newOwner, requester);
   }
 
   // ********************
@@ -638,32 +491,35 @@ public class TeamService {
   }
 
   public TeamResponse mapToResponse(TeamEntity team) {
-    TeamResponse.User user = new TeamResponse.User(
-        team.getOwner().getId(),
-        team.getOwner().getFirstName(),
-        team.getOwner().getLastName(),
-        team.getOwner().getEmail());
+    TeamResponse.User user =
+        new TeamResponse.User(
+            team.getOwner().getId(),
+            team.getOwner().getFirstName(),
+            team.getOwner().getLastName(),
+            team.getOwner().getEmail());
 
-    TeamResponse.User createdBy = team.getCreatedBy() == null
-        ? null
-        : new TeamResponse.User(
-            team.getCreatedBy().getId(),
-            team.getCreatedBy().getFirstName(),
-            team.getCreatedBy().getLastName(),
-            team.getCreatedBy().getEmail());
+    TeamResponse.User createdBy =
+        team.getCreatedBy() == null
+            ? null
+            : new TeamResponse.User(
+                team.getCreatedBy().getId(),
+                team.getCreatedBy().getFirstName(),
+                team.getCreatedBy().getLastName(),
+                team.getCreatedBy().getEmail());
 
-    TeamResponse.User deletedBy = team.getDeletedBy() == null
-        ? null
-        : new TeamResponse.User(
-            team.getDeletedBy().getId(),
-            team.getDeletedBy().getFirstName(),
-            team.getDeletedBy().getLastName(),
-            team.getDeletedBy().getEmail());
+    TeamResponse.User deletedBy =
+        team.getDeletedBy() == null
+            ? null
+            : new TeamResponse.User(
+                team.getDeletedBy().getId(),
+                team.getDeletedBy().getFirstName(),
+                team.getDeletedBy().getLastName(),
+                team.getDeletedBy().getEmail());
 
     boolean isDeleted = team.getDeletedAt() != null;
 
     return new TeamResponse(
-        team.getId(),
+        team.getKey(),
         team.getName(),
         team.getDescription(),
         user,
@@ -678,85 +534,13 @@ public class TeamService {
         isDeleted);
   }
 
-  private TeamMemberResponse mapToMemberResponse(TeamMemberEntity member) {
-
-    TeamMemberResponse.User user = new TeamMemberResponse.User(
-        member.getAddedBy().getId(),
-        member.getAddedBy().getFirstName(),
-        member.getAddedBy().getLastName(),
-        member.getAddedBy().getEmail());
-
-    return new TeamMemberResponse(
-        member.getUser().getId(),
-        member.getUser().getFirstName(),
-        member.getUser().getLastName(),
-        member.getUser().getEmail(),
-        member.getRole(),
-        member.getUser().getRole(),
-        member.getJoinedAt(),
-        user);
-  }
-
-  private UserResponse mapToNonMemberResponse(UserEntity user) {
-    return new UserResponse(
-        user.getId(),
-        user.getFirstName(),
-        user.getLastName(),
-        user.getEmail(),
-        user.getRole());
-  }
-
-  private UserEntity getUserByEmail(String email) {
-    return userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-  }
-
-  private UserEntity getUserById(UUID id) {
-    return userRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-  }
-
   /**
-   * Ensure team exists
-   * Returns active team
-   */
-  private TeamEntity requireActiveTeam(UUID teamId) {
-    return teamRepository.findByIdAndDeletedAtIsNull(teamId)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-  }
-
-  /**
-   * Ensure team exists
-   * Returns team
-   */
-  private TeamEntity requireTeam(UUID teamId) {
-    return teamRepository.findById(teamId)
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-  }
-
-  /**
-   * Ensures:
-   * - Team exists and active
-   * - Membership exists
+   * Ensures: - Team exists and active - Membership exists - User is owner
    *
-   * Returns membership entity.
-   */
-  private TeamMemberEntity requireActiveMembership(UUID teamId, UUID userId) {
-    return teamMemberRepository
-        .findByTeamIdAndUserIdAndTeamDeletedAtIsNull(teamId, userId)
-        .orElseThrow(() -> new ForbiddenException("User is not a member"));
-  }
-
-  /**
-   * Ensures:
-   * - Team exists and active
-   * - Membership exists
-   * - User is owner
-   *
-   * Returns membership entity.
+   * <p>Returns membership entity.
    */
   private TeamMemberEntity requireOwnerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
     if (membership.getRole() != TeamRole.OWNER) {
       throw new ForbiddenException("User is not the owner of this team");
     }
@@ -765,55 +549,17 @@ public class TeamService {
   }
 
   /**
-   * Ensures:
-   * - User is Team member
-   * - Role is Team OWNER or ADMIN
-   * 
-   * Returns membership entity
+   * Ensures: - User is Team member - Role is Team OWNER or ADMIN
+   *
+   * <p>Returns membership entity
    */
   private TeamMemberEntity requireManagerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
-    if (!canManageTeam(membership)) {
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
+    if (!teamAuthorizationService.canManageTeam(membership)) {
       throw new ForbiddenException("Insufficient permissions");
     }
 
     return membership;
-  }
-
-  /**
-   * Ensures:
-   * - Team exist and active
-   * - User is not Team member
-   * - Adds user to the team
-   * 
-   * Returns membership entity
-   */
-  private TeamMemberEntity addTeamMember(
-      TeamEntity team,
-      TeamMemberRequest request,
-      UserEntity requester) {
-
-    UserEntity user = getUserById(request.userId());
-
-    if (hasActiveMembership(team.getId(), request.userId())) {
-      throw new ConflictException("User is already a member of the team");
-    }
-
-    TeamRole role = request.role() == null
-        ? TeamRole.MEMBER
-        : request.role();
-
-    if (role == TeamRole.OWNER) {
-      throw new ConflictException("Cannot assign OWNER role");
-    }
-
-    TeamMemberEntity member = new TeamMemberEntity();
-    member.setTeam(team);
-    member.setUser(user);
-    member.setRole(role);
-    member.setAddedBy(requester);
-
-    return teamMemberRepository.save(member);
   }
 
   /*
@@ -823,104 +569,47 @@ public class TeamService {
 
     for (Sort.Order order : pageable.getSort()) {
       if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
-        throw new BadRequestInputException(
-            "Invalid sort field: " + order.getProperty());
+        throw new BadRequestInputException("Invalid sort field: " + order.getProperty());
       }
     }
 
     return pageable;
   }
 
-  /**
-   * Ensures Team Name is unique for an active team
-   */
+  /** Ensures Team Name is unique for an active team */
   private void validateUniqueTeamName(UUID ownerId, String name) {
     if (teamRepository.existsByOwnerIdAndNameIgnoreCaseAndDeletedAtIsNull(ownerId, name)) {
       throw new ConflictException("Team name already exists");
     }
   }
 
-  /**
-   * Ensures user is the Owner of the team
-   */
+  /** Ensures user is the Owner of the team */
   private void validateOwnerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity membership = requireActiveMembership(teamId, userId);
+    TeamMemberEntity membership = teamAuthorizationService.requireActiveMembership(teamId, userId);
     if (membership.getRole() != TeamRole.OWNER) {
       throw new ForbiddenException("User is not the owner of this team");
     }
   }
 
-  /**
-   * Ensures user is Global Admin or Super Admin
-   */
-  private void validateGlobalAdmin(UserRole role) {
-    if (!GLOBAL_ADMIN_ROLES.contains(role)) {
-      throw new ForbiddenException("You are not allowed to perform this action");
-    }
-  }
-
-  /**
-   * Ensures:
-   * - User is Team member
-   * - Role is Team OWNER or ADMIN
-   */
-  private void validateManagerMembership(UUID teamId, UUID userId) {
-    TeamMemberEntity member = requireActiveMembership(teamId, userId);
-
-    if (!canManageTeam(member)) {
-      throw new ForbiddenException("Insufficient permissions");
-    }
-
-  }
-
-  /**
-   * Ensures:
-   * - User is able to read team
-   * - User is Global admin or team member
-   */
-  private void validateCanReadTeam(TeamEntity team, UserEntity requester) {
-    if (isGlobalAdmin(requester)) {
-      return;
-    }
-
-    TeamMemberEntity membership = teamMemberRepository.findByTeamIdAndUserId(team.getId(), requester.getId())
-        .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-
-    if (team.getDeletedAt() != null && !canManageTeam(membership)) {
-      throw new ResourceNotFoundException("Team not found");
-    }
-  }
-
-  /**
-   * Ensures is Global Admin or Super Admin
-   */
-  private boolean isGlobalAdmin(UserEntity user) {
-    return GLOBAL_ADMIN_ROLES.contains(user.getRole());
-  }
-
-  /**
-   * Ensures user is an active member
-   */
-  private boolean hasActiveMembership(UUID teamId, UUID userId) {
-    return teamMemberRepository.existsByTeamIdAndUserIdAndTeamDeletedAtIsNull(teamId, userId);
-  }
-
-  /**
-   * Ensures is Team Owner or Admin
-   */
-  private boolean canManageTeam(TeamMemberEntity membership) {
-    return TEAM_MANAGEMENT_ROLES.contains(membership.getRole());
+  /** Ensures: - User is able to read team - User is Global admin or team member */
+  private WorkspaceReadPolicy.Access validateCanReadTeam(TeamEntity team, UserEntity requester) {
+    var access =
+        readPolicy.forTeam(
+            team.getId(), requester.getId(), globalAuthorizationService.isGlobalAdmin(requester));
+    if (!access.team(team)) throw new ResourceNotFoundException("Team not found");
+    return access;
   }
 
   private String normalizeTeamName(String name) {
     return name.trim().toLowerCase(Locale.ROOT);
   }
 
+  private String normalizeTeamKey(String key) {
+    return key.trim().toUpperCase(Locale.ROOT);
+  }
+
   private TeamDetailsUpdateMessage buildTeamUpdateMessage(
-      String previousName,
-      String previousDescription,
-      String newName,
-      String newDescription) {
+      String previousName, String previousDescription, String newName, String newDescription) {
 
     List<String> fields = new ArrayList<>();
     List<ActivityEventDetails.ActivityChange> changes = new ArrayList<>();
@@ -932,7 +621,9 @@ public class TeamService {
 
     if (!Objects.equals(previousDescription, newDescription)) {
       fields.add("description");
-      changes.add(activityEventService.change("description", "description", previousDescription, newDescription));
+      changes.add(
+          activityEventService.change(
+              "description", "description", previousDescription, newDescription));
     }
 
     if (fields.isEmpty()) {
@@ -940,16 +631,11 @@ public class TeamService {
     }
 
     return new TeamDetailsUpdateMessage(
-        "Team updated: " + String.join(", ", fields),
-        fields,
-        changes);
+        "Team updated: " + String.join(", ", fields), fields, changes);
   }
 
   private record TeamDetailsUpdateMessage(
-      String message,
-      List<String> fields,
-      List<ActivityEventDetails.ActivityChange> changes) {
-  }
+      String message, List<String> fields, List<ActivityEventDetails.ActivityChange> changes) {}
 
   private ActivityEventDetails buildTeamActivityDetails(
       List<String> fields,
@@ -970,4 +656,14 @@ public class TeamService {
         subjectUser == null ? null : activityEventService.reference(subjectUser));
   }
 
+  private String generateUniqueKey() {
+
+    String key;
+
+    do {
+      key = keyGenerator.generate();
+    } while (teamRepository.existsByKey(key));
+
+    return key;
+  }
 }

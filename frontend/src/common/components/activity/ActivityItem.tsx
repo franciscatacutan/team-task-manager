@@ -13,11 +13,8 @@ import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
 
-import type { ProjectActivity } from "../../../features/projects/types/project.types";
-import type { TeamActivity } from "../../../features/teams/types/team.type";
-import type { TaskActivity } from "../../../features/tasks/types/task.types";
-
-export type ActivityRecord = ProjectActivity | TeamActivity | TaskActivity;
+import type { ActivityRecord } from "@/common/types/activity.types";
+export type { ActivityRecord } from "@/common/types/activity.types";
 
 export function ActivityItem({
   item,
@@ -25,7 +22,7 @@ export function ActivityItem({
   interactive = true,
 }: {
   item: ActivityRecord;
-  onOpenTask?: (taskId: string) => void;
+  onOpenTask?: (taskNumber: number) => void;
   interactive?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -42,30 +39,35 @@ export function ActivityItem({
   const activityVerb = getActivityVerb(item);
   const showTypeBadge = activityTypeLabel !== "Comment";
   const primaryLabel =
-    item.task?.title ??
-    ("project" in item ? item.project?.title : null) ??
+    item.task?.name ??
+    ("project" in item ? item.project?.name : null) ??
     ("details" in item ? item.details?.team?.label : null) ??
     "activity";
-  const taskId = item.task?.id;
-  const projectTitle = hasProject ? (item.project?.title ?? null) : null;
-  const isInteractive = interactive && Boolean(onOpenTask) && Boolean(taskId);
+  const taskNumber = item.task?.taskNumber;
+  const projectName = hasProject ? (item.project?.name ?? null) : null;
+  const isInteractive =
+    interactive &&
+    Boolean(onOpenTask) &&
+    Boolean(taskNumber) &&
+    Boolean(item.targetPath);
 
   return (
     <article
       onClick={() => {
-        if (isInteractive && onOpenTask && taskId) {
-          onOpenTask(taskId);
+        if (isInteractive && onOpenTask && taskNumber) {
+          onOpenTask(taskNumber);
         }
       }}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (
           (e.key === "Enter" || e.key === " ") &&
-            isInteractive &&
-            onOpenTask &&
-            taskId
+          isInteractive &&
+          onOpenTask &&
+          taskNumber
         ) {
           e.preventDefault();
-          onOpenTask(taskId);
+          onOpenTask(taskNumber);
         }
       }}
       role={isInteractive ? "button" : undefined}
@@ -111,10 +113,10 @@ export function ActivityItem({
 
                 <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                   <span>{formatDateTimeShort(item.createdAt)}</span>
-                  {projectTitle && (
+                  {projectName && (
                     <>
                       <Dot className="h-3 w-3" />
-                      <span>{projectTitle}</span>
+                      <span>{projectName}</span>
                     </>
                   )}
                 </div>
@@ -149,7 +151,7 @@ export function ActivityItem({
             )}
           </div>
 
-          {isInteractive && taskId && (
+          {isInteractive && taskNumber && (
             <div className="hidden shrink-0 items-center md:flex">
               <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors group-hover:text-foreground">
                 Open

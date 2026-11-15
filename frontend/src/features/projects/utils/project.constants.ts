@@ -23,7 +23,7 @@ export const ProjectStatusLabel: Record<ProjectStatus, string> = {
   ACTIVE: "Active",
   ON_HOLD: "On Hold",
   COMPLETED: "Completed",
-  DELETED: "Deleted",
+  DELETED: "Previous status unavailable",
 };
 
 export function isProjectStatus(value: string): value is ProjectStatus {

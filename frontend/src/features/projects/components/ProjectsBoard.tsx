@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import CreateButton from "@/common/components/CreateButton";
 
 import { Button } from "@/components/ui/button";
 
@@ -8,7 +8,7 @@ import ProjectCard from "./ProjectCard";
 interface Props {
   projects: Project[];
   isLoading: boolean;
-  openProject: (projectId: string) => void;
+  teamKey: string;
   onCreateProject: () => void;
   onClearFilters: () => void;
   canCreateProject: boolean;
@@ -18,7 +18,7 @@ interface Props {
 export default function ProjectsBoard({
   projects,
   isLoading,
-  openProject,
+  teamKey,
   onCreateProject,
   onClearFilters,
   canCreateProject,
@@ -42,9 +42,9 @@ export default function ProjectsBoard({
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {projects.map((project) => (
               <ProjectCard
-                key={project.id}
+                key={project.key}
                 project={project}
-                onClick={() => openProject(project.id)}
+                teamKey={teamKey}
               />
             ))}
           </div>
@@ -69,10 +69,11 @@ export default function ProjectsBoard({
               Clear filters
             </Button>
           ) : canCreateProject ? (
-            <Button className="mt-6 rounded-xl" onClick={onCreateProject}>
-              <Plus className="h-4 w-4" />
-              Create project
-            </Button>
+            <CreateButton
+              entity="project"
+              className="mt-6"
+              onClick={onCreateProject}
+            />
           ) : null}
         </div>
       )}

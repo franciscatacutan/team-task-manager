@@ -5,22 +5,22 @@ import { useTeamAuditLogs } from "../hooks/useTeamAuditLogs";
 import { useTeamSystemEvents } from "../hooks/useTeamSystemEvents";
 
 interface Props {
-  teamId: string;
+  teamKey: string;
 }
 
 const PAGE_SIZE = 10;
 
-export default function TeamObservabilityLogs({ teamId }: Props) {
+export default function TeamObservabilityLogs({ teamKey }: Props) {
   const [auditPage, setAuditPage] = useState(0);
   const [systemPage, setSystemPage] = useState(0);
   const [sort, setSort] = useState("occurredAt,desc");
 
-  const auditLogs = useTeamAuditLogs(teamId, {
+  const auditLogs = useTeamAuditLogs(teamKey, {
     page: auditPage,
     size: PAGE_SIZE,
     sort,
   });
-  const systemEvents = useTeamSystemEvents(teamId, {
+  const systemEvents = useTeamSystemEvents(teamKey, {
     page: systemPage,
     size: PAGE_SIZE,
     sort,
@@ -39,6 +39,10 @@ export default function TeamObservabilityLogs({ teamId }: Props) {
         audit={{
           logs: auditLogs.data?.content ?? [],
           isLoading: auditLogs.isLoading,
+          isError: auditLogs.isError,
+          error: auditLogs.error,
+          isFetching: auditLogs.isFetching,
+          onRetry: auditLogs.refetch,
           page: auditLogs.data?.page ?? auditPage,
           totalPages: auditLogs.data?.totalPages ?? 0,
           onPageChange: setAuditPage,
@@ -46,6 +50,10 @@ export default function TeamObservabilityLogs({ teamId }: Props) {
         system={{
           events: systemEvents.data?.content ?? [],
           isLoading: systemEvents.isLoading,
+          isError: systemEvents.isError,
+          error: systemEvents.error,
+          isFetching: systemEvents.isFetching,
+          onRetry: systemEvents.refetch,
           page: systemEvents.data?.page ?? systemPage,
           totalPages: systemEvents.data?.totalPages ?? 0,
           onPageChange: setSystemPage,

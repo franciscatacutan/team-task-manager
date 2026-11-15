@@ -1,9 +1,9 @@
 package com.example.task_manager.observability.dto;
 
-import java.time.Instant;
-import java.util.UUID;
-
 import com.example.task_manager.project.entity.ProjectStatus;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 
 public record ProjectInsightsResponse(
     UUID teamId,
@@ -11,6 +11,8 @@ public record ProjectInsightsResponse(
     ProjectStatus status,
     Instant plannedStartDate,
     Instant plannedDueDate,
+    LocalDate plannedStartDay,
+    LocalDate plannedDueDay,
     Instant actualStartDate,
     Instant actualCompletionDate,
     Instant generatedAt,
@@ -29,24 +31,13 @@ public record ProjectInsightsResponse(
       long cancelled,
       long overdue,
       long highPriority,
-      long criticalPriority) {
-  }
+      long criticalPriority) {}
 
   public record FlowMetrics(
-      long completedLast7Days,
-      double completionRatePercent,
-      double averageCycleTimeHours) {
-  }
+      long completedLast7Days, double completionRatePercent, double averageCycleTimeHours) {}
 
   public record ActivityMetrics(
-      long activityEventsLast7Days,
-      long auditEventsLast7Days,
-      long systemEventsLast7Days) {
-  }
+      long activityEventsLast7Days, long auditEventsLast7Days, long systemEventsLast7Days) {}
 
-  public record HealthMetrics(
-      boolean overdue,
-      long daysUntilDue,
-      boolean completedOnTime) {
-  }
+  public record HealthMetrics(boolean overdue, long daysUntilDue, boolean completedOnTime) {}
 }

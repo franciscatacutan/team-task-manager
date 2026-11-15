@@ -1,7 +1,4 @@
-import type {
-  ActivityDetails,
-  ActivityType,
-} from "./activity.types";
+import type { ActivityDetails, ActivityType } from "./activity.types";
 
 export interface ObservabilityUser {
   id: string;
@@ -12,9 +9,9 @@ export interface ObservabilityUser {
 
 export interface ObservabilityAuditLog {
   id: string;
-  teamId: string;
-  projectId?: string | null;
-  taskId?: string | null;
+  teamId: string | null;
+  projectId: string | null;
+  taskId: string | null;
   entityType: string;
   entityId: string;
   action: string;
@@ -33,9 +30,9 @@ export interface ObservabilitySystemEvent {
   category: string;
   eventName: string;
   source: string;
-  teamId: string;
-  projectId?: string | null;
-  taskId?: string | null;
+  teamId: string | null;
+  projectId: string | null;
+  taskId: string | null;
   message: string;
   actor: ObservabilityUser | null;
   context?: Partial<ActivityDetails> | null;

@@ -30,13 +30,12 @@ export function getTaskPermissions({
   supportId,
   isReadOnly = false,
 }: Params): TaskPermissions {
-  const { isSuperAdmin, isGlobalAdmin, isOwner, isAdmin } = resolveRoles(
-    globalRole,
-    teamRole,
-  );
+  const { isSuperAdmin, isGlobalAdmin, isOwner, isAdmin, isMember } =
+    resolveRoles(globalRole, teamRole);
 
-  const isAssignee = userId === assigneeId;
-  const isSupport = userId === supportId;
+  const hasMembership = isOwner || isAdmin || isMember;
+  const isAssignee = Boolean(userId && assigneeId && userId === assigneeId);
+  const isSupport = Boolean(userId && supportId && userId === supportId);
 
   const isSystemAdmin = isSuperAdmin || isGlobalAdmin;
 
@@ -50,7 +49,8 @@ export function getTaskPermissions({
 
     canViewDeleteTask: isSystemAdmin || canManage,
 
-    canChangeStatus: canWrite && (canManage || isAssignee || isSupport),
+    canChangeStatus:
+      canWrite && hasMembership && (canManage || isAssignee || isSupport),
 
     canChangePriority: canWrite && canManage,
 
@@ -58,6 +58,7 @@ export function getTaskPermissions({
 
     canChangeSchedule: canWrite && canManage,
 
-    canComment: canWrite && (canManage || isAssignee || isSupport),
+    canComment:
+      canWrite && hasMembership && (canManage || isAssignee || isSupport),
   };
 }

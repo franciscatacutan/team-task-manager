@@ -1,3 +1,4 @@
+import type { ActivityQueryParams } from "@/common/types/activity.types";
 import { apiClient } from "../../../api/apiClients";
 import type { BaseQueryParams } from "../../../common/types/baseQuery.types";
 import type {
@@ -12,7 +13,10 @@ import type {
   TeamMe,
   TeamMember,
 } from "../types/team.type";
-import type { TeamInsights } from "../types/teamInsights.types";
+import type {
+  TeamInsights,
+  TeamOverdueTask,
+} from "../types/teamInsights.types";
 
 export const getTeams = async (
   params: BaseQueryParams & {
@@ -34,10 +38,14 @@ export const getAllTeams = async (
 };
 
 export const getTeamActivities = async (
-  teamId: string,
-  params: BaseQueryParams,
+  teamKey: string,
+  params: ActivityQueryParams,
+  signal?: AbortSignal,
 ): Promise<PageResponse<TeamActivity>> => {
-  const res = await apiClient.get(`/teams/${teamId}/activities`, { params });
+  const res = await apiClient.get(`/teams/${teamKey}/activities`, {
+    params,
+    signal,
+  });
   return res.data;
 };
 
@@ -49,62 +57,79 @@ export const createTeam = async (data: {
   return response.data;
 };
 
-export const getTeamMe = async (teamId: string): Promise<TeamMe> => {
-  const response = await apiClient.get(`/teams/${teamId}/me`);
+export const getTeamMe = async (teamKey: string): Promise<TeamMe> => {
+  const response = await apiClient.get(`/teams/${teamKey}/me`);
   return response.data;
 };
 
-export const getTeam = async (teamId: string): Promise<Team> => {
-  const response = await apiClient.get(`/teams/${teamId}`);
+export const getTeam = async (teamKey: string): Promise<Team> => {
+  const response = await apiClient.get(`/teams/${teamKey}`);
   return response.data;
 };
 
 export const updateTeam = async (
-  teamId: string,
+  teamKey: string,
   data: {
     name?: string;
     description?: string;
   },
 ): Promise<Team> => {
-  const response = await apiClient.patch(`/teams/${teamId}`, data);
+  const response = await apiClient.patch(`/teams/${teamKey}`, data);
   return response.data;
 };
 
-export const deleteTeam = async (teamId: string): Promise<void> => {
-  await apiClient.delete(`/teams/${teamId}`);
+export const deleteTeam = async (teamKey: string): Promise<void> => {
+  await apiClient.delete(`/teams/${teamKey}`);
 };
 
 export const transferTeam = async (
-  teamId: string,
+  teamKey: string,
   userId: string,
 ): Promise<TeamMember> => {
-  const response = await apiClient.patch(`/teams/${teamId}/transfer/${userId}`);
+  const response = await apiClient.patch(
+    `/teams/${teamKey}/transfer/${userId}`,
+  );
   return response.data;
 };
 
+export async function getTeamOverdueTasks(
+  teamKey: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<PageResponse<TeamOverdueTask>> {
+  const { data } = await apiClient.get<PageResponse<TeamOverdueTask>>(
+    `/teams/${teamKey}/insights/overdue-tasks`,
+    { params: { page }, signal },
+  );
+  return data;
+}
+
 export const getTeamInsights = async (
-  teamId: string,
+  teamKey: string,
 ): Promise<TeamInsights> => {
-  const response = await apiClient.get(`/teams/${teamId}/insights/summary`);
+  const response = await apiClient.get(`/teams/${teamKey}/insights/summary`);
   return response.data;
 };
 
 export const getTeamAuditLogs = async (
-  teamId: string,
+  teamKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilityAuditLog>> => {
-  const response = await apiClient.get(`/teams/${teamId}/insights/audit-logs`, {
-    params,
-  });
+  const response = await apiClient.get(
+    `/teams/${teamKey}/insights/audit-logs`,
+    {
+      params,
+    },
+  );
   return response.data;
 };
 
 export const getTeamSystemEvents = async (
-  teamId: string,
+  teamKey: string,
   params: Pick<BaseQueryParams, "page" | "size" | "sort">,
 ): Promise<PageResponse<ObservabilitySystemEvent>> => {
   const response = await apiClient.get(
-    `/teams/${teamId}/insights/system-events`,
+    `/teams/${teamKey}/insights/system-events`,
     { params },
   );
   return response.data;

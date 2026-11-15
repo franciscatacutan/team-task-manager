@@ -1,21 +1,22 @@
 package com.example.task_manager.auth;
 
+import com.example.task_manager.auth.dto.*;
+import com.example.task_manager.exception.api.AuthException;
+import com.example.task_manager.exception.api.ForbiddenException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import java.net.URI;
+import java.util.Map;
+import lombok.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.task_manager.auth.dto.*;
-import com.example.task_manager.exception.api.AuthException;
-
-import jakarta.validation.Valid;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.*;
-
-/**
- * Handles Authentication operations.
- */
-
+/** Handles Authentication operations. */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -23,66 +24,89 @@ public class AuthController {
 
   private final AuthService authService;
   private final RefreshTokenCookieService refreshTokenCookieService;
+  private final AuthRateLimiter rateLimiter;
+  private final AuthClientAddress clientAddress;
 
-  /**
-   * Registers a new user.
-   */
+  @Value("${frontend.url}")
+  private String frontendUrl;
+
+  @GetMapping("/registration")
+  public ResponseEntity<Map<String, Boolean>> registrationPolicy() {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(Map.of("openRegistration", authService.isOpenRegistration()));
+  }
+
+  /** Registers a new user. */
   @PostMapping("/register")
   public ResponseEntity<AuthResponse> register(
       @Valid @RequestBody RegisterRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
-    AuthService.AuthSession session = authService.register(request, extractClientIp(httpRequest),
-        httpRequest.getHeader("User-Agent"));
+    String client = clientAddress.resolve(httpRequest);
+    rateLimiter.checkRegistration(client);
+    AuthService.AuthSession session =
+        authService.register(request, client, httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
-    return ResponseEntity.ok(session.response());
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .cacheControl(CacheControl.noStore())
+        .body(session.response());
   }
 
-  /**
-   * Logs in an existing user.
-   */
+  /** Logs in an existing user. */
   @PostMapping("/login")
   public ResponseEntity<AuthResponse> login(
       @Valid @RequestBody LoginRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
-    AuthService.AuthSession session = authService.login(request, extractClientIp(httpRequest),
-        httpRequest.getHeader("User-Agent"));
+    String client = clientAddress.resolve(httpRequest);
+    rateLimiter.checkLogin(client, request.email());
+    AuthService.AuthSession session =
+        authService.login(request, client, httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
-    return ResponseEntity.ok(session.response());
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(session.response());
   }
 
   @PostMapping("/refresh")
   public ResponseEntity<AuthResponse> refresh(
-      HttpServletRequest httpRequest,
-      HttpServletResponse httpResponse) {
+      HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    requireTrustedRefreshOrigin(httpRequest);
     String refreshToken = refreshTokenCookieService.extractRefreshToken(httpRequest);
     if (refreshToken == null || refreshToken.isBlank()) {
       throw new AuthException();
     }
 
-    AuthService.AuthSession session = authService.refresh(
-        refreshToken,
-        extractClientIp(httpRequest),
-        httpRequest.getHeader("User-Agent"));
+    AuthService.AuthSession session =
+        authService.refresh(
+            refreshToken, clientAddress.resolve(httpRequest), httpRequest.getHeader("User-Agent"));
     refreshTokenCookieService.writeRefreshTokenCookie(httpResponse, session.refreshToken());
-    return ResponseEntity.ok(session.response());
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(session.response());
   }
 
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(
-      HttpServletRequest httpRequest,
-      HttpServletResponse httpResponse) {
-    authService.logout(refreshTokenCookieService.extractRefreshToken(httpRequest));
+      HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    requireTrustedRefreshOrigin(httpRequest);
+    String header = httpRequest.getHeader(HttpHeaders.AUTHORIZATION);
+    String accessToken =
+        header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
+    authService.logout(refreshTokenCookieService.extractRefreshToken(httpRequest), accessToken);
     refreshTokenCookieService.clearRefreshTokenCookie(httpResponse);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
-  private String extractClientIp(HttpServletRequest request) {
-    String forwardedFor = request.getHeader("X-Forwarded-For");
-    if (forwardedFor == null || forwardedFor.isBlank()) {
-      return request.getRemoteAddr();
+  private void requireTrustedRefreshOrigin(HttpServletRequest request) {
+    String origin = request.getHeader(HttpHeaders.ORIGIN);
+    if (origin == null || !origin.equals(configuredFrontendOrigin())) {
+      throw new ForbiddenException("Refresh-token requests must come from the configured frontend");
     }
-    return forwardedFor.split(",")[0].trim();
+  }
+
+  private String configuredFrontendOrigin() {
+    URI frontendUri = URI.create(frontendUrl);
+    if (frontendUri.getScheme() == null || frontendUri.getAuthority() == null) {
+      throw new IllegalStateException("frontend.url must be an absolute origin");
+    }
+    return frontendUri.getScheme() + "://" + frontendUri.getAuthority();
   }
 }

@@ -1,7 +1,14 @@
 package com.example.task_manager.user;
 
+import com.example.task_manager.common.PageResponse;
+import com.example.task_manager.user.dto.UpdateEmailRequest;
+import com.example.task_manager.user.dto.UpdatePasswordRequest;
+import com.example.task_manager.user.dto.UpdateUserProfileRequest;
+import com.example.task_manager.user.dto.UserResponse;
+import com.example.task_manager.user.dto.UserSearchRequest;
+import jakarta.validation.Valid;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -12,18 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.task_manager.common.PageResponse;
-import com.example.task_manager.user.dto.UpdateEmailRequest;
-import com.example.task_manager.user.dto.UpdatePasswordRequest;
-import com.example.task_manager.user.dto.UpdateUserProfileRequest;
-import com.example.task_manager.user.dto.UserResponse;
-import com.example.task_manager.user.dto.UserSearchRequest;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
-/* 
-* REST controller for managing users.
+/*
+ * REST controller for managing users.
  */
 @RestController
 @RequestMapping("/api/users")
@@ -37,8 +34,7 @@ public class UserController {
    */
   @GetMapping
   public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
-      UserSearchRequest request,
-      Pageable pageable) {
+      UserSearchRequest request, Pageable pageable) {
     return ResponseEntity.ok(userService.getAllUsers(request, pageable));
   }
 
@@ -47,8 +43,8 @@ public class UserController {
    */
   @GetMapping("/{userId}")
   public ResponseEntity<UserResponse> getUser(
-      @PathVariable UUID userId) {
-    return ResponseEntity.ok(userService.getUser(userId));
+      @PathVariable UUID userId, Authentication authentication) {
+    return ResponseEntity.ok(userService.getUser(userId, authentication.getName()));
   }
 
   /*
@@ -56,8 +52,7 @@ public class UserController {
    */
   @PatchMapping("/me/email")
   public ResponseEntity<Void> updateCurrentUserEmail(
-      Authentication authentication,
-      @Valid @RequestBody UpdateEmailRequest request) {
+      Authentication authentication, @Valid @RequestBody UpdateEmailRequest request) {
     userService.updateOwnEmail(request, authentication.getName());
     return ResponseEntity.noContent().build();
   }

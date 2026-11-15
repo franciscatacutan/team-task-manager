@@ -1,3 +1,5 @@
+import QueryFailure from "@/common/components/QueryFailure";
+import { Link } from "react-router";
 import {
   Activity,
   AlertTriangle,
@@ -23,6 +25,8 @@ interface Props {
   insights?: TeamInsights;
   isLoading?: boolean;
   isError?: boolean;
+  onRetry?: () => unknown;
+  overdueTasksPath?: string;
 }
 
 const numberFormatter = new Intl.NumberFormat("en", {
@@ -51,6 +55,8 @@ export default function TeamInsightsDashboard({
   insights,
   isLoading,
   isError,
+  onRetry,
+  overdueTasksPath,
 }: Props) {
   if (isLoading) {
     return (
@@ -70,6 +76,8 @@ export default function TeamInsightsDashboard({
     );
   }
 
+  if (isError && onRetry)
+    return <QueryFailure label="insights" onRetry={onRetry} />;
   if (isError || !insights) {
     return (
       <Card className="border-border/60 bg-background/92">
@@ -133,7 +141,8 @@ export default function TeamInsightsDashboard({
         <KpiTile
           title="Overdue tasks"
           value={formatNumber(insights.health.overdueTasks)}
-          detail={`${formatNumber(urgentTasks)} high or critical priority`}
+          detail={`${formatNumber(urgentTasks)} high or critical across the team`}
+          to={overdueTasksPath}
           icon={AlertTriangle}
           tone={insights.health.overdueTasks > 0 ? "rose" : "slate"}
         />
@@ -278,12 +287,14 @@ function KpiTile({
   detail,
   icon: Icon,
   tone,
+  to,
 }: {
   title: string;
   value: string;
   detail: string;
   icon: LucideIcon;
   tone: "emerald" | "rose" | "sky" | "slate" | "violet";
+  to?: string;
 }) {
   const toneClassName = {
     emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -293,8 +304,13 @@ function KpiTile({
     violet: "border-violet-200 bg-violet-50 text-violet-700",
   }[tone];
 
-  return (
-    <Card className="border-border/60 bg-background/92">
+  const card = (
+    <Card
+      className={cn(
+        "h-full border-border/60 bg-background/92",
+        to && "transition-colors group-hover:border-primary/60",
+      )}
+    >
       <CardContent className="space-y-3 p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -312,8 +328,23 @@ function KpiTile({
         </div>
 
         <p className="text-xs leading-5 text-muted-foreground">{detail}</p>
+        {to && (
+          <p className="text-xs font-medium text-primary">View overdue tasks</p>
+        )}
       </CardContent>
     </Card>
+  );
+
+  return to ? (
+    <Link
+      to={to}
+      aria-label={`View overdue tasks (${value})`}
+      className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }
 

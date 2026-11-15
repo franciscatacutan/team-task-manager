@@ -3,10 +3,6 @@ spring:
     activate:
       on-profile: prod
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-
 auth:
   refresh-cookie-secure: true
   refresh-cookie-same-site: None

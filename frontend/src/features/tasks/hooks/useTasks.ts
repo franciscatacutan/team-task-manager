@@ -1,44 +1,36 @@
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousDataInScope } from "@/common/query/queryCache";
+import { queryKeys } from "@/common/query/queryKeys";
+import { hashKey, useQuery } from "@tanstack/react-query";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import { getTasks } from "../api/taskApi";
-import type { DeletedFilter } from "../../../common/types/deletedFilter.types";
-import type { Task } from "../types/task.types";
-import type { TaskStatus } from "../utils/task.constants";
+import type { Task, TaskQueryParams } from "../types/task.types";
 
 export const useTasks = (
-  teamId: string,
-  projectId: string,
-  params: {
-    page: number;
-    size: number;
-    search?: string;
-    status?: TaskStatus[];
-    sort?: string;
-    deletedFilter: DeletedFilter;
-  },
+  teamKey: string,
+  projectKey: string,
+  params: TaskQueryParams & { page: number; size: number },
+  enabled = true,
 ) => {
   return useQuery<PageResponse<Task>>({
-    queryKey: [
-      "tasks",
-      teamId,
-      projectId,
-      params.page,
-      params.size,
-      params.search,
-      params.status,
-      params.sort,
-      params.deletedFilter,
-    ],
+    enabled: Boolean(teamKey && projectKey) && enabled,
+    queryKey: queryKeys.tasks.list(teamKey, projectKey, params),
 
-    queryFn: () =>
-      getTasks(teamId, projectId, {
-        page: params.page,
-        size: params.size,
-        search: params.search,
-        status: params.status,
-        sort: params.sort,
-        deletedFilter: params.deletedFilter,
-      }),
-    placeholderData: keepPreviousData,
+    queryFn: () => getTasks(teamKey, projectKey, params),
+    placeholderData: (data, previous) => {
+      const previousParams = previous?.queryKey[3] as
+        TaskQueryParams | undefined;
+      if (
+        !previousParams ||
+        hashKey([{ ...params, page: undefined }]) !==
+          hashKey([{ ...previousParams, page: undefined }])
+      ) {
+        return undefined;
+      }
+      return keepPreviousDataInScope(
+        data,
+        previous,
+        queryKeys.tasks.lists(teamKey, projectKey),
+      );
+    },
   });
 };

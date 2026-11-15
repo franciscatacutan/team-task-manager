@@ -3,9 +3,7 @@ package com.example.task_manager.task.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * DTO for task update response.
- */
+/** DTO for task update response. */
 public record TaskActivityResponse(
     UUID id,
     String message,
@@ -13,7 +11,8 @@ public record TaskActivityResponse(
     ActivityDetails details,
     User user,
     Task task,
-    Instant createdAt) {
+    Instant createdAt,
+    String targetPath) {
 
   public record ActivityDetails(
       java.util.List<String> fields,
@@ -24,38 +23,13 @@ public record TaskActivityResponse(
       ActivityReference team,
       ActivityReference project,
       ActivityReference task,
-      ActivityReference subjectUser) {
-  }
+      ActivityReference subjectUser) {}
 
-  public record ActivityChange(
-      String field,
-      String label,
-      String from,
-      String to) {
-  }
+  public record ActivityChange(String field, String label, String from, String to) {}
 
-  public record ActivityReference(
-      UUID id,
-      String label) {
-  }
+  public record ActivityReference(UUID id, String label) {}
 
-  public record User(
-      UUID id,
-      String firstName,
-      String lastName,
-      String email) {
-  }
+  public record User(UUID id, String firstName, String lastName, String email) {}
 
-  public record Task(
-      UUID id,
-      String title) {
-  }
+  public record Task(UUID id, String name, Long taskNumber) {}
 }
-
-            
-                
-                    
-                    
-                    
-                    
-                

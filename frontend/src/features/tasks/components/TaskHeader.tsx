@@ -1,3 +1,4 @@
+import ArchiveBadge from "@/common/components/ArchiveBadge";
 import EditableField from "../../../common/components/EditableField";
 import PriorityBadge from "../../../common/components/PriorityBadge";
 import { useUpdateTask } from "../hooks/useUpdateTask";
@@ -7,21 +8,21 @@ import { TaskStatusLabel, TaskStatusStyles } from "../utils/task.constants";
 import DeleteTaskButton from "./DeleteTaskButton";
 
 interface Props {
-  teamId: string;
-  projectId: string;
+  teamKey: string;
+  projectKey: string;
   task: Task;
   permissions: TaskPermissions;
   onTaskDeleted?: () => void;
 }
 
 export default function TaskHeader({
-  teamId,
-  projectId,
+  teamKey,
+  projectKey,
   task,
   permissions,
   onTaskDeleted,
 }: Props) {
-  const updateTask = useUpdateTask(teamId, projectId, task.id);
+  const updateTask = useUpdateTask(teamKey, projectKey, task.taskNumber);
 
   return (
     <div className="border-b border-border/60 bg-background/96 px-6 py-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-7">
@@ -36,6 +37,9 @@ export default function TaskHeader({
               <span className={TaskStatusStyles[task.status]}>
                 {TaskStatusLabel[task.status]}
               </span>
+              <ArchiveBadge
+                archived={Boolean(task.deletedAt || task.readOnly)}
+              />
               <PriorityBadge
                 priority={task.priority ?? "LOW"}
                 className="rounded-full px-2.5 py-1 text-[11px] uppercase tracking-[0.12em]"
@@ -45,21 +49,21 @@ export default function TaskHeader({
 
           {permissions.canDeleteTask && (
             <DeleteTaskButton
-              teamId={teamId}
-              projectId={projectId}
-              taskId={task.id}
-              taskTitle={task.title}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              taskNumber={task.taskNumber}
+              taskName={task.name}
               onTaskDeleted={onTaskDeleted}
             />
           )}
         </div>
 
         <EditableField
-          value={task.title}
+          value={task.name}
           maxLength={100}
           displayClassName="text-xl font-semibold leading-tight text-foreground sm:text-2xl"
           inputClassName="text-xl font-semibold sm:text-2xl"
-          onSave={(value) => updateTask.mutate({ title: value })}
+          onSave={(value) => updateTask.mutateAsync({ name: value })}
           disabled={!permissions.canEditTaskDetails}
         />
       </div>

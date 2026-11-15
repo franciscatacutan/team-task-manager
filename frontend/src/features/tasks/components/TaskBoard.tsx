@@ -1,276 +1,212 @@
-import { useState } from "react";
-
-import type { Task } from "../types/task.types";
-import TaskCard from "./TaskCard";
-
+import { useEffect, useMemo, useRef } from "react";
 import {
   DndContext,
-  type DragEndEvent,
-  type DragStartEvent,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
   closestCorners,
+  pointerWithin,
   useSensor,
   useSensors,
-  PointerSensor,
-  DragOverlay,
-  useDroppable,
-  defaultDropAnimationSideEffects,
+  type CollisionDetection,
 } from "@dnd-kit/core";
-
+import type { Task, TaskQueryParams } from "../types/task.types";
 import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-
-import { CSS } from "@dnd-kit/utilities";
-
-import {
-  isTaskStatus,
+  allowedTransitions,
   canTransition,
-  type TaskStatus,
+  isTaskStatus,
   TaskStatusLabel,
-  TaskStatusStyles,
+  type TaskStatus,
 } from "../utils/task.constants";
-import { cn } from "../../../lib/utils";
-import { useInfiniteTasks } from "../hooks/useInfiniteTasks";
-import type { DeletedFilter } from "@/common/types/deletedFilter.types";
+import {
+  dropStatus,
+  statusKeyboardCoordinates,
+} from "../utils/taskBoardMovement";
+import { useTaskBoardMovement } from "../hooks/useTaskBoardMovement";
+import TaskBoardColumn from "./TaskBoardColumn";
+import TaskMovementFeedback from "./TaskMovementFeedback";
+import TaskCard from "./TaskCard";
 
-interface Params {
-  search?: string;
-  status?: TaskStatus;
-  sort?: string;
-  deletedFilter: DeletedFilter;
-}
-interface Props {
-  teamId: string;
-  projectId: string;
-  params: Params;
-  onStatusChange: (taskId: string, status: TaskStatus) => void;
-  onOpenTask: (task: Task) => void;
-}
+export type TaskBoardParams = Omit<TaskQueryParams, "page" | "size">;
+
+const columnCollision: CollisionDetection = (args) =>
+  args.pointerCoordinates ? pointerWithin(args) : closestCorners(args);
 
 export default function TaskBoard({
-  teamId,
-  projectId,
+  isUpdating = false,
+  teamKey,
+  projectKey,
   params,
   onStatusChange,
   onOpenTask,
-}: Props) {
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
-    }),
-  );
-
-  const dropAnimation = {
-    duration: 180,
-    easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-    sideEffects: defaultDropAnimationSideEffects({
-      styles: {
-        active: {
-          opacity: "0.45",
-        },
-      },
-    }),
-  };
-
-  function handleDragStart(event: DragStartEvent) {
-    const task = event.active.data.current?.task;
-
-    if (task) {
-      setActiveTask(task);
-    }
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    setActiveTask(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    const activeTask = active.data.current?.task as Task | undefined;
-
-    if (!activeTask) return;
-
-    if (isTaskStatus(overId)) {
-      const newStatus = overId;
-
-      if (!canTransition(activeTask.status, newStatus)) {
-        console.warn("Invalid transition");
-        return;
-      }
-
-      if (activeTask.status !== newStatus) {
-        onStatusChange(activeId, newStatus);
-      }
-    }
-  }
-
-  const commonProps = {
-    teamId,
-    projectId,
-    params,
-    onOpenTask,
-  };
-  const statuses: TaskStatus[] =
-    params.status && isTaskStatus(params.status)
-      ? [params.status]
-      : ["TODO", "IN_PROGRESS", "IN_REVIEW", "ON_HOLD", "DONE", "CANCELLED"];
-
-  return (
-    <div className="flex h-full min-h-0 gap-4 overflow-x-auto pb-2">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        {statuses.map((status) => (
-          <BoardColumn key={status} id={status} {...commonProps} />
-        ))}
-        <DragOverlay dropAnimation={dropAnimation}>
-          {activeTask ? (
-            <TaskCard task={activeTask} onOpen={onOpenTask} />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-    </div>
-  );
-}
-
-function BoardColumn({
-  id,
-  teamId,
-  projectId,
-  params,
-  onOpenTask,
+  canChangeTaskStatus,
 }: {
-  id: TaskStatus;
-  teamId: string;
-  projectId: string;
-  params: Params;
+  isUpdating?: boolean;
+  teamKey: string;
+  projectKey: string;
+  params: TaskBoardParams;
+  onStatusChange: (
+    taskNumber: number,
+    status: TaskStatus,
+    checkCurrent?: boolean,
+  ) => void | Promise<unknown>;
   onOpenTask: (task: Task) => void;
+  canChangeTaskStatus: (task: Task) => boolean;
 }) {
-  const { setNodeRef } = useDroppable({ id });
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteTasks(teamId, projectId, id, params);
-
-  const tasks = data?.pages.flatMap((page) => page.content) ?? [];
-
-  const total = data?.pages[0]?.totalElements ?? 0;
-
-  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
-    const el = e.currentTarget;
-
-    const isNearBottom =
-      el.scrollHeight - el.scrollTop <= el.clientHeight + 100;
-
-    if (isNearBottom && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      className="flex h-full min-h-0 min-w-74 max-w-88 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-linear-to-b from-muted/35 via-background to-background shadow-sm"
-    >
-      <div className="sticky top-0 z-10 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className={TaskStatusStyles[id]}>{TaskStatusLabel[id]}</span>
-            <span className="text-xs text-muted-foreground">
-              {total} task{total === 1 ? "" : "s"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        onScroll={handleScroll}
-        className="flex-1 min-h-0 space-y-2 overflow-y-auto px-3 py-3"
-      >
-        {isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-28 animate-pulse rounded-xl border border-border/60 bg-muted/25"
-              />
-            ))}
-          </div>
-        ) : (
-          <SortableContext
-            items={tasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {tasks.map((task) => (
-              <SortableTask key={task.id} task={task} onOpenTask={onOpenTask} />
-            ))}
-          </SortableContext>
-        )}
-
-        {!isLoading && tasks.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/15 px-4 py-6 text-center text-sm text-muted-foreground">
-            No tasks in {TaskStatusLabel[id].toLowerCase()}.
-          </div>
-        )}
-
-        {isFetchingNextPage && (
-          <div className="py-2 text-center text-xs text-muted-foreground">
-            Loading more...
-          </div>
-        )}
-      </div>
-    </div>
+  const boardRef = useRef<HTMLDivElement>(null);
+  const handledFocus = useRef(0);
+  const { status: selectedStatuses, ...columnFilters } = params;
+  const statuses = useMemo<TaskStatus[]>(
+    () =>
+      selectedStatuses?.length
+        ? [...new Set(selectedStatuses.filter(isTaskStatus))]
+        : [
+            "TODO",
+            "IN_PROGRESS",
+            "IN_REVIEW",
+            "ON_HOLD",
+            "DONE",
+            "CANCELLED",
+            ...(params.deletedFilter !== "ACTIVE" ? ["DELETED" as const] : []),
+          ],
+    [selectedStatuses, params.deletedFilter],
   );
-}
-
-function SortableTask({
-  task,
-  onOpenTask,
-}: {
-  task: Task;
-  onOpenTask: (task: Task) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task.id,
-    data: { task },
+  const canMove = (task: Task) =>
+    !isUpdating &&
+    canChangeTaskStatus(task) &&
+    !task.deletedAt &&
+    !task.readOnly &&
+    allowedTransitions[task.status].length > 0;
+  const movement = useTaskBoardMovement({
+    teamKey,
+    projectKey,
+    boardRef,
+    canMove,
+    onStatusChange,
   });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    willChange: "transform",
-    touchAction: "none" as const,
-    zIndex: isDragging ? 20 : "auto",
-  };
+  const busy = isUpdating || Boolean(movement.pending);
+  const keyboardCoordinates = useMemo(
+    () => statusKeyboardCoordinates(statuses),
+    [statuses],
+  );
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: keyboardCoordinates }),
+  );
+  useEffect(() => {
+    const job = movement.focus;
+    if (
+      !job ||
+      busy ||
+      job.scope !== movement.scope ||
+      handledFocus.current === job.id
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      if (boardRef.current?.dataset.boardScope !== job.scope) return;
+      handledFocus.current = job.id;
+      if (
+        document.activeElement !== document.body &&
+        document.activeElement !== job.activator
+      )
+        return;
+      const handle = boardRef.current.querySelector<HTMLButtonElement>(
+        `[data-task-handle="${job.taskNumber}"]:not(:disabled)`,
+      );
+      const open = boardRef.current.querySelector<HTMLButtonElement>(
+        `[data-task-open="${job.taskNumber}"]`,
+      );
+      (handle ?? open)?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [movement.focus, movement.scope, busy]);
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={cn("origin-center", isDragging && "scale-[1.015] opacity-95")}
-      {...attributes}
-      {...listeners}
+      ref={boardRef}
+      data-board-scope={movement.scope}
+      className="relative flex h-full min-h-0 flex-col gap-2"
     >
-      <TaskCard task={task} onOpen={onOpenTask} />
+      <div
+        aria-busy={busy}
+        className="flex h-full min-h-0 gap-4 overflow-x-auto pb-2"
+      >
+        <DndContext
+          key={movement.scope}
+          sensors={sensors}
+          collisionDetection={columnCollision}
+          onDragStart={movement.onDragStart}
+          onDragEnd={movement.onDragEnd}
+          onDragCancel={movement.onDragCancel}
+          accessibility={{
+            screenReaderInstructions: {
+              draggable:
+                "Press Space to pick up a task. Use Left and Right to choose an allowed status column, Space to request the move, or Escape to cancel. Cards stay in the selected sort order.",
+            },
+            announcements: {
+              onDragStart: ({ active }) => {
+                const task = active.data.current?.task as Task | undefined;
+                return task
+                  ? `Picked up task #${task.taskNumber}: ${task.name}. Current status ${TaskStatusLabel[task.status]}.`
+                  : undefined;
+              },
+              onDragOver: ({ active, over }) => {
+                const task = active.data.current?.task as Task | undefined;
+                const target = dropStatus(over);
+                if (!task || !target) return "Outside a status column.";
+                return target === task.status
+                  ? `Current status ${TaskStatusLabel[target]}.`
+                  : canTransition(task.status, target)
+                    ? `Move to ${TaskStatusLabel[target]}.`
+                    : `Cannot move to ${TaskStatusLabel[target]}.`;
+              },
+              onDragEnd: ({ active, over }) => {
+                const task = active.data.current?.task as Task | undefined;
+                const target = dropStatus(over);
+                return task &&
+                  target &&
+                  target !== task.status &&
+                  canTransition(task.status, target)
+                  ? `Move requested for task #${task.taskNumber} to ${TaskStatusLabel[target]}. Waiting for confirmation.`
+                  : "Status unchanged.";
+              },
+              onDragCancel: () => "Move cancelled. Status unchanged.",
+            },
+          }}
+        >
+          {statuses.map((status) => (
+            <TaskBoardColumn
+              key={status}
+              id={status}
+              teamKey={teamKey}
+              projectKey={projectKey}
+              params={columnFilters}
+              activeTask={movement.activeTask}
+              pending={movement.pending}
+              busy={busy}
+              onOpenTask={onOpenTask}
+              canChangeTaskStatus={canMove}
+            />
+          ))}
+          <DragOverlay
+            dropAnimation={movement.dropAnimation}
+            zIndex={40}
+            style={{ pointerEvents: "none" }}
+          >
+            {movement.activeTask ? (
+              <div aria-hidden="true">
+                <TaskCard task={movement.activeTask} movementActive />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+      <TaskMovementFeedback
+        feedback={movement.feedback}
+        busy={busy}
+        onRetry={movement.retry}
+        onDismiss={movement.dismiss}
+      />
     </div>
   );
 }
