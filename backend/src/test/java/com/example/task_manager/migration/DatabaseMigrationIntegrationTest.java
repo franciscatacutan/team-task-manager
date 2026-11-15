@@ -37,7 +37,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Actual migration SQL and production startup, isolated from all configured databases. */
 class DatabaseMigrationIntegrationTest {
-  private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+  private static final PostgreSQLContainer POSTGRES =
+      new PostgreSQLContainer("postgres:17.12-alpine");
   private static final List<String> TABLES =
       List.of(
           "users",

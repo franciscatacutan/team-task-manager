@@ -30,7 +30,7 @@ public abstract class PostgresIntegrationTest {
     @Bean
     @ServiceConnection
     PostgreSQLContainer postgres() {
-      return new PostgreSQLContainer("postgres:17-alpine");
+      return new PostgreSQLContainer("postgres:17.12-alpine");
     }
   }
 }
