@@ -13,7 +13,7 @@ export type Project = {
   deletedBy?: User | null;
   lastActivityAt: string;
   plannedStartDate?: string;
-  plannedDueDate?: string;
+  plannedDueDate?: string | null;
   plannedStartDay?: string | null;
   plannedDueDay?: string | null;
   actualStartDate?: string;
@@ -40,5 +40,5 @@ export interface UpdateProjectInput {
   name?: string;
   description?: string;
   plannedStartDate?: string;
-  plannedDueDate?: string;
+  plannedDueDate?: string | null;
 }

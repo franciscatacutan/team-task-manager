@@ -9,6 +9,7 @@ import type {
 } from "../../../common/types/observability.types";
 import type { PageResponse } from "../../../common/types/pageResponse.types";
 import type { ProjectInsights } from "../types/projectInsights.types";
+import type { CreateProjectInput } from "../types/createProjectSchema";
 import type {
   Project,
   ProjectActivity,
@@ -42,7 +43,7 @@ export const getProjects = async (
 
 export const createProject = async (
   teamKey: string,
-  data: { name: string; description?: string },
+  data: CreateProjectInput,
 ): Promise<Project> => {
   const response = await apiClient.post(`/teams/${teamKey}/projects`, data);
   return response.data;

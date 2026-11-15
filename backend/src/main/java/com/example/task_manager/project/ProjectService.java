@@ -93,7 +93,8 @@ public class ProjectService {
 
     teamAuthorizationService.validateManagerMembership(team.getId(), requester.getId());
 
-    validateDates(request.plannedStartDate(), request.plannedDueDate());
+    Instant plannedDue = planningCalendar.parse(request.plannedDueDate());
+    validateDates(request.plannedStartDate(), plannedDue);
 
     ProjectEntity project = new ProjectEntity();
     project.setName(request.name().trim());
@@ -104,7 +105,7 @@ public class ProjectService {
     project.setCreatedBy(requester);
     project.setOwner(requester);
     project.setPlannedStartDate(request.plannedStartDate());
-    project.setPlannedDueDate(request.plannedDueDate());
+    project.setPlannedDueDate(plannedDue);
     project.setActualStartDate(Instant.now());
     project.setStatusChangedAt(Instant.now());
 
@@ -156,25 +157,27 @@ public class ProjectService {
     Instant previousPlannedStart = project.getPlannedStartDate();
     Instant previousPlannedDue = project.getPlannedDueDate();
 
-    if (request.name() != null) {
+    if (request.getName() != null) {
 
-      if (request.name().isBlank()) {
+      if (request.getName().isBlank()) {
         throw new BadRequestInputException("Project name cannot be blank");
       }
-      project.setName(request.name().trim());
+      project.setName(request.getName().trim());
     }
 
-    if (request.description() != null) {
-      project.setDescription(request.description().trim());
+    if (request.getDescription() != null) {
+      project.setDescription(request.getDescription().trim());
     }
 
     Instant newPlannedStart =
-        request.plannedStartDate() != null
-            ? request.plannedStartDate()
+        request.getPlannedStartDate() != null
+            ? request.getPlannedStartDate()
             : project.getPlannedStartDate();
 
     Instant newPlannedDue =
-        request.plannedDueDate() != null ? request.plannedDueDate() : project.getPlannedDueDate();
+        request.hasPlannedDueDate()
+            ? planningCalendar.parse(request.getPlannedDueDate())
+            : previousPlannedDue;
 
     validateDates(newPlannedStart, newPlannedDue);
 
@@ -475,10 +478,11 @@ public class ProjectService {
     return pageable;
   }
 
-  /** Checks if Start Date < Due Date */
   private void validateDates(Instant start, Instant due) {
-    if (start != null && due != null && due.isBefore(start)) {
-      throw new ConflictException("Project due date must be after start date");
+    if (start != null
+        && due != null
+        && planningCalendar.day(due).isBefore(planningCalendar.day(start))) {
+      throw new ConflictException("Project due date cannot be before the planned start date");
     }
   }
 

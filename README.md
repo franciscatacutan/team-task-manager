@@ -31,6 +31,7 @@ See [pilot onboarding](docs/pilot-onboarding.md) for team invitations and the [d
 
 - Create and manage projects
 - Project status tracking
+- Optional project due dates
 - Project activity timeline
 - Team-based project organization
 

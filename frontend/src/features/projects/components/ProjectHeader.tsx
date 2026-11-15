@@ -1,4 +1,5 @@
 import { CheckCircle2, Clock3, FolderKanban, Archive } from "lucide-react";
+import type { ReactNode } from "react";
 
 import EditableField from "../../../common/components/EditableField";
 import CreateButton from "@/common/components/CreateButton";
@@ -13,6 +14,7 @@ import {
 import type { ProjectPermissions } from "../utils/projectPermissions";
 import { DeleteProjectButton } from "./DeleteProjectButton";
 import ProjectStatusControl from "./ProjectStatusControl";
+import ProjectDueDateControl from "./ProjectDueDateControl";
 
 interface Props {
   permissions: ProjectPermissions;
@@ -150,7 +152,17 @@ export default function ProjectHeader({
                 "TBD",
                 "TBD",
               )}
-              helper="Target schedule"
+              action={
+                permissions.canEditProjectDetails && (
+                  <ProjectDueDateControl
+                    key={JSON.stringify([teamKey, project.key])}
+                    teamKey={teamKey}
+                    projectKey={project.key}
+                    currentDay={project.plannedDueDay ?? null}
+                    startDay={project.plannedStartDay}
+                  />
+                )
+              }
             />
             <HeaderDetail
               label="Actual"
@@ -233,11 +245,13 @@ function HeaderDetail({
   label,
   value,
   helper,
+  action,
   icon: Icon,
 }: {
   label: string;
   value: string;
   helper?: string;
+  action?: ReactNode;
   icon?: HeaderIcon;
 }) {
   return (
@@ -249,6 +263,7 @@ function HeaderDetail({
       <p className="mt-0.5 truncate text-sm font-medium text-foreground">
         {value}
       </p>
+      {action}
       {helper ? (
         <p className="truncate text-xs text-muted-foreground">{helper}</p>
       ) : null}

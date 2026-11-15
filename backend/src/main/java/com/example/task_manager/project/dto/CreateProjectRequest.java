@@ -9,4 +9,4 @@ public record CreateProjectRequest(
     @NotBlank @Size(max = 100) String name,
     @Size(max = 2000) String description,
     Instant plannedStartDate,
-    Instant plannedDueDate) {}
+    String plannedDueDate) {}

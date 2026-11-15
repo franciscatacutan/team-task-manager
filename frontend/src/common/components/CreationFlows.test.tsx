@@ -232,6 +232,29 @@ async function fill(entity: Entity, user: ReturnType<typeof userEvent.setup>) {
     ).toBeEnabled(),
   );
 }
+it.each([true, false])(
+  "saves an optional project due date only when a date is selected (%s)",
+  async (keepDate) => {
+    apiFor("Project").mockResolvedValue(result);
+    const { user } = setup("Project");
+    await fill("Project", user);
+    fireEvent.change(screen.getByLabelText("Due date", { exact: true }), {
+      target: { value: "2026-11-05" },
+    });
+    if (!keepDate) {
+      await user.click(screen.getByRole("button", { name: "Clear due date" }));
+    }
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledExactlyOnceWith("TEAM", {
+        name,
+        description: "Draft details",
+        ...(keepDate ? { plannedDueDate: "2026-11-05" } : {}),
+      }),
+    );
+  },
+);
+
 describe.each(["Team", "Project", "Task"] as const)(
   "%s creation consistency",
   (entity) => {

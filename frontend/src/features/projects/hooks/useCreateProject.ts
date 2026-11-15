@@ -6,6 +6,7 @@ import {
 import { queryKeys, mutationKeys } from "@/common/query/queryKeys";
 import { useQueryClient } from "@tanstack/react-query";
 import { createProject } from "../api/projectApi";
+import type { CreateProjectInput } from "../types/createProjectSchema";
 
 /*
  * Custom hook to create a project.
@@ -15,8 +16,7 @@ export const useCreateProject = (teamKey: string) => {
 
   return useAppMutation({
     mutationKey: mutationKeys.projectCreate(teamKey),
-    mutationFn: (data: { name: string; description?: string }) =>
-      createProject(teamKey, data),
+    mutationFn: (data: CreateProjectInput) => createProject(teamKey, data),
 
     onSuccess: async (project) => {
       await setConfirmedData(
