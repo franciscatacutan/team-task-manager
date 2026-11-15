@@ -10,7 +10,7 @@
   </parent>
   <groupId>com.example</groupId>
   <artifactId>task-manager</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>2.0.0</version>
   <name>Team Task Manager</name>
   <description>Team Task Manager Sample</description>
   <url/>

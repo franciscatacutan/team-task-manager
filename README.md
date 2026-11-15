@@ -1,337 +1,68 @@
 # Team Task Manager
 
-A full-stack collaborative work management platform built with Spring Boot, React, TypeScript, PostgreSQL, Docker, and GitHub Actions.
+Team Task Manager helps teams organize projects and track tickets. Each team has its own projects, and each project contains tasks.
 
-Team Task Manager enables organizations and teams to manage projects, organize tasks, collaborate through task discussions, track activity, and receive contextual notifications within a centralized workspace.
+- Manage teams, roles, invitations, and ownership handoffs.
+- Plan work with project due dates, task priorities, assignees, and optional support.
+- Move tickets on the board with a mouse or keyboard, or use the searchable list. **My Work** brings your assignments together across projects.
+- Follow comments, activity, and notifications. Team managers can review Insights, overdue work, and operational logs.
 
----
+## Run locally with Docker
 
-## Features
+Install Docker with Compose v2 and keep ports **5173** and **8080** free. The bundled PostgreSQL profile also uses loopback port **5433** by default. Run the commands from the repository root.
 
-### Authentication & Security
+1. Copy `.env.example` to `.env`. In PowerShell use `Copy-Item .env.example .env`. In Bash use `cp .env.example .env`.
+2. Set `DB_PASSWORD`, an independent random `JWT_SECRET` of at least 32 bytes, and your `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`. Use a bootstrap password with at least eight characters, including upper- and lowercase letters, a digit, and a special character. Keep `.env` private.
+3. Choose a database configuration below.
+4. Run `docker compose up --build --wait`.
+5. Open **http://localhost:5173** and sign in with the bootstrap account. For a startup check, open **http://localhost:8080/actuator/health** or inspect `docker compose logs backend`.
 
-- JWT-based Authentication
-- Refresh Token Support
-- Protected Routes
-- Role-Based Access Control (RBAC)
-- Secure API Authorization
+Use `docker compose down` to stop the stack and retain its named volume. Use `localhost` consistently for the app and its configured browser origin.
 
-### Team Management
+### Use bundled PostgreSQL
 
-- Create and manage teams
-- Team ownership management
-- Team administrators and members
-- Member invitations and removal
-- Role management (Owner, Admin, Member)
-- Team activity tracking
-
-See [pilot onboarding](docs/pilot-onboarding.md) for team invitations and the [departing member handoff checklist](docs/member-handoff.md) for reassigning work and removing access.
-
-### Project Management
-
-- Create and manage projects
-- Project status tracking
-- Optional project due dates
-- Project activity timeline
-- Team-based project organization
-
-### Task Management
-
-- Create, update, and archive tasks
-- Task assignment and ownership
-- Support member assignments
-- Task priorities
-- Due date management
-- Advanced task workflow
-
-#### Task Status Workflow
-
-- TODO
-- IN_PROGRESS
-- IN_REVIEW
-- ON_HOLD
-- DONE
-- CANCELLED
-
-#### Task Priorities
-
-- LOW
-- MEDIUM
-- HIGH
-- CRITICAL
-
-### Collaboration
-
-- Task discussions and updates
-- Activity feeds
-- Team activity timeline
-- Project activity timeline
-
-### Notifications
-
-Receive notifications for:
-
-- Team member additions
-- Team member removals
-- Team role changes
-- Team ownership transfers
-- Project creation and updates
-- Project status changes
-- Task creation
-- Task assignments
-- Support member changes
-- Task discussions
-- Task status updates
-
-### Insights & Analytics
-
-- Team insights
-- Project insights
-- Task progress tracking
-
-Team owners and team admins can view Insights, overdue tasks, audit logs, and system events for their team. Global admins and super admins can view these across teams. Current team members can follow work through the Activity feeds for workspaces they can access.
-
----
-
-## Technology Stack
-
-### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- TanStack Query
-- React Hook Form
-- Zod
-- Axios
-- Shadcn UI
-
-### Backend
-
-- Java 21
-- Spring Boot 4
-- Spring Security
-- Spring Data JPA
-- Hibernate
-- JWT Authentication
-- PostgreSQL
-
-### Infrastructure
-
-- Docker
-- Docker Compose
-- Nginx
-- GitHub Actions
-
----
-
-## Architecture
-
-Frontend (React + TypeScript)
-↓
-Backend API (Spring Boot)
-↓
-PostgreSQL Database
-
-Infrastructure:
-
-- Dockerized Frontend
-- Dockerized Backend
-- Dockerized PostgreSQL
-- CI Pipeline via GitHub Actions
-- Health Monitoring via Spring Boot Actuator
-
----
-
-## Project Structure
-
-```text
-backend/
-├── authentication
-├── user
-├── team
-├── project
-├── task
-├── notification
-├── activity
-└── common
-
-frontend/
-├── components
-├── pages
-├── hooks
-├── services
-├── layouts
-└── routes
-```
-
----
-
-## Local Development
-
-### Requirements
-
-- Java 21
-- Node.js 24.15+ (24 LTS; see `.nvmrc`)
-- Docker Desktop
-- PostgreSQL (optional when using Docker)
-
-### Backend
-
-Schema startup uses Flyway followed by Hibernate validation. Existing nonempty databases without migration history are deliberately refused. Use a separate empty database for this fresh baseline; keep the old database/volume intact. See the [migration and local-cutover guide](docs/checkpoint-6-database-migrations.md) before starting an existing installation. No local cutover has been performed automatically.
-
-For Windows native development, use the [native Maven guide](docs/native-development.md). It creates a separate database and pins configuration so stale terminal variables do not select the old unmanaged database. The current machine is already initialized; on another checkout, follow the guide's first-time Init instructions.
-
-From the repository root, in terminal 1:
-
-```powershell
-pwsh -File ./deploy/native/native.ps1 -Action Backend
-```
-
-The launcher runs `backend/mvnw.cmd spring-boot:run` using the dedicated development settings. PostgreSQL stays in the existing Docker container.
-
-### Frontend
-
-From the repository root, in terminal 2:
-
-```powershell
-pwsh -File ./deploy/native/native.ps1 -Action Frontend
-```
-
-Open `http://localhost:5173`. If frontend dependencies are missing, run `npm ci` in `frontend` first. Read the generated `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` in ignored `deploy/native/state/environment.env` for the fresh database's login; no legacy data was imported.
-
----
-
-## Isolated development and local testing
-
-Use the [local deployment guide](docs/checkpoint-7-local-rehearsal.md) for localhost Vite development, built HTTPS rehearsal, or optional private-IP LAN testing with manual certificate trust. These modes create separate named databases/volumes and preserve the old unmanaged database. Each setup has its own generated credentials and refresh-cookie name. The guide covers startup, health, backup/restore and limits; live hosting remains unselected.
-
-## Docker Setup
-
-Copy `.env.example` to `.env` and set the passwords and JWT secret. After configuring the database, use `docker compose up --build --wait` to start the app and `docker compose down` to stop it.
-
-### Use the included PostgreSQL container
-
-Keep `COMPOSE_PROFILES=bundled-postgres`. Compose starts PostgreSQL in a named volume and waits for it to accept TCP connections before starting the backend. Keep the database name in `DB_URL` in sync with `DB_NAME`. The backend connects to `postgres:5432` inside Docker. Host tools use `127.0.0.1:5433` or the port you set in `POSTGRES_PORT`.
-
-Clear any old database variables exported in your terminal before starting the included container. Compose uses shell variables ahead of .env when configuring PostgreSQL.
-
-For a volume created before Flyway, follow the [database cutover guide](docs/checkpoint-6-database-migrations.md#existing-local-database-separate-cutover-required). The PostgreSQL container uses the initialization settings only when the data directory is empty.
+Keep `COMPOSE_PROFILES=bundled-postgres`. Compose starts PostgreSQL 17.12 and waits for it before starting the backend. The database in `DB_URL=jdbc:postgresql://postgres:5432/team_task_manager` must match `DB_NAME`. Inside Docker the backend uses port 5432. Tools outside Docker use the loopback port in `POSTGRES_PORT`.
 
 ### Use an existing PostgreSQL server
 
-Set `COMPOSE_PROFILES=` and update `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` in `.env`. Compose starts the backend and frontend. Use a dedicated database and login and start the database server first. For a fresh install, create the database before starting the backend so Flyway can create the tables.
+Set `COMPOSE_PROFILES=` and configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` for a dedicated database and login. Start the server and create the empty database first. On Docker Desktop, a server published on the same computer is reachable at `host.docker.internal` using its published port. For a remote server, use a hostname the backend container can reach.
 
-On Docker Desktop, use `jdbc:postgresql://host.docker.internal:5432/team_task_manager` for PostgreSQL installed on your computer at the default port. For a separately managed PostgreSQL container, use its published host port, such as `5433`. For a server elsewhere, use its hostname and port.
+> **Upgrading from v1.0.0?** Flyway requires an empty database for a fresh install or a database with compatible migration history. Keep the old database or volume and read the [database guide](docs/database.md) before starting v2.0 with existing data.
 
-If the included container is already running and you want to switch to an existing database, run `docker compose --profile bundled-postgres stop postgres` before starting the app. This preserves its volume.
+## Development and local testing
 
-Application URLs:
+| Goal                                                                       | Guide                                                                           |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Run Maven and Vite directly on Windows                                     | [Native development](docs/native-development.md)                                |
+| Run Vite locally with an isolated Docker backend and database              | [Local testing](docs/local-testing.md#vite-development)                         |
+| Rehearse a built stack over HTTPS or test from devices on your private LAN | [Local testing](docs/local-testing.md)                                          |
+| Invite teammates or help them recover account access                       | [Pilot onboarding](docs/pilot-onboarding.md)                                    |
+| Manage role access, member departures, and user archiving                  | [Permissions](docs/permissions.md) and [member handoff](docs/member-handoff.md) |
+| Recover from an accidental project archive                                 | [Project archive recovery](docs/project-archive-recovery.md)                    |
 
-Frontend:
+The default Docker quick start uses the development profile and accepts local signups. Use the HTTPS rehearsal to try invite-only onboarding. For different users, use separate browser profiles or devices.
+
+## Repository structure
+
+- `frontend/src/features` holds the React and TypeScript modules. Shared controls and query behavior live in `frontend/src/components` and `frontend/src/common`.
+- `backend/src/main/java/com/example/task_manager` contains the Spring Boot API, organized by application module.
+- `backend/src/main/resources/db/migration` contains the Flyway migrations for PostgreSQL.
+- `deploy` contains the optional local launchers and recovery scripts.
+
+## Verify changes
+
+Use Node.js 24.15+ for the frontend and a JDK 21 or newer for the backend. The backend integration tests require Docker and start disposable PostgreSQL containers.
+
+From `frontend`:
 
 ```text
-http://localhost:5173
-```
-
-Backend:
-
-```text
-http://localhost:8080
-```
-
-Health Endpoint:
-
-```text
-http://localhost:8080/actuator/health
-```
-
----
-
-## Verification
-
-Frontend checks use Node.js 24.15+ (24 LTS), matching CI and Docker. Use `npm ci` to reproduce the lockfile.
-
-```powershell
-cd frontend
 npm ci
 npm run format:check
-npm test
 npm run lint -- --max-warnings 0
+npm test
 npm run build
 ```
 
-Backend checks require a JDK supporting Java 21 and a running Docker engine:
+From `backend`, run `./mvnw.cmd -B -ntp verify` on Windows or `bash ./mvnw -B -ntp verify` on Linux or macOS. CI also builds both Docker images. To apply formatting, run `npm run format` in the frontend or `spotless:apply` with the Maven wrapper in the backend.
 
-```powershell
-cd backend
-.\mvnw.cmd -B -ntp verify
-```
-
-On Linux/macOS, use `bash ./mvnw -B -ntp verify`. Set `JAVA_HOME` to your JDK if needed.
-
-Application integration tests use a Spring-managed, disposable PostgreSQL 17 container and the `test` profile. Flyway creates the schema and Hibernate validates it. Dedicated migration tests also use their own disposable PostgreSQL 17 container and isolated databases, including real production-profile startup and an HTTP health check. They do not use the development database, local `.env`, or real bootstrap credentials. Docker must be available; integration tests fail rather than silently skip when it is missing.
-
-CI runs backend verification, frontend tests, strict lint, production compilation, and Docker image builds. See [Phase 1 notes](docs/phase-1.md), [Phase 2A notes](docs/phase-2a.md), [Phase 2B access fixes](docs/phase-2b-membership-access.md), [Phase 2C permissions](docs/phase-2c-permissions.md), [Phase 2D archiving](docs/phase-2d-archiving.md), [Phase 2E sessions](docs/phase-2e-sessions.md), [Phase 2F membership batches](docs/phase-2f-membership-batches.md), [Phase 2G task flows](docs/phase-2g-task-flows.md), [Phase 2H part 1 cache consistency](docs/phase-2h-1-cache-consistency.md), [Phase 2H part 2 user editing/privacy](docs/phase-2h-2-user-editing-and-privacy.md), [Phase 2H part 3 sessions/feedback](docs/phase-2h-3-sessions-and-feedback.md), [Phase 2I part 1 notification inbox](docs/phase-2i-1-notification-inbox.md), [Phase 2I part 2 activity/navigation](docs/phase-2i-2-activity-and-navigation.md), the [Phase 2I part 3 measured baseline](docs/phase-2i-3-performance-baseline.md), [Phase 2I part 3 performance fixes](docs/phase-2i-3-performance.md), [Phase 2J part 1 shared task view](docs/phase-2j-1-task-view-structure.md), [Phase 2J part 2 creation forms](docs/phase-2j-2-creation-forms.md), [Phase 2J part 3 password-reset/directory fixes](docs/phase-2j-3a-user-directory.md), [Phase 2J part 3 mobile/keyboard navigation](docs/phase-2j-3b-workspace-navigation.md), [Phase 2J part 3 comment/log feedback](docs/phase-2j-3c-comment-log-feedback.md), [Phase 2J part 3 edit/ownership dialogs](docs/phase-2j-3d-edit-ownership-dialogs.md), [Phase 2J part 3 member batch dialogs](docs/phase-2j-3e-member-batches.md), [Phase 2J part 3 account/authentication feedback](docs/phase-2j-3f-account-feedback.md), and [Phase 2J part 3 root crash recovery](docs/phase-2j-3g-crash-recovery.md) for scope and remaining work. See the [production readiness roadmap](docs/production-readiness-roadmap.md) and approved [v1 completion checklist](docs/v1-completion-checklist.md) for remaining scope, decisions and completion criteria. [Checkpoint 1 profile navigation](docs/checkpoint-1-profile-navigation.md) is committed as `f1a53b0`; [checkpoint 2 log contracts](docs/checkpoint-2-log-contracts.md) is committed as `b414860`. [Checkpoint 3 single-member actions](docs/checkpoint-3-single-member-actions.md) is committed as `f591667`; [checkpoint 4 labels, scrolling and contrast](docs/checkpoint-4-accessibility.md) is committed as `a88f461`. [Checkpoint 5 UI close-out](docs/checkpoint-5-ui-closeout.md) is user-committed as `187d103`. [Checkpoint 6 database migrations](docs/checkpoint-6-database-migrations.md) is user-committed as `b764366`. [Checkpoint 7 local preparation](docs/checkpoint-7-local-rehearsal.md) is user-committed as `055e0f8`; checkpoint 7 remains open for hosting-specific acceptance. Phase 2J is complete; two release-readiness checkpoints remain before production sign-off. Existing local database cutover remains a separate explicit action.
-
-The user approved a separate [task-board status-movement follow-up](docs/task-board-status-movement.md) after the interaction review: confirmed drop animation, valid targets, stable save/retry feedback, keyboard column movement and reduced-motion support. It preserves selected sorting and existing workflow/permissions. This does not add a ninth checkpoint or close release checkpoints 7–8. Wider design/flow findings await the user's next choice.
-
-The approved [mobile navigation and creation-controls follow-up](docs/mobile-navigation-and-creation.md) fixes narrow-screen navbar overlap, standardizes entity-specific creation actions and touch targets, and aligns the global menu with existing archived/read-only rules. The existing eight-checkpoint release plan and pending checkpoints 7–8 remain unchanged.
-
----
-
-## Code Formatting
-
-Prettier formats frontend code, styles, documentation, and supported configuration files. Google Java Format through Spotless formats Java; Spotless also formats `backend/pom.xml`. CI checks both without rewriting files.
-
-```powershell
-cd frontend
-npm run format
-npm run format:check
-```
-
-```powershell
-cd backend
-.\mvnw.cmd -B -ntp spotless:apply
-.\mvnw.cmd -B -ntp spotless:check
-```
-
-Use `bash ./mvnw` on Linux/macOS. `verify` also checks backend formatting before compilation. Keep Docker running for backend integration tests.
-
-Change `.prettierrc.json` for frontend formatting preferences, `.prettierignore` for exclusions, and `backend/pom.xml` for the Java formatter version/style. Google Java Format intentionally has few style options. `.editorconfig` and `.gitattributes` keep indentation and line endings consistent across editors and operating systems. Prettier is pinned exactly and the lockfile fixes all frontend package resolutions.
-
----
-
-## CI/CD
-
-GitHub Actions automatically:
-
-- Builds the backend
-- Builds the frontend
-- Validates Docker images
-- Verifies application compilation
-
----
-
-## Screenshots
-
-Screenshots will be added as the application UI continues to evolve.
-
----
-
-## Future Improvements
-
-- File attachments
-- Email notifications
-- Real-time updates
-- Dashboard analytics improvements
-- Production cloud deployment
-- Monitoring and observability
-
----
-
-## License
-
-MIT License
+See [what changed in v2.0.0](CHANGELOG.md). Team Task Manager is licensed under [MIT](LICENSE).

@@ -9,7 +9,7 @@ Use this procedure when someone leaves a team or needs their account deactivated
 3. Open each affected task and choose a current member as assignee or support. Clear optional support if the task no longer needs it. Leave completed and cancelled work as history.
 4. Remove the person from **Members** and verify they disappear from the team directory. If access needs to end immediately, remove the membership as soon as ownership is handled and finish reassignment afterward. The project Assignee filter can still find a former member's assignments while they remain on visible tasks.
 
-Team owners can remove team admins or regular members. Team admins can remove regular members. [Team governance rules](phase-2c-permissions.md)
+Team owners can remove team admins or regular members. Team admins can remove regular members. [Team governance rules](permissions.md)
 
 ## Archive a whole account
 

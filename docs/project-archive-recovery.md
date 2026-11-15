@@ -19,7 +19,7 @@ The rehearsal verified recovery into an isolated copy. A hosted cutover still re
 
 ## Local rehearsal commands
 
-Use a disposable `Dev` environment named `archive-rehearsal` created with the [local rehearsal launcher](checkpoint-7-local-rehearsal.md). Create a project with an active task and a separately archived task before taking the backup.
+Use a disposable `Dev` environment named `archive-rehearsal` created with the [local rehearsal launcher](local-testing.md). Create a project with an active task and a separately archived task before taking the backup.
 
 ```powershell
 pwsh -File ./deploy/local/local.ps1 -Action Backup -Name archive-rehearsal
