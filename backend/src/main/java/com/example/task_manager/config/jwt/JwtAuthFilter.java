@@ -2,16 +2,18 @@ package com.example.task_manager.config.jwt;
 
 import com.example.task_manager.auth.RefreshTokenService;
 import com.example.task_manager.config.security.CustomUserDetailsService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -59,37 +61,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       return;
     }
 
+    JwtService.AccessTokenClaims claims;
     try {
-      var claims = jwtService.parseAccessToken(token);
-      String email = claims.email();
-
-      if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-        if (userDetails.isEnabled()
-            && claims.matches(userDetails)
-            && refreshTokenService.isSessionActive(claims.sessionId(), claims.userId())) {
-          UsernamePasswordAuthenticationToken authToken =
-              new UsernamePasswordAuthenticationToken(
-                  userDetails, null, userDetails.getAuthorities());
-
-          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-          SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-      }
-
-    } catch (AuthenticationException ex) {
-      SecurityContextHolder.clearContext();
-      authenticationEntryPoint.commence(request, response, ex);
-      return;
-    } catch (RuntimeException ex) {
+      claims = jwtService.parseAccessToken(token);
+    } catch (JwtException | IllegalArgumentException ex) {
       SecurityContextHolder.clearContext();
       authenticationEntryPoint.commence(
-          request,
-          response,
-          new org.springframework.security.authentication.BadCredentialsException(
-              "Invalid or expired bearer token", ex));
+          request, response, new BadCredentialsException("Invalid or expired bearer token", ex));
       return;
+    }
+
+    if (SecurityContextHolder.getContext().getAuthentication() == null) {
+      UserDetails userDetails;
+      try {
+        userDetails = userDetailsService.loadUserByUsername(claims.email());
+      } catch (UsernameNotFoundException ex) {
+        SecurityContextHolder.clearContext();
+        authenticationEntryPoint.commence(request, response, ex);
+        return;
+      }
+
+      if (userDetails.isEnabled()
+          && claims.matches(userDetails)
+          && refreshTokenService.isSessionActive(claims.sessionId(), claims.userId())) {
+        UsernamePasswordAuthenticationToken authToken =
+            new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+      }
     }
     filterChain.doFilter(request, response);
   }

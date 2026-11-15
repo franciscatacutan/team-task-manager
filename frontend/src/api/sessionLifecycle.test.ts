@@ -71,6 +71,25 @@ afterEach(() => {
 });
 
 describe("authentication request lifecycle", () => {
+  it("leaves a failed save to the caller without refreshing, retrying, or signing out", async () => {
+    authStorage.setToken("current");
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      throw new AxiosError(
+        "Server error",
+        "ERR_BAD_RESPONSE",
+        config,
+        undefined,
+        response(config, { status: 500 }, 500),
+      );
+    });
+
+    await expect(
+      apiClient.post("/teams/example/projects", { name: "Draft" }),
+    ).rejects.toMatchObject({ response: { status: 500 } });
+    expect(adapter).toHaveBeenCalledTimes(1);
+    expect(authStorage.getToken()).toBe("current");
+  });
+
   it("sends the current bearer on logout and keeps HttpOnly cookie credentials enabled", async () => {
     authStorage.setToken("current");
     adapter.mockImplementation(async (config) =>

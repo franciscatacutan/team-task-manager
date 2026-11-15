@@ -7,10 +7,11 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest(
-    classes = TeamTaskManagerApplication.class,
+@SpringBootTest(classes = TeamTaskManagerApplication.class)
+@TestPropertySource(
     properties = {
       "auth.jwt.secret=phase-one-test-only-secret-at-least-thirty-two-bytes-long",
       "auth.jwt.issuer=team-task-manager-tests",

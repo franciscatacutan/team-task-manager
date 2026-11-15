@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -103,6 +104,8 @@ public class AuthService {
           refreshTokenService.createSession(user, ipAddress, userAgent);
       return new AuthSession(
           buildAuthResponse(user, refreshTokenSession.familyId()), refreshTokenSession.token());
+    } catch (AuthenticationServiceException ex) {
+      throw ex;
     } catch (AuthenticationException ex) {
       throw new AuthException();
     }

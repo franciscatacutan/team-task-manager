@@ -6,18 +6,21 @@ import com.example.task_manager.exception.api.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /** Global exception handler for the application. */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   private ResponseEntity<ErrorResponse> build(
@@ -48,6 +51,17 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleApiException(
       ApiException ex, HttpServletRequest request) {
     return build(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(AuthenticationServiceException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationServiceFailure(
+      AuthenticationServiceException ex, HttpServletRequest request) {
+    log.error("Authentication service failed", ex);
+    return build(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        "Unable to complete the request. Please try again.",
+        request);
   }
 
   /** Handles authentication exceptions. */
