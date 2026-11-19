@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import QueryFailure from "../QueryFailure";
 import { CalendarDays, Search } from "lucide-react";
 import { useMemo } from "react";
@@ -100,7 +101,7 @@ function groupActivity(items: ActivityRecord[], groupBy: ActivityFeedGroupBy) {
     { key: string; label: string; items: ActivityRecord[] }
   >();
   for (const item of items) {
-    let label = new Date(item.createdAt).toDateString();
+    let label = format(new Date(item.createdAt), "yyyy-MM-dd");
     let key = label;
     if (groupBy === "project") {
       label =

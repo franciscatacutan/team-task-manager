@@ -213,3 +213,32 @@ it("expands long text without accidentally opening its task, while the row suppo
   fireEvent.keyDown(container.querySelector("article")!, { key: "Enter" });
   expect(onOpenTask).toHaveBeenCalledOnce();
 });
+
+it("groups timestamps by local calendar day with readable date headings", () => {
+  const earlier = new Date(2026, 10, 19, 23, 55);
+  const later = new Date(2026, 10, 20, 0, 5);
+  feed(
+    [
+      { ...item, id: "later", createdAt: later.toISOString() },
+      {
+        ...item,
+        id: "same-day",
+        createdAt: new Date(2026, 10, 20, 9).toISOString(),
+      },
+      { ...item, id: "earlier", createdAt: earlier.toISOString() },
+    ],
+    "date",
+  );
+  const label = (date: Date) =>
+    date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  expect(
+    screen
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent),
+  ).toEqual([label(later), label(earlier)]);
+  expect(screen.queryByText(/invalid date/i)).not.toBeInTheDocument();
+});
